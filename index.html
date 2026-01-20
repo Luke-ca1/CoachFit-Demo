@@ -352,38 +352,25 @@ function warningsBadgeHTML(n){
   return `<span class="tag attn">⚠ ${n} warning${n===1?"":"s"}</span>`;
 }
 
-/** ========= Client-facing explanation ========= */
 function explainWhyThisPlan(state, client){
   const lines = [];
   const g = client.genetics || {};
   const gp = g.performance || {};
   const gn = g.nutrition || {};
-  const t = client.macroTargets?.training || {};
 
-  if (gn.carbTolerance === "High") {
-    lines.push("Carbohydrates are emphasized because you tend to tolerate carbs well and use them efficiently for training.");
-  }
-  if (gn.carbTolerance === "Low") {
-    lines.push("Carbohydrates are moderated because your profile suggests lower carb tolerance.");
-  }
-  if (gn.fatTolerance === "Low") {
-    lines.push("Dietary fats are kept controlled due to lower fat tolerance.");
-  }
-  if (gn.proteinRequirement === "High") {
-    lines.push("Protein intake is set higher to support recovery and muscle maintenance.");
-  }
-  if (gp.recoverySpeed === "Slow") {
-    lines.push("Training volume and recovery are managed carefully due to slower recovery characteristics.");
-  }
-  if (gp.fastTwitchBias === "High") {
-    lines.push("Training prioritizes strength and power outputs that align with your muscle fiber profile.");
-  }
+  // Nutrition reasoning
+  if (gn.carbTolerance === "High") lines.push("Carbohydrates are emphasized because you tend to tolerate carbs well and they support training output.");
+  if (gn.carbTolerance === "Low") lines.push("Carbohydrates are moderated because your profile suggests lower carb tolerance.");
+  if (gn.fatTolerance === "Low") lines.push("Dietary fats are kept controlled due to lower fat tolerance.");
+  if (gn.proteinRequirement === "High") lines.push("Protein intake is set higher to support recovery and muscle maintenance.");
 
-  if (!lines.length) {
-    lines.push("Your plan is built around your goals, current training status, and ongoing progress.");
-  }
+  // Training/recovery reasoning
+  if (gp.recoverySpeed === "Slow") lines.push("Training load and recovery are managed carefully due to slower recovery characteristics.");
+  if (gp.fastTwitchBias === "High") lines.push("Training includes strength/power emphasis that aligns with your muscle fiber profile.");
 
-  lines.push("These decisions are based on trends and predispositions, not fixed limitations, and will adapt as your progress changes.");
+  if (!lines.length) lines.push("Your plan is built around your goals, current training status, and ongoing progress.");
+
+  lines.push("These decisions are based on tendencies and trends, not fixed limitations, and will adapt as your progress changes.");
   return lines;
 }
 
@@ -907,43 +894,58 @@ function viewCoach(state){
   `);
 
   const right = el(`
-    <div class="card">
-      <h2>Diet plan (optional)</h2>
-      <p class="muted">${activePlan ? activePlan.name : "No plan selected."}</p>
-      <div id="tplArea"></div>
-
-      <hr class="hr">
-
-      <h2>🧬 Genetic insights</h2>
-      <div class="card" style="border-radius:12px;">
-        <b>Training</b>
-        <div class="row" style="margin-top:6px;">
-          <span class="tag">${client.genetics?.performance?.fastTwitchBias || "Not assessed"}</span>
-          <span class="tag">${client.genetics?.performance?.recoverySpeed || "Not assessed"} recovery</span>
+    <div class="row" style="flex-direction:column;gap:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <div class="tabs">
+          <button class="tab active" data-tab="today">Today</button>
+          <button class="tab" data-tab="week">Rolling 7 days</button>
         </div>
-        <div class="muted" style="margin-top:6px;">Injury risk: ${(client.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
-        <hr class="hr">
-        <b>Nutrition</b>
-        <div class="row" style="margin-top:6px;">
-          <span class="tag">Carbs: ${client.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
-          <span class="tag">Fat: ${client.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
-          <span class="tag">Protein: ${client.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
-        </div>
-        <div class="hint" style="margin-top:8px;">Genetics indicate predisposition, not prescription.</div>
+        <div class="muted">Click a row to select.</div>
       </div>
 
-      <hr class="hr">
-
-      <h2>🤔 Why this plan?</h2>
-      <div class="card" style="border-radius:12px;">
-        ${explainWhyThisPlan(state, client).map(l=>`<div class="muted">• ${l}</div>`).join("")}
+      <div class="card" id="todayCard">
+        <h2>Today (${todayISO()})</h2>
+        <p class="muted">Notes column + Alerts-only filter. Use “Sim sync” as Garmin placeholder.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Genetics</th>
+                <th>Status</th>
+                <th>Sleep</th>
+                <th>RHR</th>
+                <th>Stress</th>
+                <th>Steps</th>
+                <th>Workout</th>
+                <th>Nutrition %</th>
+                <th>Weight</th>
+                <th>Waist</th>
+                <th>Notes</th>
+                <th>Flags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyToday"></tbody>
+          </table>
+        </div>
       </div>
 
-      <hr class="hr">
-
-      <h2>Workout logging</h2>
-      <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
-      <div id="wArea"></div>
+      <div class="card" id="weekCard" style="display:none;">
+        <h2>Rolling 7 days (${selected.name})</h2>
+        <p class="muted">Weekly averages include weight + waist if logged.</p>
+        <div id="weekKPIs"></div>
+        <div class="tablewrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Steps</th><th>Workout</th><th>Nutrition %</th><th>Weight</th><th>Waist</th><th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyWeek"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   `);
 
@@ -1301,16 +1303,18 @@ function viewClient(state){
   const right = el(`
     <div class="card">
       <h2>Diet plan (optional)</h2>
-      <p class="muted">${activePlan ? activePlan.name : "No plan selected."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
+      <p class="muted">${activePlan ? activePlan.name : "No plan assigned yet."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
       <div id="tplArea"></div>
 
       <hr class="hr">
 
       <h2>🧬 Genetic insights</h2>
-      ${((client.genetics?.performance?.fastTwitchBias || "Not assessed") === "Not assessed"
-        && (client.genetics?.nutrition?.carbTolerance || "Not assessed") === "Not assessed")
-          ? '<div class="row"><span class="tag attn">Genetics not assessed</span></div>'
+      <div class="row">
+        ${((client.genetics?.performance?.fastTwitchBias || "Not assessed") === "Not assessed" &&
+           (client.genetics?.nutrition?.carbTolerance || "Not assessed") === "Not assessed")
+          ? '<span class="tag attn">Genetics not assessed</span>'
           : ''}
+      </div>
       <div class="card" style="border-radius:12px;">
         <b>Training</b>
         <div class="row" style="margin-top:6px;">
@@ -1318,7 +1322,7 @@ function viewClient(state){
           <span class="tag">${client.genetics?.performance?.recoverySpeed || "Not assessed"} recovery</span>
         </div>
         <div class="muted" style="margin-top:6px;">Injury risk: ${(client.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
-        ${client.genetics?.performance?.notes ? `<div class="muted" style="margin-top:6px;">${client.genetics.performance.notes}</div>` : ""}
+        ${client.genetics?.performance?.notes ? '<div class="muted" style="margin-top:6px;">' + client.genetics.performance.notes + '</div>' : ""}
         <hr class="hr">
         <b>Nutrition</b>
         <div class="row" style="margin-top:6px;">
@@ -1326,7 +1330,7 @@ function viewClient(state){
           <span class="tag">Fat: ${client.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
           <span class="tag">Protein: ${client.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
         </div>
-        ${client.genetics?.nutrition?.notes ? `<div class="muted" style="margin-top:6px;">${client.genetics.nutrition.notes}</div>` : ""}
+        ${client.genetics?.nutrition?.notes ? '<div class="muted" style="margin-top:6px;">' + client.genetics.nutrition.notes + '</div>' : ""}
         <div class="hint" style="margin-top:8px;">Genetics indicate predisposition, not prescription.</div>
       </div>
 
@@ -1336,14 +1340,6 @@ function viewClient(state){
       <div class="card" style="border-radius:12px;">
         ${explainWhyThisPlan(state, client).map(l=>`<div class="muted">• ${l}</div>`).join("")}
       </div>
-
-      <hr class="hr">
-
-      <h2>Workout logging</h2>
-      <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
-      <div id="wArea"></div>
-    </div>
-  `);
 
       <hr class="hr">
 
