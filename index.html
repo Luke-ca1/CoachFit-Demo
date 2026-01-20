@@ -1277,6 +1277,52 @@ function viewCoach(state){
 }
 
 /** ========= Client view ========= */
+
+function initSessionUI(state, client, root){
+  const btnMount = root.querySelector("#sessionBtns");
+  const hint = root.querySelector("#sessionHint");
+  const recTag = root.querySelector("#recSessionTag");
+  const useRec = root.querySelector("#useRecLink");
+
+  if (!btnMount || !hint || !recTag) return;
+
+  const recId = getRecommendedTemplateId(state);
+  const rec = recId==="rest" ? null : getTemplateById(state, recId);
+  recTag.textContent = rec ? rec.name : "Rest day";
+  if (useRec) {
+    useRec.style.display = (rec ? "inline" : "none");
+    useRec.onclick = (ev) => {
+      ev.preventDefault?.();
+      if (!rec) return;
+      state.ui.selectedWorkoutTemplateId = rec.id;
+      const t = getSelectedWorkoutTemplate(state);
+      if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
+      save(state);
+      render();
+    };
+  }
+
+  btnMount.innerHTML = (state.workoutTemplates||[]).map(t=>{
+    const active = (state.ui.selectedWorkoutTemplateId===t.id);
+    return `<button class="small" data-wtpl="${t.id}" style="border-radius:999px;${active?"border:2px solid #111;":""}">${t.name}</button>`;
+  }).join("");
+
+  const sel = getSelectedWorkoutTemplate(state);
+  hint.textContent = sel ? ("Exercises: " + (sel.exercises||[]).slice(0,8).join(", ") + ((sel.exercises||[]).length>8 ? "…" : "")) : "";
+
+  btnMount.querySelectorAll("[data-wtpl]").forEach(b=>{
+    b.onclick = (ev) => {
+      ev.preventDefault?.();
+      const id = b.getAttribute("data-wtpl");
+      state.ui.selectedWorkoutTemplateId = id;
+      const t = getSelectedWorkoutTemplate(state);
+      if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
+      save(state);
+      render();
+    };
+  });
+}
+
 function viewClient(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -1393,7 +1439,26 @@ function viewClient(state){
 
       <hr class="hr">
 
-      <h2>Workout logging</h2>
+      
+      <hr class="hr">
+
+      <h2>🏋️ Session selection</h2>
+      <div class="card" style="border-radius:12px;">
+        <b>Today's recommended session</b>
+        <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span class="tag" id="recSessionTag">—</span>
+          <a href="#" class="hint" id="useRecLink" style="text-decoration:none;">Use recommended</a>
+        </div>
+        <div class="muted" style="margin-top:8px;">Pick the session you are doing today.</div>
+
+        <hr class="hr">
+
+        <b>Select today’s session</b>
+        <div class="row" id="sessionBtns" style="margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
+        <div class="hint" id="sessionHint" style="margin-top:8px;"></div>
+      </div>
+
+<h2>Workout logging</h2>
       <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
       <div id="wArea"></div>
     </div>
