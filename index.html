@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoachFit Functional Demo (Web)</title>
+  <title>CoachFit Demo (Pitch-Ready)</title>
   <style>
     :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111;line-height:1.35}
     body{margin:0}
-    header{background:#fff;border-bottom:1px solid #e6e8ef}
-    .bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .brand{font-weight:800}
+    header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
+    .bar{max-width:1120px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{font-weight:900;letter-spacing:.2px}
     .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
-    main{max-width:1100px;margin:0 auto;padding:16px}
+    main{max-width:1120px;margin:0 auto;padding:16px}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:900px){.grid{grid-template-columns:340px 1fr}}
+    @media(min-width:980px){.grid{grid-template-columns:360px 1fr}}
     .card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-    h2,h3{margin:0 0 10px 0}
+    h1,h2,h3{margin:0 0 10px 0}
+    h1{font-size:24px}
     h2{font-size:18px}
     h3{font-size:14px;color:#333}
     label{display:block;font-size:12px;color:#444;margin-top:8px}
@@ -24,35 +25,48 @@
     button{padding:10px 12px;border:1px solid #d9dbe3;border-radius:12px;background:#fff;cursor:pointer}
     button.primary{background:#111;color:#fff;border-color:#111}
     button.small{padding:6px 10px;border-radius:10px;font-size:12px}
+    button.danger{background:#fff0f0;border-color:#ffc2c2}
     .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff;cursor:pointer;font-size:13px}
     .tab.active{background:#111;color:#fff;border-color:#111}
     .muted{color:#666;font-size:13px}
     .tablewrap{overflow:auto;border:1px solid #e6e8ef;border-radius:12px}
-    table{border-collapse:collapse;width:100%;min-width:980px;background:#fff}
+    table{border-collapse:collapse;width:100%;min-width:1060px;background:#fff}
     th,td{padding:10px;border-bottom:1px solid #eef0f6;text-align:left;font-size:13px;vertical-align:top}
     th{font-size:12px;color:#555;background:#fafbff;position:sticky;top:0}
     .kpi{display:flex;gap:10px;flex-wrap:wrap}
     .kpi .box{border:1px solid #e6e8ef;border-radius:12px;padding:10px;background:#fafbff}
-    .right{margin-left:auto}
     .tag{display:inline-block;font-size:11px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fff;margin:2px 4px 0 0}
     .split{display:grid;grid-template-columns:1fr;gap:10px}
-    @media(min-width:900px){.split{grid-template-columns:1fr 1fr}}
+    @media(min-width:980px){.split{grid-template-columns:1fr 1fr}}
     .warn{background:#fff8e6;border:1px solid #ffe2a3}
     .ok{background:#eefbf1;border:1px solid #bfe9c8}
-    .danger{background:#fff0f0;border:1px solid #ffc2c2}
-    a{color:inherit}
+    .dangerCard{background:#fff0f0;border:1px solid #ffc2c2}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .nav a{font-size:13px;color:#111;text-decoration:none;padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff}
+    .nav a.active{background:#111;color:#fff;border-color:#111}
+    .right{margin-left:auto}
+    .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
   </style>
 </head>
 <body>
 <header>
   <div class="bar">
     <div class="row">
-      <div class="brand">CoachFit Demo</div>
-      <span class="pill">functional web demo</span>
+      <div class="brand">CoachFit</div>
+      <span class="pill">Pitch Demo</span>
       <span class="pill" id="envPill">local</span>
     </div>
+
+    <div class="nav" id="topNav" style="display:none;">
+      <a href="#" data-nav="landing">Landing</a>
+      <a href="#" data-nav="pricing">Pricing</a>
+      <a href="#" data-nav="coach">Coach</a>
+      <a href="#" data-nav="client">Client</a>
+      <a href="#" data-nav="messages">Messages</a>
+    </div>
+
     <div class="row">
       <span class="muted" id="whoami"></span>
       <button class="small" id="logoutBtn" style="display:none;">Log out</button>
@@ -66,16 +80,19 @@
 
 <script>
 /**
- * CoachFit functional demo (single-file)
+ * CoachFit Pitch Demo (single-file, static)
+ * - Landing + Pricing screens
  * - Demo auth (localStorage)
- * - Coach dashboard Today + Rolling 7 days
+ * - Multi-client coach dashboard + client management
+ * - Coach Today + Rolling 7 days
  * - Nutrition targets-first + templates
  * - Workout logging (sets/reps/weight)
  * - Messaging
- * - Garmin simulator to populate daily metrics
+ * - Garmin simulator per-client
+ * - Export Today table to CSV
  */
 
-const LS_KEY = "coachfit_demo_v1";
+const LS_KEY = "coachfit_demo_pitch_v2";
 const todayISO = () => new Date().toISOString().slice(0,10);
 const addDays = (iso, delta) => {
   const d = new Date(iso + "T00:00:00");
@@ -84,6 +101,17 @@ const addDays = (iso, delta) => {
 };
 const fmt = (n) => (n === null || n === undefined || n === "" ? "—" : n);
 const rand = (min,max)=>Math.round(min + Math.random()*(max-min));
+
+function el(html){
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+}
+
+function setEnvPill(){
+  const host = location.host || "";
+  document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
+}
 
 function load() {
   const raw = localStorage.getItem(LS_KEY);
@@ -94,44 +122,62 @@ function load() {
 }
 function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
-function seedData(){
+/** Seed demo data */
+function seedClient(id, name, email, notes, constraints){
   const t = todayISO();
-  const clients = [
-    { id:"c1", name:"Luke (Client)", email:"client@demo.com", role:"client", coachId:"u1",
-      profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints:["coeliac"], notes:"Back/knee/hip history" },
-      macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
-      assignedTemplateId:"mt1"
-    }
-  ];
-  const users = [
-    { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
-    { id:"c1", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo" },
-  ];
-  const mealTemplates = [
-    { id:"mt1", name:"GF High-Protein Training Day", tags:["gluten_free","high_protein"], meals:[
-      { slot:"Breakfast", items:[{food:"Eggs (2)", kcal:140,p:12,c:1,f:10},{food:"Greek yogurt (200g)",kcal:140,p:20,c:8,f:0}] },
-      { slot:"Lunch", items:[{food:"Chicken breast (180g)",kcal:300,p:55,c:0,f:6},{food:"Rice (250g cooked)",kcal:325,p:6,c:70,f:1}] },
-      { slot:"Dinner", items:[{food:"Salmon (180g)",kcal:360,p:38,c:0,f:22},{food:"Potato (300g)",kcal:260,p:7,c:60,f:0}] },
-      { slot:"Snack", items:[{food:"Whey isolate (1 scoop)",kcal:110,p:25,c:1,f:1}] },
-    ]}
-  ];
   const daily = {};
-  for (let i=0;i<8;i++){
+  for (let i=0;i<10;i++){
     const date = addDays(t, -i);
     daily[date] = {
-      steps: rand(6500, 11000),
+      steps: rand(6500, 12000),
       sleepHrs: rand(6,8),
-      rhr: rand(52,62),
-      stressAvg: rand(20,40),
-      bodyBatteryStart: rand(70,95),
-      bodyBatteryEnd: rand(20,55),
-      activeCals: rand(300,800),
+      rhr: rand(50,64),
+      stressAvg: rand(18,42),
+      bodyBatteryStart: rand(70,96),
+      bodyBatteryEnd: rand(15,58),
+      activeCals: rand(250, 900),
       workoutDone: i%2===0,
       workoutMins: i%2===0 ? 45 : 0,
       nutritionCompliancePct: i%3===0 ? 90 : 75,
       selfReport:{ soreness: rand(2,6), mood: rand(6,9), energy: rand(6,9), digestion: rand(3,8) }
     };
   }
+  return {
+    id, name, email, role:"client", coachId:"u1",
+    profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints: constraints || [], notes: notes || "" },
+    macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
+    assignedTemplateId:"mt1",
+    daily
+  };
+}
+
+function seedData(){
+  const clients = [
+    seedClient("c1","Luke (Client)","client@demo.com","Back/knee/hip history",["coeliac"]),
+    seedClient("c2","Ava (Client)","ava@demo.com","Running focus; sleep inconsistent",["dairy_free"]),
+    seedClient("c3","Noah (Client)","noah@demo.com","Strength + body comp; high stress week",[])
+  ];
+
+  const users = [
+    { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
+    { id:"c1", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" }
+  ];
+
+  const mealTemplates = [
+    { id:"mt1", name:"GF High-Protein Training Day", tags:["gluten_free","high_protein"], meals:[
+      { slot:"Breakfast", items:[{food:"Eggs (2)", kcal:140,p:12,c:1,f:10},{food:"Greek yogurt (200g)",kcal:140,p:20,c:8,f:0}] },
+      { slot:"Lunch", items:[{food:"Chicken breast (180g)",kcal:300,p:55,c:0,f:6},{food:"Rice (250g cooked)",kcal:325,p:6,c:70,f:1}] },
+      { slot:"Dinner", items:[{food:"Salmon (180g)",kcal:360,p:38,c:0,f:22},{food:"Potato (300g)",kcal:260,p:7,c:60,f:0}] },
+      { slot:"Snack", items:[{food:"Whey isolate (1 scoop)",kcal:110,p:25,c:1,f:1}] },
+    ]},
+    { id:"mt2", name:"Simple Fat-Loss Template", tags:["high_fibre"], meals:[
+      { slot:"Breakfast", items:[{food:"Oats (60g)",kcal:230,p:8,c:40,f:4},{food:"Whey (1 scoop)",kcal:110,p:25,c:1,f:1}] },
+      { slot:"Lunch", items:[{food:"Lean mince (180g)",kcal:330,p:40,c:0,f:18},{food:"Salad + olive oil",kcal:200,p:2,c:10,f:18}] },
+      { slot:"Dinner", items:[{food:"White fish (200g)",kcal:220,p:44,c:0,f:2},{food:"Veg + rice (200g cooked)",kcal:260,p:5,c:55,f:1}] },
+      { slot:"Snack", items:[{food:"Fruit + nuts",kcal:220,p:4,c:22,f:12}] },
+    ]}
+  ];
+
   const workoutPlan = [
     { day:"Mon", name:"Upper A", exercises:["Bench Press","Row","Incline DB","Lateral Raise"] },
     { day:"Tue", name:"Lower A", exercises:["Squat","RDL","Split Squat","Calf Raise"] },
@@ -139,42 +185,141 @@ function seedData(){
     { day:"Thu", name:"Lower B", exercises:["Deadlift","Leg Press","Ham Curl","Core"] },
     { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
   ];
-  const workoutLogs = {}; // date -> {exercise -> sets[]}
+
+  const workoutLogs = {}; // date -> clientId -> {exercise -> sets[]}
+
   const messages = [
     { id:"m1", from:"u1", to:"c1", at:new Date().toISOString(), text:"Welcome! Log today’s workout + quick check-in." }
   ];
-  return { users, clients, mealTemplates, daily, workoutPlan, workoutLogs, messages, session:null };
+
+  return {
+    users, clients, mealTemplates, workoutPlan, workoutLogs, messages,
+    session:null,
+    ui:{ view:"landing", selectedClientId:"c1" }
+  };
 }
 
-/** UI helpers */
-function el(html){
-  const t = document.createElement("template");
-  t.innerHTML = html.trim();
-  return t.content.firstChild;
-}
-function setEnvPill(){
-  const host = location.host || "";
-  document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
-}
+/** Session header + nav */
 function setHeaderSession(state){
   const who = document.getElementById("whoami");
   const btn = document.getElementById("logoutBtn");
-  if (!state.session){ who.textContent=""; btn.style.display="none"; return; }
+  const nav = document.getElementById("topNav");
+
+  if (!state.session){
+    who.textContent="";
+    btn.style.display="none";
+    nav.style.display="none";
+    return;
+  }
   const u = state.users.find(x=>x.id===state.session.userId);
   who.textContent = `${u.name} • ${u.role}`;
   btn.style.display="";
-  btn.onclick = () => { state.session=null; save(state); render(); };
+  nav.style.display="flex";
+  btn.onclick = () => { state.session=null; state.ui.view="landing"; save(state); render(); };
 }
 
-/** Auth */
+/** Utilities */
+function ensureClientToday(client){
+  const t = todayISO();
+  client.daily = client.daily || {};
+  if (!client.daily[t]) {
+    client.daily[t] = {
+      steps: rand(6500, 11000),
+      sleepHrs: rand(6,8),
+      rhr: rand(52,62),
+      stressAvg: rand(20,40),
+      bodyBatteryStart: rand(70,95),
+      bodyBatteryEnd: rand(20,55),
+      activeCals: rand(300,800),
+      workoutDone: false,
+      workoutMins: 0,
+      nutritionCompliancePct: 75,
+      selfReport:{ soreness: 4, mood: 7, energy: 7, digestion: 6 }
+    };
+  }
+}
+
+function flagRow(day){
+  const flags = [];
+  if (!day) return flags;
+  if (day.sleepHrs <= 6) flags.push("Low sleep");
+  if (day.stressAvg >= 38) flags.push("High stress");
+  if (day.steps <= 7000) flags.push("Low steps");
+  if (!day.workoutDone) flags.push("Missed workout");
+  return flags;
+}
+
+function compute7d(client){
+  const t = todayISO();
+  const days = [];
+  for (let i=0;i<7;i++){
+    const d = addDays(t, -i);
+    days.push({ date:d, ...(client.daily[d] || {}) });
+  }
+  const avg = (k)=> Math.round(days.reduce((s,x)=>s+(x?.[k]||0),0)/days.length);
+  return {
+    avgSleep: avg("sleepHrs"),
+    avgSteps: avg("steps"),
+    avgStress: avg("stressAvg"),
+    avgRHR: avg("rhr"),
+    avgCompliance: avg("nutritionCompliancePct"),
+    workouts: days.reduce((s,x)=>s+(x?.workoutDone?1:0),0),
+    days
+  };
+}
+
+function downloadText(filename, text){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"text/plain"}));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function exportTodayCSV(state){
+  const t = todayISO();
+  const header = [
+    "date","client","sleepHrs","rhr","stressAvg","bodyBatteryStart","bodyBatteryEnd","steps",
+    "workoutDone","workoutMins","kcalTarget","protein","carbs","fat",
+    "nutritionCompliancePct","soreness","mood","energy","digestion","flags"
+  ];
+  const rows = [header.join(",")];
+
+  state.clients.forEach(c=>{
+    ensureClientToday(c);
+    const d = c.daily[t];
+    const trg = c.macroTargets?.training || {kcal:"",p:"",c:"",f:""};
+    const flags = flagRow(d).join("|");
+    const line = [
+      t,
+      `"${c.name.replaceAll('"','""')}"`,
+      d.sleepHrs, d.rhr, d.stressAvg, d.bodyBatteryStart, d.bodyBatteryEnd, d.steps,
+      d.workoutDone ? "Yes":"No",
+      d.workoutMins,
+      trg.kcal, trg.p, trg.c, trg.f,
+      d.nutritionCompliancePct,
+      d.selfReport?.soreness ?? "",
+      d.selfReport?.mood ?? "",
+      d.selfReport?.energy ?? "",
+      d.selfReport?.digestion ?? "",
+      `"${flags.replaceAll('"','""')}"`
+    ];
+    rows.push(line.join(","));
+  });
+
+  downloadText(`coachfit-today-${t}.csv`, rows.join("\n"));
+}
+
+/** Views */
 function viewLogin(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
   root.appendChild(el(`
     <div class="grid">
       <div class="card">
-        <h2>Login (demo)</h2>
-        <p class="muted">Use one of these demo accounts:</p>
+        <h1>CoachFit</h1>
+        <p class="muted">Pitch-ready demo (static). Use demo accounts below.</p>
         <div class="row">
           <span class="tag">coach@demo.com / demo</span>
           <span class="tag">client@demo.com / demo</span>
@@ -186,287 +331,481 @@ function viewLogin(state){
         <div class="row" style="margin-top:10px;">
           <button class="primary" id="loginBtn">Login</button>
           <button id="resetBtn">Reset demo data</button>
+          <button id="gotoLandingBtn">View landing</button>
         </div>
-        <p class="muted" style="margin-top:10px;">This is a single-file demo using localStorage. Real deployments would use a backend + database + real Garmin + Stripe.</p>
+        <p class="muted" style="margin-top:10px;">Tip: after editing the file, use Reset demo data once so your browser state matches the new version.</p>
       </div>
+
       <div class="card">
-        <h2>What this demo includes</h2>
+        <h2>What you can demo</h2>
         <div class="row">
-          <span class="tag">Coach Today table</span>
-          <span class="tag">Rolling 7-day trends</span>
+          <span class="tag">Landing + pricing</span>
+          <span class="tag">Coach Today + 7-day</span>
+          <span class="tag">Multi-client list</span>
+          <span class="tag">Add/Edit clients</span>
           <span class="tag">Nutrition targets</span>
           <span class="tag">Meal templates</span>
           <span class="tag">Workout logging</span>
           <span class="tag">Messaging</span>
-          <span class="tag">Garmin simulator</span>
+          <span class="tag">CSV export</span>
         </div>
       </div>
     </div>
   `));
+
+  root.querySelector("#gotoLandingBtn").onclick = () => { state.ui.view="landing"; save(state); render(); };
+
   root.querySelector("#loginBtn").onclick = () => {
     const email = root.querySelector("#email").value.trim().toLowerCase();
     const pass = root.querySelector("#pass").value.trim();
     const user = state.users.find(u=>u.email===email && u.pass===pass);
     if (!user) return alert("Invalid demo credentials.");
     state.session = { userId:user.id };
+    // default view by role
+    state.ui.view = user.role==="coach" ? "coach" : "client";
+    if (user.role==="client") state.ui.selectedClientId = user.clientId || "c1";
     save(state);
     render();
   };
+
   root.querySelector("#resetBtn").onclick = () => {
     localStorage.removeItem(LS_KEY);
-    state = load();
     render();
   };
 }
 
-/** Coach dashboard */
-function coachClient(state){
-  const coachId = state.session.userId;
-  // For demo: coach sees Luke only
-  return state.clients[0];
+function viewLanding(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(el(`
+    <div class="card">
+      <h1>High-performance coaching, made scalable</h1>
+      <p class="muted">Clients get training + nutrition targets, log workouts, check in daily, and connect Garmin-style data — coaches get a Today table + 7-day trends for rapid decisions.</p>
+      <div class="row">
+        <span class="tag">Targets-first nutrition</span>
+        <span class="tag">Meal templates</span>
+        <span class="tag">Per-exercise logging</span>
+        <span class="tag">Messaging</span>
+        <span class="tag">Wearables (demo mode)</span>
+      </div>
+      <div class="split" style="margin-top:12px;">
+        <div class="card ok" style="border-radius:12px;margin:0;">
+          <h2>For clients</h2>
+          <div class="muted">Simple targets, clear plan, daily feedback loop.</div>
+          <ul class="muted">
+            <li>Today’s macro targets</li>
+            <li>Optional meal template</li>
+            <li>Workout logger (sets/reps/weight)</li>
+            <li>Quick daily check-in</li>
+          </ul>
+        </div>
+        <div class="card warn" style="border-radius:12px;margin:0;">
+          <h2>For coaches</h2>
+          <div class="muted">Scan 50–200 clients fast with flags + trends.</div>
+          <ul class="muted">
+            <li>Today table + alerts</li>
+            <li>Rolling 7-day KPIs</li>
+            <li>Change targets in seconds</li>
+            <li>Message clients instantly</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="ctaPricing">See pricing</button>
+        <button id="ctaLogin">Login (demo)</button>
+      </div>
+      <p class="muted" style="margin-top:10px;">Demo note: this is static/localStorage. A full-stack upgrade would add real accounts, DB, real Garmin, and Stripe.</p>
+    </div>
+  `));
+
+  root.querySelector("#ctaPricing").onclick = () => { state.ui.view="pricing"; save(state); render(); };
+  root.querySelector("#ctaLogin").onclick = () => { state.ui.view="login"; save(state); render(); };
 }
 
-function compute7d(state, clientId){
-  const t = todayISO();
-  const days = [];
-  for (let i=0;i<7;i++){
-    const d = addDays(t, -i);
-    days.push({ date:d, ...state.daily[d] });
-  }
-  const avg = (k)=> Math.round(days.reduce((s,x)=>s+(x?.[k]||0),0)/days.length);
-  return {
-    avgSleep: avg("sleepHrs"),
-    avgSteps: avg("steps"),
-    avgStress: avg("stressAvg"),
-    avgRHR: avg("rhr"),
-    avgCompliance: avg("nutritionCompliancePct"),
-    workouts: days.reduce((s,x)=>s+(x?.workoutDone?1:0),0),
-  };
+function viewPricing(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(el(`
+    <div class="grid">
+      <div class="card">
+        <h1>Pricing</h1>
+        <p class="muted">Example structure: setup fee + monthly subscription + per-session in-person.</p>
+        <div class="split">
+          <div class="card" style="border-radius:12px;margin:0;">
+            <h2>Starter</h2>
+            <div class="muted">For small coaching roster</div>
+            <div class="row">
+              <span class="tag">Setup: $199</span>
+              <span class="tag">Monthly: $39</span>
+            </div>
+            <ul class="muted">
+              <li>Targets + templates</li>
+              <li>Workout logging</li>
+              <li>Daily check-ins</li>
+              <li>Messaging</li>
+            </ul>
+          </div>
+          <div class="card ok" style="border-radius:12px;margin:0;">
+            <h2>Pro</h2>
+            <div class="muted">For high-performance coaching</div>
+            <div class="row">
+              <span class="tag">Setup: $399</span>
+              <span class="tag">Monthly: $79</span>
+            </div>
+            <ul class="muted">
+              <li>Coach Today + 7-day</li>
+              <li>CSV export</li>
+              <li>Automated flags</li>
+              <li>Wearables integration (upgrade)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card warn" style="border-radius:12px;margin-top:12px;">
+          <b>In-person sessions</b>
+          <div class="muted">Add per-session payments (e.g., $90/session) as one-off purchases.</div>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <button class="primary" id="toLogin">Login (demo)</button>
+          <button id="toLanding">Back to landing</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What’s in the demo</h2>
+        <div class="muted">
+          Coach dashboard, multi-client management, nutrition targets, meal templates, workout logging, messaging, Garmin simulator, CSV export.
+        </div>
+        <div class="hr"></div>
+        <div class="muted">
+          Want “real” signups + database? That’s Path A (Supabase + Vercel).
+        </div>
+      </div>
+    </div>
+  `));
+
+  root.querySelector("#toLogin").onclick = () => { state.ui.view="login"; save(state); render(); };
+  root.querySelector("#toLanding").onclick = () => { state.ui.view="landing"; save(state); render(); };
 }
 
-function flagRow(day){
-  const flags = [];
-  if (day.sleepHrs <= 6) flags.push("Low sleep");
-  if (day.stressAvg >= 38) flags.push("High stress");
-  if (day.steps <= 7000) flags.push("Low steps");
-  if (!day.workoutDone) flags.push("Missed workout");
-  return flags;
-}
-
+/** Coach view */
 function viewCoach(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
-  const client = coachClient(state);
-  const t = todayISO();
-  const today = state.daily[t];
-  const agg = compute7d(state, client.id);
 
-  const tabs = el(`
+  // ensure all clients have today
+  state.clients.forEach(ensureClientToday);
+
+  const selectedId = state.ui.selectedClientId || state.clients[0]?.id;
+  const selected = state.clients.find(c=>c.id===selectedId) || state.clients[0];
+
+  const header = el(`
     <div class="row" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="tabs">
-        <button class="tab active" data-tab="today">Today</button>
-        <button class="tab" data-tab="week">Rolling 7 days</button>
+      <div class="row">
+        <span class="tag">Coach</span>
+        <span class="tag">Clients: ${state.clients.length}</span>
+        <span class="tag">Selected: ${selected ? selected.name : "—"}</span>
       </div>
       <div class="row">
-        <button class="small" id="simBtn">Simulate Garmin sync</button>
-        <button class="small" id="msgBtn">Message client</button>
-        <button class="small" id="openClientBtn">Open client</button>
-      </div>
-    </div>
-  `);
-
-  const todayView = el(`
-    <div class="card">
-      <h2>Coach Dashboard • Today (${t})</h2>
-      <p class="muted">Spreadsheet scan for “who needs attention”.</p>
-      <div class="tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Sleep (h)</th>
-              <th>RHR</th>
-              <th>Stress</th>
-              <th>Body Battery</th>
-              <th>Steps</th>
-              <th>Workout</th>
-              <th>Nutrition Targets</th>
-              <th>Compliance</th>
-              <th>Self-report</th>
-              <th>Flags</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyToday"></tbody>
-        </table>
-      </div>
-    </div>
-  `);
-
-  const weekView = el(`
-    <div class="card" style="display:none;">
-      <h2>Coach Dashboard • Rolling 7 days</h2>
-      <p class="muted">Trend view for decisions (load, recovery, compliance).</p>
-      <div class="kpi">
-        <div class="box"><div class="muted">Avg sleep</div><div><b>${agg.avgSleep}</b> h</div></div>
-        <div class="box"><div class="muted">Avg steps</div><div><b>${agg.avgSteps}</b></div></div>
-        <div class="box"><div class="muted">Avg stress</div><div><b>${agg.avgStress}</b></div></div>
-        <div class="box"><div class="muted">Avg RHR</div><div><b>${agg.avgRHR}</b></div></div>
-        <div class="box"><div class="muted">Workouts done</div><div><b>${agg.workouts}</b>/7</div></div>
-        <div class="box"><div class="muted">Avg nutrition</div><div><b>${agg.avgCompliance}</b>%</div></div>
-      </div>
-      <div style="margin-top:12px;" class="tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Body Battery</th><th>Steps</th><th>Workout</th><th>Nutrition %</th><th>Notes</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyWeek"></tbody>
-        </table>
+        <button class="small" id="csvBtn">Export Today CSV</button>
+        <button class="small" id="addClientBtn">Add client</button>
       </div>
     </div>
   `);
 
   const sidebar = el(`
     <div class="card">
-      <h2>Quick actions</h2>
+      <h2>Clients</h2>
+      <label>Search</label>
+      <input id="q" placeholder="Type a name..." />
+      <div id="clientList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
+
+      <hr class="hr">
+      <h3>Selected client</h3>
       <div class="row">
-        <span class="tag">Client: ${client.name}</span>
-        <span class="tag">Constraints: ${client.profile.constraints.join(", ")}</span>
+        <span class="tag" id="selName">${selected?.name || ""}</span>
+        <span class="tag">${selected?.profile?.constraints?.join(", ") || "no constraints"}</span>
       </div>
+
       <label>Nutrition targets (training day)</label>
       <div class="row">
-        <input id="kcal" style="max-width:110px" value="${client.macroTargets.training.kcal}" />
-        <input id="p" style="max-width:110px" value="${client.macroTargets.training.p}" />
-        <input id="c" style="max-width:110px" value="${client.macroTargets.training.c}" />
-        <input id="f" style="max-width:110px" value="${client.macroTargets.training.f}" />
+        <input id="kcal" style="max-width:110px" value="${selected.macroTargets.training.kcal}" />
+        <input id="p" style="max-width:110px" value="${selected.macroTargets.training.p}" />
+        <input id="c" style="max-width:110px" value="${selected.macroTargets.training.c}" />
+        <input id="f" style="max-width:110px" value="${selected.macroTargets.training.f}" />
       </div>
       <div class="muted">kcal / P / C / F</div>
       <button class="primary" id="saveTargetsBtn" style="margin-top:10px;">Save targets</button>
 
       <label style="margin-top:14px;">Assign meal template (optional)</label>
       <select id="tplSel">
-        ${state.mealTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===client.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
+        ${state.mealTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
       </select>
       <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
 
-      <hr style="border:none;border-top:1px solid #eef0f6;margin:14px 0">
-      <button id="toMessagesBtn">Open messages</button>
-      <button id="toClientBtn" style="margin-top:8px;">Open client view</button>
+      <hr class="hr">
+      <div class="row">
+        <button id="editClientBtn">Edit client</button>
+        <button class="danger" id="delClientBtn">Delete</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="toClientBtn">Open client view</button>
+        <button id="toMessagesBtn">Open messages</button>
+      </div>
+      <div class="muted" style="margin-top:8px;">Garmin: use “Simulate sync” on the table row.</div>
     </div>
   `);
 
-  const layout = el(`<div class="grid"></div>`);
-  layout.appendChild(sidebar);
-  const right = el(`<div class="row" style="flex-direction:column;gap:12px"></div>`);
-  right.appendChild(tabs);
-  right.appendChild(todayView);
-  right.appendChild(weekView);
-  layout.appendChild(right);
+  const right = el(`
+    <div class="row" style="flex-direction:column;gap:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <div class="tabs">
+          <button class="tab active" data-tab="today">Today</button>
+          <button class="tab" data-tab="week">Rolling 7 days</button>
+        </div>
+        <div class="muted">Click a client row to select.</div>
+      </div>
+
+      <div class="card" id="todayCard">
+        <h2>Today (${todayISO()})</h2>
+        <p class="muted">Scan for flags, simulate wearable sync, and message/adjust fast.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Sleep</th>
+                <th>RHR</th>
+                <th>Stress</th>
+                <th>Body Battery</th>
+                <th>Steps</th>
+                <th>Workout</th>
+                <th>Targets</th>
+                <th>Compliance</th>
+                <th>Self-report</th>
+                <th>Flags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyToday"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="weekCard" style="display:none;">
+        <h2>Rolling 7 days (${selected.name})</h2>
+        <p class="muted">Trend + KPIs for coaching decisions.</p>
+        <div id="weekKPIs"></div>
+        <div class="tablewrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Body Battery</th><th>Steps</th><th>Workout</th><th>Nutrition %</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyWeek"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const layout = el(`<div></div>`);
+  layout.appendChild(header);
+  const grid = el(`<div class="grid"></div>`);
+  grid.appendChild(sidebar);
+  grid.appendChild(right);
+  layout.appendChild(grid);
   root.appendChild(layout);
 
-  // Fill Today table
-  const tbody = root.querySelector("#tbodyToday");
-  const flags = flagRow(today);
-  const targets = client.macroTargets.training;
-  tbody.appendChild(el(`
-    <tr>
-      <td><b>${client.name}</b><div class="muted">${client.profile.notes}</div></td>
-      <td>${fmt(today.sleepHrs)}</td>
-      <td>${fmt(today.rhr)}</td>
-      <td>${fmt(today.stressAvg)}</td>
-      <td>${fmt(today.bodyBatteryStart)} → ${fmt(today.bodyBatteryEnd)}</td>
-      <td>${fmt(today.steps)}</td>
-      <td>${today.workoutDone ? "Done" : "Not done"} <div class="muted">${today.workoutMins?today.workoutMins+"m":""}</div></td>
-      <td>${targets.kcal} kcal<br>${targets.p}/${targets.c}/${targets.f}</td>
-      <td>${fmt(today.nutritionCompliancePct)}%</td>
-      <td>S:${today.selfReport.soreness} M:${today.selfReport.mood} E:${today.selfReport.energy} D:${today.selfReport.digestion}</td>
-      <td>${flags.length ? flags.map(f=>`<span class="tag">${f}</span>`).join("") : '<span class="tag">OK</span>'}</td>
-    </tr>
-  `));
+  // render client list
+  const list = root.querySelector("#clientList");
+  function paintClientList(filter=""){
+    list.innerHTML = "";
+    const q = filter.trim().toLowerCase();
+    state.clients
+      .filter(c=>!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+      .forEach(c=>{
+        const isSel = c.id===state.ui.selectedClientId;
+        const row = el(`
+          <button class="${isSel?'primary':''}" style="text-align:left;">
+            <b>${c.name}</b><div class="muted">${c.email}</div>
+          </button>
+        `);
+        row.onclick = () => { state.ui.selectedClientId = c.id; save(state); render(); };
+        list.appendChild(row);
+      });
+  }
+  paintClientList();
+  root.querySelector("#q").oninput = (e)=>paintClientList(e.target.value);
 
-  // Fill week table
-  const tbodyW = root.querySelector("#tbodyWeek");
-  for (let i=0;i<7;i++){
-    const d = addDays(t, -i);
-    const day = state.daily[d];
-    tbodyW.appendChild(el(`
-      <tr>
-        <td><b>${d}</b></td>
+  // fill today table
+  const t = todayISO();
+  const tbody = root.querySelector("#tbodyToday");
+  tbody.innerHTML = "";
+  state.clients.forEach(c=>{
+    ensureClientToday(c);
+    const day = c.daily[t];
+    const flags = flagRow(day);
+    const trg = c.macroTargets.training;
+
+    const tr = el(`
+      <tr style="cursor:pointer;">
+        <td><b>${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
         <td>${fmt(day.stressAvg)}</td>
         <td>${fmt(day.bodyBatteryStart)} → ${fmt(day.bodyBatteryEnd)}</td>
         <td>${fmt(day.steps)}</td>
-        <td>${day.workoutDone ? "Done" : "No"}</td>
+        <td>${day.workoutDone ? "Done" : "Not done"} <div class="muted">${day.workoutMins?day.workoutMins+"m":""}</div></td>
+        <td>${trg.kcal} kcal<br>${trg.p}/${trg.c}/${trg.f}</td>
         <td>${fmt(day.nutritionCompliancePct)}%</td>
-        <td class="muted">—</td>
+        <td>S:${day.selfReport.soreness} M:${day.selfReport.mood} E:${day.selfReport.energy} D:${day.selfReport.digestion}</td>
+        <td>${flags.length ? flags.map(f=>`<span class="tag">${f}</span>`).join("") : '<span class="tag">OK</span>'}</td>
+        <td>
+          <div class="row">
+            <button class="small" data-sync>Simulate sync</button>
+            <button class="small" data-msg>Message</button>
+          </div>
+        </td>
       </tr>
-    `));
-  }
+    `);
 
-  // Tabs
-  const tabBtns = tabs.querySelectorAll(".tab");
+    tr.onclick = (ev) => {
+      // avoid selecting when clicking action buttons
+      if (ev.target && ev.target.closest("button")) return;
+      state.ui.selectedClientId = c.id; save(state); render();
+    };
+
+    tr.querySelector("[data-sync]").onclick = () => {
+      ensureClientToday(c);
+      c.daily[t].steps = rand(7000, 14000);
+      c.daily[t].sleepHrs = rand(6, 8);
+      c.daily[t].rhr = rand(50, 64);
+      c.daily[t].stressAvg = rand(18, 42);
+      c.daily[t].bodyBatteryStart = rand(70, 96);
+      c.daily[t].bodyBatteryEnd = rand(15, 58);
+      c.daily[t].activeCals = rand(250, 900);
+      save(state);
+      alert(`Simulated sync for ${c.name}`);
+      render();
+    };
+
+    tr.querySelector("[data-msg]").onclick = () => {
+      state.ui.selectedClientId = c.id;
+      state.ui.view = "messages";
+      save(state);
+      render();
+    };
+
+    tbody.appendChild(tr);
+  });
+
+  // week view render for selected
+  function paintWeek(){
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    ensureClientToday(sel);
+    const wk = compute7d(sel);
+
+    const kpi = root.querySelector("#weekKPIs");
+    kpi.innerHTML = "";
+    const box = el(`
+      <div class="kpi">
+        <div class="box"><div class="muted">Avg sleep</div><div><b>${wk.avgSleep}</b> h</div></div>
+        <div class="box"><div class="muted">Avg steps</div><div><b>${wk.avgSteps}</b></div></div>
+        <div class="box"><div class="muted">Avg stress</div><div><b>${wk.avgStress}</b></div></div>
+        <div class="box"><div class="muted">Avg RHR</div><div><b>${wk.avgRHR}</b></div></div>
+        <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
+        <div class="box"><div class="muted">Nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
+      </div>
+    `);
+    kpi.appendChild(box);
+
+    const tbodyW = root.querySelector("#tbodyWeek");
+    tbodyW.innerHTML = "";
+    wk.days.forEach(d=>{
+      tbodyW.appendChild(el(`
+        <tr>
+          <td><b>${d.date}</b></td>
+          <td>${fmt(d.sleepHrs)}h</td>
+          <td>${fmt(d.rhr)}</td>
+          <td>${fmt(d.stressAvg)}</td>
+          <td>${fmt(d.bodyBatteryStart)} → ${fmt(d.bodyBatteryEnd)}</td>
+          <td>${fmt(d.steps)}</td>
+          <td>${d.workoutDone ? "Done" : "No"}</td>
+          <td>${fmt(d.nutritionCompliancePct)}%</td>
+        </tr>
+      `));
+    });
+  }
+  paintWeek();
+
+  // tabs
+  const todayCard = root.querySelector("#todayCard");
+  const weekCard = root.querySelector("#weekCard");
+  const tabBtns = root.querySelectorAll(".tab");
   tabBtns.forEach(btn=>{
     btn.onclick = () => {
       tabBtns.forEach(b=>b.classList.remove("active"));
       btn.classList.add("active");
       const which = btn.dataset.tab;
-      todayView.style.display = which==="today" ? "" : "none";
-      weekView.style.display = which==="week" ? "" : "none";
+      todayCard.style.display = which==="today" ? "" : "none";
+      weekCard.style.display = which==="week" ? "" : "none";
+      if (which==="week") paintWeek();
     };
   });
 
-  // Actions
-  root.querySelector("#openClientBtn").onclick = () => { state.ui = { view:"client" }; save(state); render(); };
-  root.querySelector("#toClientBtn").onclick = () => { state.ui = { view:"client" }; save(state); render(); };
-  root.querySelector("#toMessagesBtn").onclick = () => { state.ui = { view:"messages" }; save(state); render(); };
-  root.querySelector("#msgBtn").onclick = () => { state.ui = { view:"messages" }; save(state); render(); };
+  // actions
+  root.querySelector("#csvBtn").onclick = () => exportTodayCSV(state);
 
   root.querySelector("#saveTargetsBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
     const kcal = Number(root.querySelector("#kcal").value);
     const p = Number(root.querySelector("#p").value);
     const c = Number(root.querySelector("#c").value);
     const f = Number(root.querySelector("#f").value);
-    client.macroTargets.training = { kcal,p,c,f };
+    sel.macroTargets.training = { kcal,p,c,f };
     save(state);
     alert("Saved training-day targets (demo).");
     render();
   };
 
   root.querySelector("#assignTplBtn").onclick = () => {
-    client.assignedTemplateId = root.querySelector("#tplSel").value;
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    sel.assignedTemplateId = root.querySelector("#tplSel").value;
     save(state);
     alert("Template assigned (demo).");
     render();
   };
 
-  root.querySelector("#simBtn").onclick = () => {
-    // simulate a new Garmin sync for today
-    const d = todayISO();
-    state.daily[d].steps = rand(7000, 14000);
-    state.daily[d].sleepHrs = rand(6, 8);
-    state.daily[d].rhr = rand(50, 64);
-    state.daily[d].stressAvg = rand(18, 42);
-    state.daily[d].bodyBatteryStart = rand(70, 96);
-    state.daily[d].bodyBatteryEnd = rand(15, 58);
-    state.daily[d].activeCals = rand(250, 900);
+  root.querySelector("#toClientBtn").onclick = () => { state.ui.view = "client"; save(state); render(); };
+  root.querySelector("#toMessagesBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
+
+  root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
+  root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
+  root.querySelector("#delClientBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId);
+    if (!sel) return;
+    if (!confirm(`Delete ${sel.name}?`)) return;
+    state.clients = state.clients.filter(c=>c.id!==sel.id);
+    state.ui.selectedClientId = state.clients[0]?.id || "";
     save(state);
-    alert("Simulated Garmin sync for today.");
     render();
   };
-
-  // quick message
-  root.querySelector("#saveTargetsBtn").title = "In the real app, this would version targets + log an audit entry.";
 }
 
-/** Client view */
+/** Client view (uses selected client) */
 function viewClient(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
-  const client = state.clients[0];
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+  ensureClientToday(client);
+
   const t = todayISO();
-  const day = state.daily[t];
+  const day = client.daily[t];
   const tpl = state.mealTemplates.find(x=>x.id===client.assignedTemplateId);
   const targets = client.macroTargets.training;
 
@@ -478,7 +817,7 @@ function viewClient(state){
         <span class="tag">${t}</span>
       </div>
       <div class="row">
-        <button class="small" id="toCoachBtn">Coach dashboard</button>
+        <button class="small" id="toCoachBtn">Back to coach</button>
         <button class="small" id="toMsgBtn">Messages</button>
       </div>
     </div>
@@ -496,11 +835,9 @@ function viewClient(state){
 
       <label style="margin-top:12px;">Nutrition compliance (demo)</label>
       <input id="comp" type="number" min="0" max="100" value="${day.nutritionCompliancePct}" />
-      <label>Notes</label>
-      <textarea id="nutNotes" placeholder="Any hunger / digestion notes?"></textarea>
       <button class="primary" id="saveNutBtn" style="margin-top:10px;">Save nutrition check-in</button>
 
-      <hr style="border:none;border-top:1px solid #eef0f6;margin:14px 0">
+      <hr class="hr">
 
       <h3>Daily check-in</h3>
       <div class="row">
@@ -511,6 +848,9 @@ function viewClient(state){
       </div>
       <div class="muted">Soreness / Mood / Energy / Digestion (1–10)</div>
       <button id="saveCheckBtn" style="margin-top:10px;">Save check-in</button>
+
+      <hr class="hr">
+      <div class="muted">Constraints: <b>${client.profile.constraints.join(", ") || "—"}</b></div>
     </div>
   `);
 
@@ -520,7 +860,7 @@ function viewClient(state){
       <p class="muted">${tpl ? tpl.name : "No template assigned yet."}</p>
       <div id="tplArea"></div>
 
-      <hr style="border:none;border-top:1px solid #eef0f6;margin:14px 0">
+      <hr class="hr">
 
       <h2>Workout logging</h2>
       <p class="muted">Log sets/reps/weight (demo).</p>
@@ -528,14 +868,11 @@ function viewClient(state){
     </div>
   `);
 
-  const layout = el(`<div></div>`);
-  layout.appendChild(top);
-
+  root.appendChild(top);
   const grid = el(`<div class="split"></div>`);
   grid.appendChild(left);
   grid.appendChild(right);
-  layout.appendChild(grid);
-  root.appendChild(layout);
+  root.appendChild(grid);
 
   // Render template
   const tplArea = root.querySelector("#tplArea");
@@ -560,7 +897,7 @@ function viewClient(state){
     });
   }
 
-  // Render workout logger
+  // Workout logger
   const wArea = root.querySelector("#wArea");
   const plan = state.workoutPlan;
   const dayIdx = (new Date()).getDay(); // 0 Sun - 6 Sat
@@ -570,22 +907,24 @@ function viewClient(state){
 
   const logKey = t;
   state.workoutLogs[logKey] = state.workoutLogs[logKey] || {};
+  state.workoutLogs[logKey][client.id] = state.workoutLogs[logKey][client.id] || {};
+
   wArea.appendChild(el(`<div class="tag">Today: ${session.day} • ${session.name}</div>`));
 
   session.exercises.forEach(ex=>{
-    const sets = state.workoutLogs[logKey][ex] || [{reps:"",weight:""}];
+    const sets = state.workoutLogs[logKey][client.id][ex] || [{reps:"",weight:""}];
     const block = el(`
       <div class="card" style="border-radius:12px;margin-top:10px;">
         <b>${ex}</b>
         <div class="muted">Sets</div>
-        <div id="sets"></div>
+        <div class="sets"></div>
         <div class="row" style="margin-top:8px;">
           <button class="small" data-add>Add set</button>
           <button class="small" data-save>Save</button>
         </div>
       </div>
     `);
-    const setsDiv = block.querySelector("#sets");
+    const setsDiv = block.querySelector(".sets");
 
     function renderSets(){
       setsDiv.innerHTML = "";
@@ -605,16 +944,15 @@ function viewClient(state){
 
     block.querySelector("[data-add]").onclick = () => { sets.push({reps:"",weight:""}); renderSets(); };
     block.querySelector("[data-save]").onclick = () => {
-      // read inputs back
       const rows = setsDiv.querySelectorAll(".row");
       const newSets = [];
       rows.forEach(r=>{
         const inputs = r.querySelectorAll("input");
         newSets.push({ reps: inputs[0].value, weight: inputs[1].value });
       });
-      state.workoutLogs[logKey][ex] = newSets;
-      state.daily[t].workoutDone = true;
-      state.daily[t].workoutMins = 45;
+      state.workoutLogs[logKey][client.id][ex] = newSets;
+      client.daily[t].workoutDone = true;
+      client.daily[t].workoutMins = 45;
       save(state);
       alert("Saved workout sets (demo).");
     };
@@ -626,14 +964,14 @@ function viewClient(state){
   // Save nutrition
   root.querySelector("#saveNutBtn").onclick = () => {
     const pct = Number(root.querySelector("#comp").value);
-    state.daily[t].nutritionCompliancePct = Math.max(0, Math.min(100, pct));
+    client.daily[t].nutritionCompliancePct = Math.max(0, Math.min(100, pct));
     save(state);
     alert("Saved nutrition compliance (demo).");
   };
 
   // Save check-in
   root.querySelector("#saveCheckBtn").onclick = () => {
-    state.daily[t].selfReport = {
+    client.daily[t].selfReport = {
       soreness: Number(root.querySelector("#sore").value),
       mood: Number(root.querySelector("#mood").value),
       energy: Number(root.querySelector("#ener").value),
@@ -643,23 +981,23 @@ function viewClient(state){
     alert("Saved check-in (demo).");
   };
 
-  root.querySelector("#toCoachBtn").onclick = () => { state.ui = { view:"coach" }; save(state); render(); };
-  root.querySelector("#toMsgBtn").onclick = () => { state.ui = { view:"messages" }; save(state); render(); };
+  root.querySelector("#toCoachBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
+  root.querySelector("#toMsgBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
 }
 
-/** Messages */
+/** Messages (coach ↔ selected client) */
 function viewMessages(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
-  const sessionUser = state.users.find(u=>u.id===state.session.userId);
-  const client = state.clients[0];
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
 
   const header = el(`
     <div class="row" style="justify-content:space-between;margin-bottom:12px;">
       <div class="row">
         <span class="tag">Messages</span>
-        <span class="tag">${sessionUser.role}</span>
-        <span class="tag">Thread: Coach ↔ Client</span>
+        <span class="tag">Thread: Coach ↔ ${client.name}</span>
       </div>
       <div class="row">
         <button class="small" id="backBtn">Back</button>
@@ -686,9 +1024,10 @@ function viewMessages(state){
     state.messages
       .slice()
       .sort((a,b)=>a.at.localeCompare(b.at))
+      .filter(m => (m.to===client.id || m.from===client.id || m.to==="c1" || m.from==="c1"))
       .forEach(m=>{
-        const from = state.users.find(u=>u.id===m.from);
-        const mine = m.from===sessionUser.id;
+        const from = state.users.find(u=>u.id===m.from) || {name:"Client"};
+        const mine = m.from===state.session.userId;
         box.appendChild(el(`
           <div class="card ${mine?'ok':'warn'}" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;">
             <div class="muted" style="font-size:12px;"><b>${from.name}</b> • ${new Date(m.at).toLocaleString()}</div>
@@ -702,59 +1041,165 @@ function viewMessages(state){
   card.querySelector("#sendBtn").onclick = () => {
     const text = card.querySelector("#msgInput").value.trim();
     if (!text) return;
-    const to = sessionUser.role==="coach" ? client.id : "u1";
-    state.messages.push({ id:"m"+(state.messages.length+1), from:sessionUser.id, to, at:new Date().toISOString(), text });
+    state.messages.push({ id:"m"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
     card.querySelector("#msgInput").value = "";
     save(state);
     renderMsgs();
   };
 
-  header.querySelector("#backBtn").onclick = () => {
-    state.ui = { view: sessionUser.role==="coach" ? "coach" : "client" };
+  header.querySelector("#backBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
+}
+
+/** Client add/edit modal */
+function openClientModal(state, {mode, clientId}){
+  const existing = mode==="edit" ? state.clients.find(c=>c.id===clientId) : null;
+
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;">
+      <div class="card" style="max-width:640px;width:100%;">
+        <h2>${mode==="add" ? "Add client" : "Edit client"}</h2>
+        <div class="split">
+          <div>
+            <label>Name</label>
+            <input id="name" value="${existing?.name || ""}" placeholder="e.g., Sam Taylor" />
+            <label>Email</label>
+            <input id="email" value="${existing?.email || ""}" placeholder="e.g., sam@example.com" />
+            <label>Notes</label>
+            <textarea id="notes" placeholder="Injuries, goals, key context...">${existing?.profile?.notes || ""}</textarea>
+          </div>
+          <div>
+            <label>Constraints (comma separated)</label>
+            <input id="constraints" value="${(existing?.profile?.constraints || []).join(", ")}" placeholder="e.g., coeliac, dairy_free" />
+            <label>Age</label>
+            <input id="age" type="number" value="${existing?.profile?.age || 30}" />
+            <label>Height (cm)</label>
+            <input id="height" type="number" value="${existing?.profile?.heightCm || 170}" />
+            <label>Weight (kg)</label>
+            <input id="weight" type="number" value="${existing?.profile?.weightKg || 70}" />
+          </div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="cancel">Cancel</button>
+          <button class="primary" id="save">${mode==="add" ? "Add" : "Save"}</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector("#cancel").onclick = () => overlay.remove();
+  overlay.querySelector("#save").onclick = () => {
+    const name = overlay.querySelector("#name").value.trim();
+    const email = overlay.querySelector("#email").value.trim().toLowerCase();
+    if (!name || !email) return alert("Name + email required.");
+    const notes = overlay.querySelector("#notes").value.trim();
+    const constraints = overlay.querySelector("#constraints").value.split(",").map(s=>s.trim()).filter(Boolean);
+
+    const age = Number(overlay.querySelector("#age").value) || 30;
+    const heightCm = Number(overlay.querySelector("#height").value) || 170;
+    const weightKg = Number(overlay.querySelector("#weight").value) || 70;
+
+    if (mode==="add"){
+      const newId = "c" + (Math.max(0, ...state.clients.map(c=>Number(c.id.slice(1))||0)) + 1);
+      const c = seedClient(newId, name, email, notes, constraints);
+      c.profile.age = age; c.profile.heightCm = heightCm; c.profile.weightKg = weightKg;
+      state.clients.push(c);
+      state.ui.selectedClientId = c.id;
+    } else {
+      existing.name = name;
+      existing.email = email;
+      existing.profile.notes = notes;
+      existing.profile.constraints = constraints;
+      existing.profile.age = age;
+      existing.profile.heightCm = heightCm;
+      existing.profile.weightKg = weightKg;
+    }
+
     save(state);
+    overlay.remove();
     render();
   };
+
+  document.body.appendChild(overlay);
 }
-function ensureDailyHasToday(state){
-  const t = todayISO();
-  state.daily = state.daily || {};
-  if (!state.daily[t]) {
-    state.daily[t] = {
-      steps: rand(6500, 11000),
-      sleepHrs: rand(6,8),
-      rhr: rand(52,62),
-      stressAvg: rand(20,40),
-      bodyBatteryStart: rand(70,95),
-      bodyBatteryEnd: rand(20,55),
-      activeCals: rand(300,800),
-      workoutDone: false,
-      workoutMins: 0,
-      nutritionCompliancePct: 75,
-      selfReport:{ soreness: 4, mood: 7, energy: 7, digestion: 6 }
+
+/** Top nav */
+function wireTopNav(state){
+  const nav = document.getElementById("topNav");
+  nav.querySelectorAll("a[data-nav]").forEach(a=>{
+    a.onclick = (e) => {
+      e.preventDefault();
+      state.ui.view = a.dataset.nav;
+      save(state);
+      render();
     };
-  }
-  return state;
+  });
+
+  // active state
+  nav.querySelectorAll("a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===state.ui.view));
 }
 
 /** Router */
 function render(){
   setEnvPill();
-  const state = ensureDailyHasToday(load());
-  save(state);
+  const state = load();
+
+  // Ensure selected client exists
+  if (state.clients?.length && (!state.ui?.selectedClientId || !state.clients.find(c=>c.id===state.ui.selectedClientId))){
+    state.ui = state.ui || {};
+    state.ui.selectedClientId = state.clients[0].id;
+    save(state);
+  }
+
   setHeaderSession(state);
 
+  // Show/hide nav + wire
+  if (state.session){
+    wireTopNav(state);
+  }
 
-  if (!state.session) return viewLogin(state);
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  // default view if none
+  state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "" };
+
+  if (!state.session){
+    // allow landing/pricing without login
+    if (state.ui.view==="landing") return viewLanding(state);
+    if (state.ui.view==="pricing") return viewPricing(state);
+    state.ui.view="login"; save(state);
+    return viewLogin(state);
+  }
 
   const user = state.users.find(u=>u.id===state.session.userId);
-  const view = (state.ui && state.ui.view) ? state.ui.view : (user.role==="coach" ? "coach" : "client");
 
-  if (view==="messages") return viewMessages(state);
-  if (user.role==="coach") return viewCoach(state);
+  // role routing
+  if (state.ui.view==="landing") return viewLanding(state);
+  if (state.ui.view==="pricing") return viewPricing(state);
+  if (state.ui.view==="messages") return viewMessages(state);
+
+  if (user.role==="coach"){
+    if (state.ui.view==="client") return viewClient(state);
+    state.ui.view="coach"; save(state);
+    return viewCoach(state);
+  }
+
+  // client role: force client view
+  state.ui.selectedClientId = user.clientId || "c1";
+  state.ui.view = "client";
+  save(state);
   return viewClient(state);
 }
 
-// boot
+// init
+document.getElementById("logoutBtn").onclick = () => {
+  const state = load();
+  state.session = null;
+  state.ui.view = "landing";
+  save(state);
+  render();
+};
+
 render();
 </script>
 </body>
