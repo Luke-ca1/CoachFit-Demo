@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoachFit Demo (Pitch + Personal Tracking)</title>
+  <title>CoachFit Demo (Pitch + Tracking + PRs + History)</title>
   <style>
     :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111;line-height:1.35}
     body{margin:0}
@@ -47,6 +47,7 @@
     .nav a{font-size:13px;color:#111;text-decoration:none;padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff}
     .nav a.active{background:#111;color:#fff;border-color:#111}
     .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
+    .hint{font-size:12px;color:#666;margin-top:6px}
   </style>
 </head>
 <body>
@@ -64,6 +65,7 @@
       <a href="#" data-nav="coach">Coach</a>
       <a href="#" data-nav="client">Client</a>
       <a href="#" data-nav="progress">Progress</a>
+      <a href="#" data-nav="history">History</a>
       <a href="#" data-nav="messages">Messages</a>
     </div>
 
@@ -79,7 +81,8 @@
 </main>
 
 <script>
-const LS_KEY = "coachfit_demo_pitch_v3";
+/** ========= Basics ========= */
+const LS_KEY = "coachfit_demo_pitch_v5_prs_history"; // changed -> reset recommended
 const todayISO = () => new Date().toISOString().slice(0,10);
 const addDays = (iso, delta) => {
   const d = new Date(iso + "T00:00:00");
@@ -106,12 +109,13 @@ function load() {
   return seed;
 }
 function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
-/** Seed */
+/** ========= Seed ========= */
 function seedClient(id, name, email, notes, constraints){
   const t = todayISO();
   const daily = {};
-  for (let i=0;i<21;i++){
+  for (let i=0;i<28;i++){
     const date = addDays(t, -i);
     daily[date] = {
       steps: rand(6500, 12000),
@@ -148,6 +152,7 @@ function seedData(){
 
   const users = [
     { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
+    // client user points to clientId c1
     { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" }
   ];
 
@@ -174,7 +179,27 @@ function seedData(){
     { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
   ];
 
-  const workoutLogs = {}; // date -> clientId -> {exercise -> sets[]}
+  // workoutLogs[date][clientId][exercise] = [{reps, weight}, ...]
+  const workoutLogs = {};
+
+  // seed a few historical logs so PRs/histories show right away
+  const seedLifts = [
+    { ex:"Bench Press", sets:[{reps:5,weight:90},{reps:5,weight:90},{reps:4,weight:92.5}] },
+    { ex:"Squat", sets:[{reps:5,weight:140},{reps:5,weight:140},{reps:3,weight:150}] },
+    { ex:"Deadlift", sets:[{reps:3,weight:180},{reps:3,weight:185},{reps:2,weight:190}] },
+    { ex:"OHP", sets:[{reps:6,weight:60},{reps:6,weight:60},{reps:5,weight:62.5}] },
+    { ex:"Row", sets:[{reps:8,weight:90},{reps:8,weight:90},{reps:7,weight:95}] },
+  ];
+  const t = todayISO();
+  for (let i=3;i<=18;i+=5){
+    const d = addDays(t, -i);
+    workoutLogs[d] = workoutLogs[d] || {};
+    workoutLogs[d]["c1"] = workoutLogs[d]["c1"] || {};
+    seedLifts.forEach(l=>{
+      workoutLogs[d]["c1"][l.ex] = l.sets.map(s=>({reps:String(s.reps), weight:String(s.weight)}));
+    });
+  }
+
   const messages = [
     { id:"m1", from:"u1", to:"c1", at:new Date().toISOString(), text:"Welcome! Log today’s workout + quick check-in." }
   ];
@@ -182,11 +207,11 @@ function seedData(){
   return {
     users, clients, mealTemplates, workoutPlan, workoutLogs, messages,
     session:null,
-    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false } }
+    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press" }
   };
 }
 
-/** Session header + nav */
+/** ========= Session header + nav ========= */
 function setHeaderSession(state){
   const who = document.getElementById("whoami");
   const btn = document.getElementById("logoutBtn");
@@ -202,9 +227,7 @@ function setHeaderSession(state){
   who.textContent = `${u.name} • ${u.role}`;
   btn.style.display="";
   nav.style.display="flex";
-  btn.onclick = () => { state.session=null; state.ui.view="landing"; save(state); render(); };
 }
-
 function wireTopNav(state){
   const nav = document.getElementById("topNav");
   nav.querySelectorAll("a[data-nav]").forEach(a=>{
@@ -218,7 +241,7 @@ function wireTopNav(state){
   nav.querySelectorAll("a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===state.ui.view));
 }
 
-/** Ensure today exists for a client */
+/** ========= Ensure client has today's daily row ========= */
 function ensureClientToday(client){
   const t = todayISO();
   client.daily = client.daily || {};
@@ -242,7 +265,7 @@ function ensureClientToday(client){
   }
 }
 
-/** Flags + aggregates */
+/** ========= Flags + aggregates ========= */
 function flagRow(day){
   const flags = [];
   if (!day) return flags;
@@ -279,7 +302,121 @@ function compute7d(client){
   };
 }
 
-/** Export / Backup */
+/** ========= PR tracking + Exercise history ========= */
+// e1RM formula: Epley
+function e1rmEpley(weight, reps){
+  const w = Number(weight);
+  const r = Number(reps);
+  if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return null;
+  const rc = Math.min(20, r);
+  return w * (1 + rc / 30);
+}
+function parseSetInputs(repsStr, weightStr){
+  const reps = Number(String(repsStr ?? "").replace(/[^\d.]/g, ""));
+  const weight = Number(String(weightStr ?? "").replace(/[^\d.]/g, ""));
+  if (!isFinite(reps) || !isFinite(weight)) return null;
+  if (reps <= 0 || weight <= 0) return null;
+  return { reps, weight };
+}
+
+// PRs: best e1RM per exercise across all dates
+function computePRsForClient(state, clientId){
+  const prs = {}; // exercise -> {exercise, bestE1rm, bestSet, date}
+  const logs = state.workoutLogs || {};
+
+  Object.keys(logs).forEach(date=>{
+    const byClient = logs[date];
+    if (!byClient || !byClient[clientId]) return;
+    const exMap = byClient[clientId];
+
+    Object.keys(exMap).forEach(exercise=>{
+      const sets = exMap[exercise] || [];
+      sets.forEach(s=>{
+        const parsed = parseSetInputs(s.reps, s.weight);
+        if (!parsed) return;
+        const e1 = e1rmEpley(parsed.weight, parsed.reps);
+        if (!e1) return;
+
+        const current = prs[exercise];
+        const bestSetStr = `${parsed.weight} x ${parsed.reps}`;
+        if (!current || e1 > current.bestE1rm){
+          prs[exercise] = { exercise, bestE1rm: e1, bestSet: bestSetStr, date };
+        }
+      });
+    });
+  });
+
+  return Object.values(prs).sort((a,b)=>b.bestE1rm - a.bestE1rm);
+}
+
+// Session PRs for a given date (best per exercise)
+function computeTodaysPRs(state, clientId, dateISO){
+  const byDate = state.workoutLogs?.[dateISO]?.[clientId] || {};
+  const out = [];
+  Object.keys(byDate).forEach(exercise=>{
+    let best = null;
+    (byDate[exercise]||[]).forEach(s=>{
+      const parsed = parseSetInputs(s.reps, s.weight);
+      if (!parsed) return;
+      const e1 = e1rmEpley(parsed.weight, parsed.reps);
+      if (!e1) return;
+      if (!best || e1 > best.bestE1rm){
+        best = { exercise, bestE1rm: e1, bestSet: `${parsed.weight} x ${parsed.reps}`, date: dateISO };
+      }
+    });
+    if (best) out.push(best);
+  });
+  return out.sort((a,b)=>b.bestE1rm-a.bestE1rm);
+}
+
+// Exercise history: best e1RM per date, plus best set
+function computeExerciseHistory(state, clientId, exercise){
+  const logs = state.workoutLogs || {};
+  const items = [];
+
+  Object.keys(logs).forEach(date=>{
+    const exMap = logs[date]?.[clientId];
+    if (!exMap) return;
+    const sets = exMap[exercise];
+    if (!sets || !sets.length) return;
+
+    let bestE1 = null;
+    let bestSet = null;
+
+    sets.forEach(s=>{
+      const parsed = parseSetInputs(s.reps, s.weight);
+      if (!parsed) return;
+      const e1 = e1rmEpley(parsed.weight, parsed.reps);
+      if (!e1) return;
+      if (bestE1 === null || e1 > bestE1){
+        bestE1 = e1;
+        bestSet = `${parsed.weight} x ${parsed.reps}`;
+      }
+    });
+
+    if (bestE1 !== null){
+      items.push({ date, bestSet, bestE1rm: bestE1, setCount: sets.length });
+    }
+  });
+
+  // sort by date desc (ISO sorts lexicographically)
+  items.sort((a,b)=>b.date.localeCompare(a.date));
+  return items;
+}
+
+// list available exercises from logs for client
+function listExercisesForClient(state, clientId){
+  const ex = new Set();
+  const logs = state.workoutLogs || {};
+  Object.keys(logs).forEach(date=>{
+    const exMap = logs[date]?.[clientId];
+    if (!exMap) return;
+    Object.keys(exMap).forEach(k=>ex.add(k));
+  });
+  return Array.from(ex).sort((a,b)=>a.localeCompare(b));
+}
+
+/** ========= Export / Backup ========= */
 function downloadText(filename, text){
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], {type:"text/plain"}));
@@ -372,7 +509,7 @@ function importBackupJSON(file){
   reader.readAsText(file);
 }
 
-/** Views */
+/** ========= Views ========= */
 function viewLogin(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -380,7 +517,7 @@ function viewLogin(state){
     <div class="grid">
       <div class="card">
         <h1>CoachFit</h1>
-        <p class="muted">Pitch + personal tracking demo. Use demo accounts below.</p>
+        <p class="muted">Pitch + personal tracking demo (localStorage). Use demo accounts below.</p>
         <div class="row">
           <span class="tag">coach@demo.com / demo</span>
           <span class="tag">client@demo.com / demo</span>
@@ -394,19 +531,20 @@ function viewLogin(state){
           <button id="resetBtn">Reset demo data</button>
           <button id="gotoLandingBtn">View landing</button>
         </div>
-        <p class="muted" style="margin-top:10px;">If anything looks weird after an update, click Reset demo data once.</p>
+        <p class="hint">After code updates, click <b>Reset demo data</b> once if anything looks odd.</p>
       </div>
 
       <div class="card">
-        <h2>New tracking features</h2>
+        <h2>Includes</h2>
         <div class="row">
-          <span class="tag">Bodyweight</span>
-          <span class="tag">Waist</span>
-          <span class="tag">Daily notes</span>
-          <span class="tag">Progress screen</span>
-          <span class="tag">Backup/restore</span>
+          <span class="tag">Coach Today + 7-day</span>
           <span class="tag">Alerts-only</span>
-          <span class="tag">Notes column</span>
+          <span class="tag">Bodyweight + waist</span>
+          <span class="tag">Progress + backups</span>
+          <span class="tag">PRs (e1RM)</span>
+          <span class="tag">Exercise history</span>
+          <span class="tag">Workout logging</span>
+          <span class="tag">Messaging</span>
         </div>
       </div>
     </div>
@@ -428,7 +566,7 @@ function viewLogin(state){
 
   root.querySelector("#resetBtn").onclick = () => {
     localStorage.removeItem(LS_KEY);
-    render();
+    location.reload();
   };
 }
 
@@ -438,13 +576,13 @@ function viewLanding(state){
   root.appendChild(el(`
     <div class="card">
       <h1>High-performance coaching, made scalable</h1>
-      <p class="muted">Clients log training + nutrition + recovery daily. Coaches scan a Today table with flags and trends.</p>
+      <p class="muted">Clients log training + nutrition + recovery daily. Coaches scan a Today table with flags, PRs, and trends.</p>
       <div class="row">
         <span class="tag">Targets-first nutrition</span>
         <span class="tag">Workout logging</span>
         <span class="tag">Daily check-in</span>
-        <span class="tag">Progress tracking</span>
-        <span class="tag">Backup/restore</span>
+        <span class="tag">PR tracking</span>
+        <span class="tag">Exercise history</span>
       </div>
       <div class="row" style="margin-top:12px;">
         <button class="primary" id="ctaPricing">See pricing</button>
@@ -481,7 +619,8 @@ function viewPricing(state){
             <ul class="muted">
               <li>Coach Today + 7-day</li>
               <li>Flags + alerts-only</li>
-              <li>Progress tracking</li>
+              <li>Progress + PRs</li>
+              <li>Exercise history</li>
               <li>CSV export</li>
             </ul>
           </div>
@@ -501,7 +640,7 @@ function viewPricing(state){
   root.querySelector("#toLanding").onclick = () => { state.ui.view="landing"; save(state); render(); };
 }
 
-/** Coach view */
+/** ========= Coach view ========= */
 function viewCoach(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -566,9 +705,10 @@ function viewCoach(state){
         <button class="danger" id="delClientBtn">Delete</button>
       </div>
       <div class="row" style="margin-top:8px;">
-        <button id="toClientBtn">Open client view</button>
-        <button id="toProgressBtn">Open progress</button>
-        <button id="toMessagesBtn">Open messages</button>
+        <button id="toClientBtn">Open client</button>
+        <button id="toProgressBtn">Progress</button>
+        <button id="toHistoryBtn">History</button>
+        <button id="toMessagesBtn">Messages</button>
       </div>
     </div>
   `);
@@ -585,7 +725,7 @@ function viewCoach(state){
 
       <div class="card" id="todayCard">
         <h2>Today (${todayISO()})</h2>
-        <p class="muted">Notes column added + Alerts-only filter.</p>
+        <p class="muted">Notes column + Alerts-only filter. Use “Sim sync” as Garmin placeholder.</p>
         <div class="tablewrap">
           <table>
             <thead>
@@ -807,6 +947,7 @@ function viewCoach(state){
 
   root.querySelector("#toClientBtn").onclick = () => { state.ui.view = "client"; save(state); render(); };
   root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(state); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(state); render(); };
   root.querySelector("#toMessagesBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
 
   root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
@@ -822,7 +963,7 @@ function viewCoach(state){
   };
 }
 
-/** Client view (selected client) */
+/** ========= Client view ========= */
 function viewClient(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -844,6 +985,7 @@ function viewClient(state){
       <div class="row">
         <button class="small" id="toCoachBtn">Coach</button>
         <button class="small" id="toProgressBtn">Progress</button>
+        <button class="small" id="toHistoryBtn">History</button>
         <button class="small" id="toMsgBtn">Messages</button>
       </div>
     </div>
@@ -904,7 +1046,7 @@ function viewClient(state){
       <hr class="hr">
 
       <h2>Workout logging</h2>
-      <p class="muted">Log sets/reps/weight (demo).</p>
+      <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
       <div id="wArea"></div>
     </div>
   `);
@@ -949,7 +1091,32 @@ function viewClient(state){
   const logKey = t;
   state.workoutLogs[logKey] = state.workoutLogs[logKey] || {};
   state.workoutLogs[logKey][client.id] = state.workoutLogs[logKey][client.id] || {};
+
   wArea.appendChild(el(`<div class="tag">Today: ${session.day} • ${session.name}</div>`));
+
+  // session PRs block
+  const prSpot = el(`
+    <div class="card" style="border-radius:12px;margin-top:10px;">
+      <b>Session best (today)</b>
+      <div class="muted">Updates when you save sets. (Epley e1RM)</div>
+      <div id="sessionPRs" class="row" style="margin-top:6px;"></div>
+    </div>
+  `);
+  wArea.appendChild(prSpot);
+
+  function renderSessionPRs(){
+    const wrap = prSpot.querySelector("#sessionPRs");
+    wrap.innerHTML = "";
+    const sPRs = computeTodaysPRs(state, client.id, t);
+    if (!sPRs.length){
+      wrap.appendChild(el(`<span class="tag">No sets saved yet</span>`));
+      return;
+    }
+    sPRs.slice(0, 8).forEach(p=>{
+      wrap.appendChild(el(`<span class="tag">${p.exercise}: e1RM ${p.bestE1rm.toFixed(1)} (${p.bestSet})</span>`));
+    });
+  }
+  renderSessionPRs();
 
   session.exercises.forEach(ex=>{
     const sets = state.workoutLogs[logKey][client.id][ex] || [{reps:"",weight:""}];
@@ -961,6 +1128,7 @@ function viewClient(state){
         <div class="row" style="margin-top:8px;">
           <button class="small" data-add>Add set</button>
           <button class="small" data-save>Save</button>
+          <button class="small" data-history>History</button>
         </div>
       </div>
     `);
@@ -981,6 +1149,7 @@ function viewClient(state){
         setsDiv.appendChild(line);
       });
     }
+
     block.querySelector("[data-add]").onclick = () => { sets.push({reps:"",weight:""}); renderSets(); };
     block.querySelector("[data-save]").onclick = () => {
       const rows = setsDiv.querySelectorAll(".row");
@@ -993,15 +1162,23 @@ function viewClient(state){
       client.daily[t].workoutDone = true;
       client.daily[t].workoutMins = 45;
       save(state);
+      renderSessionPRs();
       alert("Saved workout sets (demo).");
     };
+    block.querySelector("[data-history]").onclick = () => {
+      state.ui.selectedExercise = ex;
+      state.ui.view = "history";
+      save(state);
+      render();
+    };
+
     renderSets();
     wArea.appendChild(block);
   });
 
   // save today (weight/waist/note + compliance)
   root.querySelector("#saveDailyBtn").onclick = () => {
-    client.daily[t].nutritionCompliancePct = Math.max(0, Math.min(100, Number(root.querySelector("#comp").value)));
+    client.daily[t].nutritionCompliancePct = clamp(Number(root.querySelector("#comp").value), 0, 100);
     client.daily[t].bodyWeightKg = root.querySelector("#bw").value.trim();
     client.daily[t].waistCm = root.querySelector("#waist").value.trim();
     client.daily[t].dayNote = root.querySelector("#dayNote").value.trim();
@@ -1023,10 +1200,11 @@ function viewClient(state){
 
   root.querySelector("#toCoachBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
   root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(state); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(state); render(); };
   root.querySelector("#toMsgBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
 }
 
-/** Progress view (selected client) */
+/** ========= Progress view ========= */
 function viewProgress(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -1070,6 +1248,7 @@ function viewProgress(state){
           </label>
           <button class="small" id="toCoach">Coach</button>
           <button class="small" id="toClient">Client</button>
+          <button class="small" id="toHistory">History</button>
         </div>
       </div>
 
@@ -1079,10 +1258,29 @@ function viewProgress(state){
       <div class="kpi">
         <div class="box"><div class="muted">Avg weight (7d)</div><div><b>${wk.avgWeight ? wk.avgWeight.toFixed(1) : "—"}</b> kg</div></div>
         <div class="box"><div class="muted">Avg waist (7d)</div><div><b>${wk.avgWaist ? wk.avgWaist.toFixed(1) : "—"}</b> cm</div></div>
-        <div class="box"><div class="muted">Weight change (7d)</div><div><b>${delta(Number(today?.bodyWeightKg||0)||null, Number(sevenAgo?.bodyWeightKg||0)||null)}</b> kg</div></div>
-        <div class="box"><div class="muted">Waist change (7d)</div><div><b>${delta(Number(today?.waistCm||0)||null, Number(sevenAgo?.waistCm||0)||null)}</b> cm</div></div>
+        <div class="box"><div class="muted">Weight change (7d)</div><div><b>${delta((today?.bodyWeightKg!==""?Number(today?.bodyWeightKg):null), (sevenAgo?.bodyWeightKg!==""?Number(sevenAgo?.bodyWeightKg):null))}</b> kg</div></div>
+        <div class="box"><div class="muted">Waist change (7d)</div><div><b>${delta((today?.waistCm!==""?Number(today?.waistCm):null), (sevenAgo?.waistCm!==""?Number(sevenAgo?.waistCm):null))}</b> cm</div></div>
         <div class="box"><div class="muted">Avg nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
         <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Personal Records (estimated 1RM)</h2>
+      <p class="muted">Calculated from your logged sets (Epley). Click an exercise to open history.</p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Exercise</th>
+              <th>Best set</th>
+              <th>Estimated 1RM</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="prTable"></tbody>
+        </table>
       </div>
 
       <hr class="hr">
@@ -1099,12 +1297,44 @@ function viewProgress(state){
         </table>
       </div>
 
-      <p class="muted" style="margin-top:10px;">
-        Tip: Use Backup JSON weekly so you never lose progress if browser storage clears.
-      </p>
+      <p class="hint">Tip: Use Backup JSON weekly so you never lose progress if browser storage clears.</p>
     </div>
   `));
 
+  // PR table
+  const prBody = root.querySelector("#prTable");
+  const prs = computePRsForClient(state, client.id);
+  if (!prs.length){
+    prBody.appendChild(el(`<tr><td colspan="5" class="muted">No PRs yet — log a workout (sets/reps/weight) to populate this.</td></tr>`));
+  } else {
+    prs.slice(0, 40).forEach(pr=>{
+      const tr = el(`
+        <tr style="cursor:pointer;">
+          <td><b>${pr.exercise}</b></td>
+          <td>${pr.bestSet}</td>
+          <td><b>${pr.bestE1rm.toFixed(1)}</b></td>
+          <td class="muted">${pr.date}</td>
+          <td><button class="small" data-open>Open history</button></td>
+        </tr>
+      `);
+      tr.onclick = (ev)=>{
+        if (ev.target && ev.target.closest("button")) return;
+        state.ui.selectedExercise = pr.exercise;
+        state.ui.view = "history";
+        save(state);
+        render();
+      };
+      tr.querySelector("[data-open]").onclick = ()=>{
+        state.ui.selectedExercise = pr.exercise;
+        state.ui.view = "history";
+        save(state);
+        render();
+      };
+      prBody.appendChild(tr);
+    });
+  }
+
+  // last 14
   const tbody = root.querySelector("#p14");
   last14.forEach(d=>{
     tbody.appendChild(el(`
@@ -1130,9 +1360,134 @@ function viewProgress(state){
   };
   root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
   root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+  root.querySelector("#toHistory").onclick = () => { state.ui.view="history"; save(state); render(); };
 }
 
-/** Messages (coach ↔ selected client) */
+/** ========= History view (exercise history) ========= */
+function viewHistory(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+  ensureClientToday(client);
+
+  const exercises = listExercisesForClient(state, client.id);
+  if (!exercises.length){
+    root.appendChild(el(`
+      <div class="card">
+        <h2>Exercise History</h2>
+        <p class="muted">No logged workouts yet. Log sets/reps/weight in Client view.</p>
+        <div class="row">
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toProgress">Progress</button>
+          <button class="small" id="toCoach">Coach</button>
+        </div>
+      </div>
+    `));
+    root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+    root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(state); render(); };
+    root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
+    return;
+  }
+
+  // pick current selected exercise
+  const selEx = exercises.includes(state.ui.selectedExercise) ? state.ui.selectedExercise : exercises[0];
+  state.ui.selectedExercise = selEx;
+  save(state);
+
+  const history = computeExerciseHistory(state, client.id, selEx);
+  const prs = computePRsForClient(state, client.id);
+  const prMatch = prs.find(p=>p.exercise===selEx);
+
+  const last = history[0];
+  const prev = history[1];
+  const trend = (last && prev) ? (last.bestE1rm - prev.bestE1rm) : null;
+
+  root.appendChild(el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <span class="tag">History</span>
+          <span class="tag">${client.name}</span>
+        </div>
+        <div class="row">
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toProgress">Progress</button>
+          <button class="small" id="toCoach">Coach</button>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <div class="split">
+        <div>
+          <h2>Exercise</h2>
+          <label>Select exercise</label>
+          <select id="exSel">
+            ${exercises.map(x=>`<option value="${x}" ${x===selEx?"selected":""}>${x}</option>`).join("")}
+          </select>
+          <div class="hint">History uses your logged sets to compute “best e1RM per day” (Epley).</div>
+        </div>
+        <div>
+          <h2>Quick stats</h2>
+          <div class="kpi">
+            <div class="box"><div class="muted">PR e1RM</div><div><b>${prMatch ? prMatch.bestE1rm.toFixed(1) : "—"}</b></div></div>
+            <div class="box"><div class="muted">PR set</div><div><b>${prMatch ? prMatch.bestSet : "—"}</b></div></div>
+            <div class="box"><div class="muted">Last session</div><div><b>${last ? last.bestE1rm.toFixed(1) : "—"}</b></div></div>
+            <div class="box"><div class="muted">Trend (vs prior)</div><div><b>${trend===null ? "—" : (trend>=0?"+":"") + trend.toFixed(1)}</b></div></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Last sessions</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Best set</th>
+              <th>Best e1RM</th>
+              <th>Sets logged</th>
+            </tr>
+          </thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+
+      <p class="hint">Tip: in Client → Workout logging, press <b>History</b> next to an exercise to jump here.</p>
+    </div>
+  `));
+
+  const histBody = root.querySelector("#histBody");
+  if (!history.length){
+    histBody.appendChild(el(`<tr><td colspan="4" class="muted">No history for this exercise yet.</td></tr>`));
+  } else {
+    history.slice(0, 20).forEach(h=>{
+      histBody.appendChild(el(`
+        <tr>
+          <td><b>${h.date}</b></td>
+          <td>${h.bestSet}</td>
+          <td><b>${h.bestE1rm.toFixed(1)}</b></td>
+          <td class="muted">${h.setCount}</td>
+        </tr>
+      `));
+    });
+  }
+
+  root.querySelector("#exSel").onchange = (e)=>{
+    state.ui.selectedExercise = e.target.value;
+    save(state);
+    render();
+  };
+  root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+  root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(state); render(); };
+  root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
+}
+
+/** ========= Messages view ========= */
 function viewMessages(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -1165,6 +1520,14 @@ function viewMessages(state){
   root.appendChild(header);
   root.appendChild(card);
 
+  function displayNameForSender(id){
+    const u = state.users.find(x=>x.id===id);
+    if (u) return u.name;
+    if (id===client.id) return client.name;
+    if (id==="u1") return "Coach (Demo)";
+    return "User";
+  }
+
   function renderMsgs(){
     const box = card.querySelector("#msgs");
     box.innerHTML = "";
@@ -1173,11 +1536,10 @@ function viewMessages(state){
       .sort((a,b)=>a.at.localeCompare(b.at))
       .filter(m => (m.to===client.id || m.from===client.id))
       .forEach(m=>{
-        const from = state.users.find(u=>u.id===m.from) || {name:"Coach/Client"};
         const mine = m.from===state.session.userId;
         box.appendChild(el(`
           <div class="card ${mine?'ok':'warn'}" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;">
-            <div class="muted" style="font-size:12px;"><b>${from.name}</b> • ${new Date(m.at).toLocaleString()}</div>
+            <div class="muted" style="font-size:12px;"><b>${displayNameForSender(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
             <div>${m.text}</div>
           </div>
         `));
@@ -1197,7 +1559,7 @@ function viewMessages(state){
   header.querySelector("#backBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
 }
 
-/** Client add/edit modal */
+/** ========= Client add/edit modal ========= */
 function openClientModal(state, {mode, clientId}){
   const existing = mode==="edit" ? state.clients.find(c=>c.id===clientId) : null;
 
@@ -1269,19 +1631,26 @@ function openClientModal(state, {mode, clientId}){
   document.body.appendChild(overlay);
 }
 
-/** Router */
+/** ========= Router ========= */
 function render(){
   setEnvPill();
   const state = load();
-  state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false} };
+  state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
 
+  // selected client sanity
   if (state.clients?.length && (!state.ui.selectedClientId || !state.clients.find(c=>c.id===state.ui.selectedClientId))){
     state.ui.selectedClientId = state.clients[0].id;
     save(state);
   }
 
+  // ensure today's daily row exists
+  (state.clients || []).forEach(ensureClientToday);
+
   setHeaderSession(state);
   if (state.session) wireTopNav(state);
+
+  const root = document.getElementById("app");
+  root.innerHTML = "";
 
   if (!state.session){
     if (state.ui.view==="landing") return viewLanding(state);
@@ -1296,6 +1665,7 @@ function render(){
   if (state.ui.view==="pricing") return viewPricing(state);
   if (state.ui.view==="messages") return viewMessages(state);
   if (state.ui.view==="progress") return viewProgress(state);
+  if (state.ui.view==="history") return viewHistory(state);
 
   if (user.role==="coach"){
     if (state.ui.view==="client") return viewClient(state);
@@ -1303,7 +1673,7 @@ function render(){
     return viewCoach(state);
   }
 
-  // client role
+  // client role: lock to their clientId
   state.ui.selectedClientId = user.clientId || "c1";
   state.ui.view = "client";
   save(state);
