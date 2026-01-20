@@ -715,12 +715,34 @@ function viewMessages(state){
     render();
   };
 }
+function ensureDailyHasToday(state){
+  const t = todayISO();
+  state.daily = state.daily || {};
+  if (!state.daily[t]) {
+    state.daily[t] = {
+      steps: rand(6500, 11000),
+      sleepHrs: rand(6,8),
+      rhr: rand(52,62),
+      stressAvg: rand(20,40),
+      bodyBatteryStart: rand(70,95),
+      bodyBatteryEnd: rand(20,55),
+      activeCals: rand(300,800),
+      workoutDone: false,
+      workoutMins: 0,
+      nutritionCompliancePct: 75,
+      selfReport:{ soreness: 4, mood: 7, energy: 7, digestion: 6 }
+    };
+  }
+  return state;
+}
 
 /** Router */
 function render(){
   setEnvPill();
-  const state = load();
+  const state = ensureDailyHasToday(load());
+  save(state);
   setHeaderSession(state);
+
 
   if (!state.session) return viewLogin(state);
 
