@@ -772,6 +772,7 @@ function viewCoach(state){
             <thead>
               <tr>
                 <th>Client</th>
+                <th>Genetics</th>
                 <th>Status</th>
                 <th>Sleep</th>
                 <th>RHR</th>
@@ -853,11 +854,28 @@ function viewCoach(state){
     const day = c.daily[t];
     const flags = flagRow(day);
     const needsAttention = flags.length > 0;
+
+    const g = c.genetics || {performance:{}, nutrition:{}};
+    const gP = g.performance || {};
+    const gN = g.nutrition || {};
+    const gAssessed = (gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed") ||
+                      (gP.recoverySpeed && gP.recoverySpeed !== "Not assessed") ||
+                      (gN.carbTolerance && gN.carbTolerance !== "Not assessed") ||
+                      (gN.fatTolerance && gN.fatTolerance !== "Not assessed") ||
+                      (gN.proteinRequirement && gN.proteinRequirement !== "Not assessed");
+    const gTags = gAssessed
+      ? [
+          gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed" ? `FT: ${gP.fastTwitchBias}` : null,
+          gP.recoverySpeed && gP.recoverySpeed !== "Not assessed" ? `Rec: ${gP.recoverySpeed}` : null,
+          gN.carbTolerance && gN.carbTolerance !== "Not assessed" ? `Carbs: ${gN.carbTolerance}` : null
+        ].filter(Boolean).slice(0,3)
+      : [];
     if (state.ui.coach?.alertsOnly && !needsAttention) return;
 
     const tr = el(`
       <tr style="cursor:pointer;">
         <td><b>${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
+        <td>${gAssessed ? gTags.map(t=>`<span class=\"tag\">${t}</span>`).join("") : '<span class="tag attn">Not assessed</span>'}</td>
         <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
