@@ -67,6 +67,7 @@
       <a href="#" data-nav="progress">Progress</a>
       <a href="#" data-nav="history">History</a>
       <a href="#" data-nav="messages">Messages</a>
+      <a href="#" data-nav="diet">Diet</a>
     </div>
 
     <div class="row">
@@ -139,6 +140,8 @@ function seedClient(id, name, email, notes, constraints){
     profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints: constraints || [], notes: notes || "" },
     macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
     assignedTemplateId:"mt1",
+    activeDietPlan:null,
+    dietPlanHistory:[],
     daily
   };
 }
@@ -156,7 +159,7 @@ function seedData(){
     { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" }
   ];
 
-  const mealTemplates = [
+  const dietTemplates = [
     { id:"mt1", name:"GF High-Protein Training Day", tags:["gluten_free","high_protein"], meals:[
       { slot:"Breakfast", items:[{food:"Eggs (2)", kcal:140,p:12,c:1,f:10},{food:"Greek yogurt (200g)",kcal:140,p:20,c:8,f:0}] },
       { slot:"Lunch", items:[{food:"Chicken breast (180g)",kcal:300,p:55,c:0,f:6},{food:"Rice (250g cooked)",kcal:325,p:6,c:70,f:1}] },
@@ -205,7 +208,7 @@ function seedData(){
   ];
 
   return {
-    users, clients, mealTemplates, workoutPlan, workoutLogs, messages,
+    users, clients, dietTemplates, workoutPlan, workoutLogs, messages,
     session:null,
     ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press" }
   };
@@ -693,11 +696,16 @@ function viewCoach(state){
       <div class="muted">kcal / P / C / F</div>
       <button class="primary" id="saveTargetsBtn" style="margin-top:10px;">Save targets</button>
 
-      <label style="margin-top:14px;">Assign meal template (optional)</label>
+      <label style="margin-top:14px;">Assign diet template (optional)</label>
       <select id="tplSel">
-        ${state.mealTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
+        ${state.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
       </select>
       <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
+
+      <div class="row" style="margin-top:8px;">
+        <button class="small" id="manageDietBtn">Manage templates</button>
+        <button class="small" id="editPlanBtn">Edit active plan</button>
+      </div>
 
       <hr class="hr">
       <div class="row">
@@ -939,10 +947,43 @@ function viewCoach(state){
   };
   root.querySelector("#assignTplBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
-    sel.assignedTemplateId = root.querySelector("#tplSel").value;
+    const templateId = root.querySelector("#tplSel").value;
+    const tpl = (state.dietTemplates||[]).find(t=>t.id===templateId);
+    sel.assignedTemplateId = templateId;
+
+    // copy template into client active plan (so later template edits don't retroactively change clients)
+    if (tpl){
+      const copiedMeals = JSON.parse(JSON.stringify(tpl.meals||[]));
+      const macros = tpl.macros || computeMacrosFromMeals(copiedMeals);
+      sel.activeDietPlan = {
+        planId: uid(),
+        sourceTemplateId: tpl.id,
+        name: tpl.name,
+        notes: tpl.notes || '',
+        macros: JSON.parse(JSON.stringify(macros)),
+        meals: copiedMeals,
+        assignedAt: Date.now(),
+        assignedBy: 'coach',
+        updatedAt: Date.now(),
+      };
+      sel.dietPlanHistory = sel.dietPlanHistory || [];
+      sel.dietPlanHistory.push({ planId: sel.activeDietPlan.planId, name: sel.activeDietPlan.name, at: Date.now(), note: 'Assigned template' });
+
+      // keep existing macroTargets UI consistent
+      sel.macroTargets = sel.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
+      sel.macroTargets.training = JSON.parse(JSON.stringify(sel.activeDietPlan.macros));
+    }
+
     save(state);
-    alert("Template assigned (demo).");
+    alert("Template assigned (demo).\n\nTip: Client view will now show the copied plan under Active diet plan.");
     render();
+  };
+
+  root.querySelector("#manageDietBtn").onclick = () => { state.ui.view = "diet"; save(state); render(); };
+
+  root.querySelector("#editPlanBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    openClientDietPlanEditor(state, sel.id);
   };
 
   root.querySelector("#toClientBtn").onclick = () => { state.ui.view = "client"; save(state); render(); };
@@ -991,8 +1032,8 @@ function viewClient(state){
     </div>
   `);
 
-  const tpl = state.mealTemplates.find(x=>x.id===client.assignedTemplateId);
-  const targets = client.macroTargets.training;
+  const activePlan = client.activeDietPlan || (state.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
+  const targets = (activePlan && activePlan.macros) ? activePlan.macros : client.macroTargets.training;
 
   const left = el(`
     <div class="card">
@@ -1039,8 +1080,8 @@ function viewClient(state){
 
   const right = el(`
     <div class="card">
-      <h2>Meal template (optional)</h2>
-      <p class="muted">${tpl ? tpl.name : "No template assigned yet."}</p>
+      <h2>Diet plan (optional)</h2>
+      <p class="muted">${activePlan ? activePlan.name : "No plan assigned yet."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
       <div id="tplArea"></div>
 
       <hr class="hr">
@@ -1059,10 +1100,10 @@ function viewClient(state){
 
   // template
   const tplArea = root.querySelector("#tplArea");
-  if (!tpl){
-    tplArea.appendChild(el(`<div class="card warn" style="border-radius:12px;"><b>No template</b><div class="muted">You can still follow macro targets.</div></div>`));
+  if (!activePlan){
+    tplArea.appendChild(el(`<div class="card warn" style="border-radius:12px;"><b>No diet plan</b><div class="muted">You can still follow macro targets.</div></div>`));
   } else {
-    tpl.meals.forEach(m=>{
+    (activePlan.meals||[]).forEach(m=>{
       let kcal=0,p=0,c=0,f=0;
       m.items.forEach(i=>{kcal+=i.kcal;p+=i.p;c+=i.c;f+=i.f;});
       tplArea.appendChild(el(`
@@ -1631,10 +1672,351 @@ function openClientModal(state, {mode, clientId}){
   document.body.appendChild(overlay);
 }
 
+
+
+/** ========= Diet templates + Diet plan editing ========= */
+function uid(){
+  try{ return crypto.randomUUID(); } catch(e){
+    return 'id_' + Math.random().toString(16).slice(2) + '_' + Date.now();
+  }
+}
+function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+function computeMacrosFromMeals(meals){
+  let kcal=0,p=0,c=0,f=0;
+  (meals||[]).forEach(m=>{
+    (m.items||[]).forEach(i=>{
+      kcal += Number(i.kcal)||0;
+      p += Number(i.p)||0;
+      c += Number(i.c)||0;
+      f += Number(i.f)||0;
+    });
+  });
+  return {kcal: Math.round(kcal), p: Math.round(p), c: Math.round(c), f: Math.round(f)};
+}
+function normalizeDietTemplate(tpl){
+  const t = tpl || {};
+  t.id = t.id || uid();
+  t.name = t.name || 'Untitled template';
+  t.notes = t.notes || '';
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+  t.macros = t.macros || computeMacrosFromMeals(t.meals);
+  t.updatedAt = t.updatedAt || Date.now();
+  return t;
+}
+
+function exportDietTemplates(state){
+  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(state.dietTemplates || [], null, 2));
+}
+function importDietTemplatesFromFile(file, state){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const parsed = JSON.parse(r.result);
+      const arr = Array.isArray(parsed) ? parsed : (parsed?.dietTemplates || parsed?.templates || []);
+      if (!Array.isArray(arr)) throw new Error('Not an array');
+      state.dietTemplates = state.dietTemplates || [];
+      arr.forEach(x=> state.dietTemplates.push(normalizeDietTemplate(x)));
+      save(state);
+      alert(`Imported ${arr.length} template(s).`);
+      render();
+    } catch(e){
+      alert('Could not import. Please upload a JSON array of diet templates.');
+    }
+  };
+  r.readAsText(file);
+}
+
+function openDietTemplateEditor(state, {templateId}={}){
+  state.dietTemplates = state.dietTemplates || [];
+  const isEdit = !!templateId;
+  const existing = isEdit ? state.dietTemplates.find(t=>t.id===templateId) : null;
+  const working = normalizeDietTemplate(deepCopy(existing || { id: uid(), name:'', notes:'', macros:{kcal:'',p:'',c:'',f:''}, meals:[] }));
+
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999;">
+      <div class="card" style="max-width:980px;width:100%;max-height:85vh;overflow:auto;">
+        <h2>${isEdit ? 'Edit diet template' : 'New diet template'}</h2>
+        <p class="muted">Edit name/macros/notes. Meals are edited as JSON for speed (you can paste from ChatGPT or spreadsheets).</p>
+
+        <label>Name</label>
+        <input id="dt_name" value="${(working.name||'').replaceAll('"','&quot;')}" />
+
+        <label>Notes</label>
+        <textarea id="dt_notes">${working.notes||''}</textarea>
+
+        <div class="split" style="margin-top:10px;">
+          <div>
+            <h3>Macros</h3>
+            <div class="row">
+              <input id="dt_kcal" style="max-width:140px" placeholder="kcal" value="${working.macros?.kcal ?? ''}" />
+              <input id="dt_p" style="max-width:140px" placeholder="protein" value="${working.macros?.p ?? ''}" />
+              <input id="dt_c" style="max-width:140px" placeholder="carbs" value="${working.macros?.c ?? ''}" />
+              <input id="dt_f" style="max-width:140px" placeholder="fat" value="${working.macros?.f ?? ''}" />
+            </div>
+            <div class="hint">Tip: leave blank and click “Auto-calc from meals” if your meals include kcal/P/C/F.</div>
+            <button class="small" id="dt_autocalc" style="margin-top:8px;">Auto-calc from meals</button>
+          </div>
+          <div>
+            <h3>Meals JSON</h3>
+            <div class="hint">Format: <code>[{slot:"Breakfast", items:[{food:"",kcal:0,p:0,c:0,f:0}]}]</code></div>
+          </div>
+        </div>
+
+        <textarea id="dt_meals" style="min-height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${JSON.stringify(working.meals||[], null, 2)}</textarea>
+
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="dt_cancel">Cancel</button>
+          <button class="primary" id="dt_save">Save</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector('#dt_cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#dt_autocalc').onclick = () => {
+    try{
+      const meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]');
+      const m = computeMacrosFromMeals(meals);
+      overlay.querySelector('#dt_kcal').value = m.kcal;
+      overlay.querySelector('#dt_p').value = m.p;
+      overlay.querySelector('#dt_c').value = m.c;
+      overlay.querySelector('#dt_f').value = m.f;
+    } catch(e){
+      alert('Meals JSON is invalid. Fix JSON first.');
+    }
+  };
+
+  overlay.querySelector('#dt_save').onclick = () => {
+    const name = overlay.querySelector('#dt_name').value.trim();
+    if (!name) return alert('Name is required.');
+
+    let meals = [];
+    try{ meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]'); }
+    catch(e){ return alert('Meals JSON is invalid.'); }
+
+    const tpl = normalizeDietTemplate({
+      id: working.id,
+      name,
+      notes: overlay.querySelector('#dt_notes').value.trim(),
+      macros: {
+        kcal: Number(overlay.querySelector('#dt_kcal').value) || 0,
+        p: Number(overlay.querySelector('#dt_p').value) || 0,
+        c: Number(overlay.querySelector('#dt_c').value) || 0,
+        f: Number(overlay.querySelector('#dt_f').value) || 0,
+      },
+      meals
+    });
+    tpl.updatedAt = Date.now();
+
+    if (isEdit){
+      const idx = state.dietTemplates.findIndex(t=>t.id===templateId);
+      if (idx>=0) state.dietTemplates[idx] = tpl;
+    } else {
+      state.dietTemplates.push(tpl);
+    }
+
+    save(state);
+    overlay.remove();
+    render();
+  };
+
+  document.body.appendChild(overlay);
+}
+
+function openClientDietPlanEditor(state, clientId){
+  const client = state.clients.find(c=>c.id===clientId);
+  if (!client) return;
+
+  const base = client.activeDietPlan
+    ? deepCopy(client.activeDietPlan)
+    : (()=>{
+        const tpl = state.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
+        if (tpl) return { planId: uid(), sourceTemplateId: tpl.id, name: tpl.name, notes: tpl.notes||'', macros: tpl.macros||computeMacrosFromMeals(tpl.meals), meals: deepCopy(tpl.meals||[]), assignedAt: Date.now(), assignedBy:'coach' };
+        return { planId: uid(), sourceTemplateId: null, name: 'Custom plan', notes:'', macros: deepCopy(client.macroTargets?.training||{kcal:0,p:0,c:0,f:0}), meals: [], assignedAt: Date.now(), assignedBy:'coach' };
+      })();
+
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999;">
+      <div class="card" style="max-width:980px;width:100%;max-height:85vh;overflow:auto;">
+        <h2>Edit active diet plan (${client.name})</h2>
+        <p class="muted">This edits the client’s plan only (does not change the template library).</p>
+
+        <label>Plan name</label>
+        <input id="cp_name" value="${(base.name||'').replaceAll('"','&quot;')}" />
+
+        <label>Notes</label>
+        <textarea id="cp_notes">${base.notes||''}</textarea>
+
+        <h3 style="margin-top:10px;">Macros</h3>
+        <div class="row">
+          <input id="cp_kcal" style="max-width:140px" placeholder="kcal" value="${base.macros?.kcal ?? ''}" />
+          <input id="cp_p" style="max-width:140px" placeholder="protein" value="${base.macros?.p ?? ''}" />
+          <input id="cp_c" style="max-width:140px" placeholder="carbs" value="${base.macros?.c ?? ''}" />
+          <input id="cp_f" style="max-width:140px" placeholder="fat" value="${base.macros?.f ?? ''}" />
+        </div>
+
+        <h3 style="margin-top:10px;">Meals JSON</h3>
+        <textarea id="cp_meals" style="min-height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${JSON.stringify(base.meals||[], null, 2)}</textarea>
+
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="cp_cancel">Cancel</button>
+          <button class="primary" id="cp_save">Save plan</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector('#cp_cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#cp_save').onclick = () => {
+    const name = overlay.querySelector('#cp_name').value.trim();
+    if (!name) return alert('Plan name is required.');
+
+    let meals = [];
+    try{ meals = JSON.parse(overlay.querySelector('#cp_meals').value || '[]'); }
+    catch(e){ return alert('Meals JSON is invalid.'); }
+
+    client.activeDietPlan = {
+      planId: base.planId || uid(),
+      sourceTemplateId: base.sourceTemplateId || null,
+      name,
+      notes: overlay.querySelector('#cp_notes').value.trim(),
+      macros: {
+        kcal: Number(overlay.querySelector('#cp_kcal').value) || 0,
+        p: Number(overlay.querySelector('#cp_p').value) || 0,
+        c: Number(overlay.querySelector('#cp_c').value) || 0,
+        f: Number(overlay.querySelector('#cp_f').value) || 0,
+      },
+      meals,
+      assignedAt: base.assignedAt || Date.now(),
+      assignedBy: 'coach',
+      updatedAt: Date.now(),
+    };
+
+    client.dietPlanHistory = client.dietPlanHistory || [];
+    client.dietPlanHistory.push({
+      planId: client.activeDietPlan.planId,
+      name: client.activeDietPlan.name,
+      at: Date.now(),
+      note: 'Coach edited active plan'
+    });
+
+    // keep macroTargets in sync for existing UI
+    client.macroTargets = client.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
+    client.macroTargets.training = deepCopy(client.activeDietPlan.macros);
+
+    save(state);
+    overlay.remove();
+    alert('Saved client diet plan.');
+    render();
+  };
+
+  document.body.appendChild(overlay);
+}
+
+function viewDiet(state){
+  const root = document.getElementById('app');
+  root.innerHTML = '';
+
+  state.dietTemplates = (state.dietTemplates || []).map(normalizeDietTemplate);
+  save(state);
+
+  const wrap = el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h1>Diet templates</h1>
+          <p class="muted">Create/edit templates, then assign them to clients. Import/export lets you “load” template packs.</p>
+        </div>
+        <div class="row">
+          <label class="row" style="margin:0;gap:6px;">
+            <input id="dt_import" type="file" accept=".json" style="width:auto;" />
+            <span class="muted">Import</span>
+          </label>
+          <button class="small" id="dt_export">Export</button>
+          <button class="primary" id="dt_new">New template</button>
+          <button class="small" id="dt_back">Back to coach</button>
+        </div>
+      </div>
+
+      <hr class="hr" />
+      <div id="dt_list"></div>
+
+      <div class="hint">Tip: Export a “template pack” once, then import it on any new device/browser.</div>
+    </div>
+  `);
+  root.appendChild(wrap);
+
+  const list = wrap.querySelector('#dt_list');
+  function paint(){
+    list.innerHTML = '';
+    if (!state.dietTemplates.length){
+      list.appendChild(el('<div class="card warn" style="border-radius:12px;"><b>No plans yet</b><div class="muted">Click “New template” to create one.</div></div>'));
+      return;
+    }
+
+    state.dietTemplates
+      .slice()
+      .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0))
+      .forEach(tpl=>{
+        const row = el(`
+          <div class="card" style="border-radius:12px;margin-bottom:10px;">
+            <div class="row" style="justify-content:space-between;align-items:flex-start;">
+              <div>
+                <b>${tpl.name}</b>
+                <div class="muted">${tpl.notes ? tpl.notes.slice(0,120) : '—'}</div>
+                <div class="row" style="margin-top:6px;">
+                  <span class="tag">${tpl.macros?.kcal ?? 0} kcal</span>
+                  <span class="tag">P ${tpl.macros?.p ?? 0}</span>
+                  <span class="tag">C ${tpl.macros?.c ?? 0}</span>
+                  <span class="tag">F ${tpl.macros?.f ?? 0}</span>
+                  <span class="tag">Meals: ${(tpl.meals||[]).length}</span>
+                </div>
+              </div>
+              <div class="row">
+                <button class="small" data-edit>Edit</button>
+                <button class="small" data-dup>Duplicate</button>
+                <button class="small danger" data-del>Delete</button>
+              </div>
+            </div>
+          </div>
+        `);
+        row.querySelector('[data-edit]').onclick = ()=> openDietTemplateEditor(state, {templateId: tpl.id});
+        row.querySelector('[data-dup]').onclick = ()=>{
+          const copy = deepCopy(tpl);
+          copy.id = uid();
+          copy.name = (copy.name||'Template') + ' (copy)';
+          copy.updatedAt = Date.now();
+          state.dietTemplates.push(copy);
+          save(state);
+          paint();
+        };
+        row.querySelector('[data-del]').onclick = ()=>{
+          if (!confirm('Delete this template?')) return;
+          state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
+          // also detach from clients
+          (state.clients||[]).forEach(c=>{ if (c.assignedTemplateId===tpl.id) c.assignedTemplateId=''; });
+          save(state);
+          paint();
+        };
+        list.appendChild(row);
+      });
+  }
+  paint();
+
+  wrap.querySelector('#dt_new').onclick = ()=> openDietTemplateEditor(state);
+  wrap.querySelector('#dt_export').onclick = ()=> exportDietTemplates(state);
+  wrap.querySelector('#dt_back').onclick = ()=> { state.ui.view='coach'; save(state); render(); };
+  wrap.querySelector('#dt_import').onchange = (e)=>{
+    const f = e.target.files?.[0];
+    if (f) importDietTemplatesFromFile(f, state);
+  };
+}
+
 /** ========= Router ========= */
 function render(){
   setEnvPill();
   const state = load();
+
   state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
 
   // selected client sanity
@@ -1666,6 +2048,7 @@ function render(){
   if (state.ui.view==="messages") return viewMessages(state);
   if (state.ui.view==="progress") return viewProgress(state);
   if (state.ui.view==="history") return viewHistory(state);
+  if (state.ui.view==="diet") return (user.role==="coach" ? viewDiet(state) : viewClient(state));
 
   if (user.role==="coach"){
     if (state.ui.view==="client") return viewClient(state);
@@ -1683,6 +2066,7 @@ function render(){
 // logout
 document.getElementById("logoutBtn").onclick = () => {
   const state = load();
+
   state.session = null;
   state.ui.view = "landing";
   save(state);
