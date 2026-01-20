@@ -109,6 +109,37 @@ function load() {
   localStorage.setItem(LS_KEY, JSON.stringify(seed));
   return seed;
 }
+
+function migrateState(state){
+  // Ensure workout templates exist even for older localStorage saves
+  if (!state.workoutTemplates || !Array.isArray(state.workoutTemplates) || state.workoutTemplates.length < 6) {
+    state.workoutTemplates = [
+    {id:"w_up_a", name:"Upper A", focus:"upper", exercises:["Bench Press","Pull-up / Lat Pulldown","DB Shoulder Press","Seated Row","Lateral Raise","Triceps Pushdown","Biceps Curl"]},
+    {id:"w_up_b", name:"Upper B", focus:"upper", exercises:["Incline DB Press","Barbell Row","Push-up / Dip","Chest-Supported Row","Face Pull","Overhead Triceps Extension","Hammer Curl"]},
+    {id:"w_back", name:"Back", focus:"back", exercises:["Deadlift / Trap Bar Deadlift","Pull-up / Lat Pulldown","Single-Arm DB Row","Seated Row","Back Extension","Face Pull","Farmer Carry"]},
+    {id:"w_chest", name:"Chest", focus:"chest", exercises:["Bench Press","Incline Press","DB Fly / Cable Fly","Dip / Push-up","Chest Press Machine","Lateral Raise","Triceps Pushdown"]},
+    {id:"w_leg_a", name:"Legs A", focus:"legs", exercises:["Back Squat","Romanian Deadlift (RDL)","Leg Press","Walking Lunge","Leg Curl","Calf Raise","Core: Plank"]},
+    {id:"w_leg_b", name:"Legs B", focus:"legs", exercises:["Front Squat / Goblet Squat","Hip Thrust","Split Squat","Leg Extension","Hamstring Curl","Calf Raise","Core: Hanging Knee Raise"]}
+  ];
+  }
+  // Ensure weekly schedule exists
+  if (!state.weeklySchedule) {
+    state.weeklySchedule = {
+    mon:"w_up_a",
+    tue:"w_leg_a",
+    wed:"w_back",
+    thu:"w_up_b",
+    fri:"w_chest",
+    sat:"w_leg_b",
+    sun:"rest"
+  };
+  }
+  // Ensure UI fields exist
+  state.ui = state.ui || {};
+  if (!state.ui.selectedWorkoutTemplateId) state.ui.selectedWorkoutTemplateId = "w_up_a";
+  return state;
+}
+
 function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -2387,7 +2418,7 @@ function viewDiet(state){
 /** ========= Router ========= */
 function render(){
   setEnvPill();
-  const state = load();
+  const state = migrateState(load());
 
   state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
 
