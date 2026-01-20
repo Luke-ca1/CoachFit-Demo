@@ -997,7 +997,11 @@ function viewCoach(state){
 
   root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
   root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
-  root.querySelector("#editGeneticsBtn").onclick = () => openGeneticsEditor(state, state.ui.selectedClientId);
+  const genBtn = root.querySelector("#editGeneticsBtn");
+if (genBtn) {
+  genBtn.onclick = () => openGeneticsEditor(state, state.ui.selectedClientId);
+}
+
   root.querySelector("#delClientBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId);
     if (!sel) return;
