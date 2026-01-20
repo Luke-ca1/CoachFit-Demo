@@ -690,6 +690,18 @@ function viewCoach(state){
         <span class="tag">${selected?.profile?.constraints?.join(", ") || "no constraints"}</span>
       </div>
 
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;">
+        <span style="font-size:18px;">🧬</span>
+        <h3 style="margin:0;">Genetics profile</h3>
+      </div>
+      <div class="card warn" style="border-radius:12px;margin-bottom:12px;">
+        <div class="muted">
+          Genetic traits guide training & nutrition decisions.<br>
+          <b>Predispositions, not guarantees.</b>
+        </div>
+        <button id="editGeneticsBtn" style="margin-top:8px;">Edit genetics</button>
+      </div>
+
       <label>Nutrition targets (training day)</label>
       <div class="row">
         <input id="kcal" style="max-width:110px" value="${selected.macroTargets.training.kcal}" />
