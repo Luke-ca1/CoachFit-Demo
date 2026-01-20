@@ -997,6 +997,7 @@ function viewCoach(state){
 
   root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
   root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
+  root.querySelector("#editGeneticsBtn").onclick = () => openGeneticsEditor(state, state.ui.selectedClientId);
   root.querySelector("#delClientBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId);
     if (!sel) return;
@@ -2078,6 +2079,31 @@ document.getElementById("logoutBtn").onclick = () => {
 };
 
 render();
+
+/** ========= Genetics Editor ========= */
+function openGeneticsEditor(state, clientId){
+  const c = state.clients.find(x=>x.id===clientId);
+  if (!c) return;
+
+  const p = c.genetics.performance;
+  const n = c.genetics.nutrition;
+
+  p.fastTwitchBias = prompt("Muscle fiber bias (High / Moderate / Low)", p.fastTwitchBias) || p.fastTwitchBias;
+  p.recoverySpeed = prompt("Recovery speed (Fast / Moderate / Slow)", p.recoverySpeed) || p.recoverySpeed;
+  p.injuryRisk = (prompt("Injury risks (comma separated)", (p.injuryRisk||[]).join(",")) || "").split(",").map(x=>x.trim()).filter(Boolean);
+  p.notes = prompt("Performance notes", p.notes) || p.notes;
+
+  n.carbTolerance = prompt("Carb tolerance (High / Moderate / Low)", n.carbTolerance) || n.carbTolerance;
+  n.fatTolerance = prompt("Fat tolerance (High / Moderate / Low)", n.fatTolerance) || n.fatTolerance;
+  n.proteinRequirement = prompt("Protein requirement (High / Moderate / Low)", n.proteinRequirement) || n.proteinRequirement;
+  n.caffeineSensitivity = prompt("Caffeine sensitivity (High / Moderate / Low)", n.caffeineSensitivity) || n.caffeineSensitivity;
+  n.notes = prompt("Nutrition notes", n.notes) || n.notes;
+
+  save(state);
+  alert("Genetics saved");
+  render();
+}
+
 </script>
 </body>
 </html>
