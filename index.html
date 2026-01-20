@@ -874,8 +874,8 @@ function viewCoach(state){
 
     const tr = el(`
       <tr style="cursor:pointer;">
-        <td><b>${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
-        <td>${gAssessed ? gTags.map(t=>`<span class=\"tag\">${t}</span>`).join("") : '<span class="tag attn">Not assessed</span>'}</td>
+        <td><b>${gAssessed ? "🧬 " : ""}${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
+        <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
         <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
@@ -920,6 +920,18 @@ function viewCoach(state){
       save(state);
       render();
     };
+
+
+    const genOpen = tr.querySelectorAll("[data-genopen]");
+    genOpen.forEach(x=>{
+      x.onclick = (ev) => {
+        ev.preventDefault?.();
+        ev.stopPropagation();
+        state.ui.selectedClientId = c.id;
+        save(state);
+        openGeneticsEditor(state, c.id);
+      };
+    });
 
     tbody.appendChild(tr);
   });
