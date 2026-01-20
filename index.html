@@ -351,6 +351,42 @@ function warningsBadgeHTML(n){
   if (!n) return "";
   return `<span class="tag attn">⚠ ${n} warning${n===1?"":"s"}</span>`;
 }
+
+/** ========= Client-facing explanation ========= */
+function explainWhyThisPlan(state, client){
+  const lines = [];
+  const g = client.genetics || {};
+  const gp = g.performance || {};
+  const gn = g.nutrition || {};
+  const t = client.macroTargets?.training || {};
+
+  if (gn.carbTolerance === "High") {
+    lines.push("Carbohydrates are emphasized because you tend to tolerate carbs well and use them efficiently for training.");
+  }
+  if (gn.carbTolerance === "Low") {
+    lines.push("Carbohydrates are moderated because your profile suggests lower carb tolerance.");
+  }
+  if (gn.fatTolerance === "Low") {
+    lines.push("Dietary fats are kept controlled due to lower fat tolerance.");
+  }
+  if (gn.proteinRequirement === "High") {
+    lines.push("Protein intake is set higher to support recovery and muscle maintenance.");
+  }
+  if (gp.recoverySpeed === "Slow") {
+    lines.push("Training volume and recovery are managed carefully due to slower recovery characteristics.");
+  }
+  if (gp.fastTwitchBias === "High") {
+    lines.push("Training prioritizes strength and power outputs that align with your muscle fiber profile.");
+  }
+
+  if (!lines.length) {
+    lines.push("Your plan is built around your goals, current training status, and ongoing progress.");
+  }
+
+  lines.push("These decisions are based on trends and predispositions, not fixed limitations, and will adapt as your progress changes.");
+  return lines;
+}
+
 function warningsListHTML(state, client){
   const all = computeProgramWarnings(state, client);
   const resolved = new Set(client?.resolvedWarnings || []);
