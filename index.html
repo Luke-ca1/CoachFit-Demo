@@ -1316,8 +1316,49 @@ function viewClient(state){
   const right = el(`
     <div class="card">
       <h2>Diet plan (optional)</h2>
-      <p class="muted">${activePlan ? activePlan.name : "No plan assigned yet."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
+      <p class="muted">${activePlan ? activePlan.name : "No plan selected."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
       <div id="tplArea"></div>
+
+      <hr class="hr">
+
+      <h2>🧬 Genetic insights</h2>
+      ${((client.genetics?.performance?.fastTwitchBias || "Not assessed") === "Not assessed"
+        && (client.genetics?.nutrition?.carbTolerance || "Not assessed") === "Not assessed")
+          ? '<div class="row"><span class="tag attn">Genetics not assessed</span></div>'
+          : ''}
+      <div class="card" style="border-radius:12px;">
+        <b>Training</b>
+        <div class="row" style="margin-top:6px;">
+          <span class="tag">${client.genetics?.performance?.fastTwitchBias || "Not assessed"}</span>
+          <span class="tag">${client.genetics?.performance?.recoverySpeed || "Not assessed"} recovery</span>
+        </div>
+        <div class="muted" style="margin-top:6px;">Injury risk: ${(client.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
+        ${client.genetics?.performance?.notes ? `<div class="muted" style="margin-top:6px;">${client.genetics.performance.notes}</div>` : ""}
+        <hr class="hr">
+        <b>Nutrition</b>
+        <div class="row" style="margin-top:6px;">
+          <span class="tag">Carbs: ${client.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
+          <span class="tag">Fat: ${client.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
+          <span class="tag">Protein: ${client.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
+        </div>
+        ${client.genetics?.nutrition?.notes ? `<div class="muted" style="margin-top:6px;">${client.genetics.nutrition.notes}</div>` : ""}
+        <div class="hint" style="margin-top:8px;">Genetics indicate predisposition, not prescription.</div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>🤔 Why this plan?</h2>
+      <div class="card" style="border-radius:12px;">
+        ${explainWhyThisPlan(state, client).map(l=>`<div class="muted">• ${l}</div>`).join("")}
+      </div>
+
+      <hr class="hr">
+
+      <h2>Workout logging</h2>
+      <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
+      <div id="wArea"></div>
+    </div>
+  `);
 
       <hr class="hr">
 
