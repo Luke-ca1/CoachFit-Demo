@@ -214,7 +214,7 @@ function seedData(){
   return {
     users, clients, dietTemplates, workoutPlan, workoutLogs, messages,
     session:null,
-    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press" }
+    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false }
   };
 }
 
@@ -283,6 +283,120 @@ function flagRow(day){
   if (day.nutritionCompliancePct !== undefined && Number(day.nutritionCompliancePct) < 70) flags.push("Low nutrition");
   return flags;
 }
+
+/** ========= Genetics → Program Warnings ========= */
+function computeProgramWarnings(state, client){
+  const warns = [];
+  const g = client?.genetics || {};
+  const gp = g.performance || {};
+  const gn = g.nutrition || {};
+
+  const targets = client?.macroTargets?.training || {};
+  const kcal = Number(targets.kcal);
+  const p = Number(targets.p);
+  const c = Number(targets.c);
+  const f = Number(targets.f);
+
+  const fatPct = (isFinite(kcal) && kcal>0 && isFinite(f)) ? (f*9)/kcal : null;
+  const carbPct = (isFinite(kcal) && kcal>0 && isFinite(c)) ? (c*4)/kcal : null;
+
+  const add = (text, action) => {
+    // stable-ish id derived from action + text
+    const id = "w_" + hashString(action + "|" + text);
+    warns.push({ id, text, action });
+  };
+
+  if (gn.fatTolerance === "Low" && ( (fatPct!==null && fatPct>0.35) || (isFinite(f) && f>=90) )){
+    add("Low fat tolerance but fats are high (consider reducing fat % or grams).", "macros");
+  }
+  if (gn.carbTolerance === "Low" && ( (carbPct!==null && carbPct>0.55) || (isFinite(c) && c>=300) )){
+    add("Low carb tolerance but carbs are high (consider lowering carbs / distributing around training).", "macros");
+  }
+
+  const bw = Number(client?.profile?.weightKg);
+  const minHighProtein = (isFinite(bw) && bw>0) ? (bw*1.8) : null;
+  if (gn.proteinRequirement === "High" && minHighProtein!==null && isFinite(p) && p>0 && p < minHighProtein){
+    add(`Protein marked High but target is low for bodyweight (aim ~${Math.round(minHighProtein)}g/day).`, "macros");
+  }
+
+  const sessionsPerWeek = (state?.workoutPlan || []).length || 0;
+  if (gp.recoverySpeed === "Slow" && sessionsPerWeek>=5){
+    add("Slow recovery but training frequency is high (consider reducing volume or adding deloads).", "genetics");
+  }
+
+  const risk = (gp.injuryRisk || []).map(x=>String(x).toLowerCase());
+  const planText = (state?.workoutPlan || []).map(p=>`${p.name} ${p.exercises?.join(" ")||""}`).join(" ").toLowerCase();
+
+  if (risk.some(r=>r.includes("knee")) && (planText.includes("squat") || planText.includes("split squat") || planText.includes("leg press"))){
+    add("Knee injury risk flagged and plan includes knee-dominant lifts (monitor pain/volume).", "plan");
+  }
+  if (risk.some(r=>r.includes("achilles")) && (planText.includes("calf") || planText.includes("carry") || planText.includes("run") || planText.includes("jump"))){
+    add("Achilles injury risk flagged (be cautious with calf volume, running, and plyometrics).", "plan");
+  }
+  if (risk.some(r=>r.includes("back")) && (planText.includes("deadlift") || planText.includes("rdl") || planText.includes("good morning"))){
+    add("Back injury risk flagged and plan includes hinge work (prioritise technique, manage load).", "plan");
+  }
+
+  return warns;
+}
+function hashString(str){
+  let h = 5381;
+  for (let i=0;i<str.length;i++){
+    h = ((h<<5)+h) + str.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h.toString(16);
+}
+function warningsBadgeHTML(n){
+  if (!n) return "";
+  return `<span class="tag attn">⚠ ${n} warning${n===1?"":"s"}</span>`;
+}
+function warningsListHTML(state, client){
+  const all = computeProgramWarnings(state, client);
+  const resolved = new Set(client?.resolvedWarnings || []);
+  const showResolved = !!(state?.ui?.showResolvedWarnings);
+
+  const unresolved = all.filter(w=>!resolved.has(w.id));
+  const shown = showResolved ? all : unresolved;
+
+  if (!all.length) return `<div class="muted" style="margin-top:8px;">No program warnings detected.</div>`;
+
+  const line = (w) => {
+    const isResolved = resolved.has(w.id);
+    const label = w.action==="macros" ? "Adjust targets" : w.action==="plan" ? "Review plan" : "Edit genetics";
+    return `<div class="muted" style="display:flex;gap:8px;align-items:flex-start;opacity:${isResolved?0.55:1};">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+        <input type="checkbox" data-warncheck="${w.id}" ${isResolved?"checked":""} style="margin-top:3px;">
+        <span><a href="#" data-warnline="${w.action}" style="text-decoration:none;" data-warnid="${w.id}">${w.text}</a> <span class="hint">(${label})</span></span>
+      </label>
+    </div>`;
+  };
+
+  const headerBadge = warningsBadgeHTML(unresolved.length);
+  const resolvedCount = resolved.size;
+
+  return `
+    <div style="margin-top:8px;">
+      <div class="row" style="margin-bottom:6px;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+          ${headerBadge}
+          <span class="hint">${resolvedCount ? `${resolvedCount} resolved` : ""}</span>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="small" id="resolveAllWarnings">Resolve all</button>
+          <button class="small" id="clearResolvedWarnings">Clear resolved</button>
+          <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer;">
+            <input type="checkbox" id="toggleResolvedWarnings" ${showResolved?"checked":""}>
+            Show resolved
+          </label>
+        </div>
+      </div>
+      ${(shown.length ? shown.slice(0,10).map(line).join("") : `<div class="muted">All warnings resolved ✅</div>`)}
+      ${shown.length>10 ? `<div class="muted">+ ${shown.length-10} more…</div>` : ""}
+    </div>
+  `;
+}
+
 function compute7d(client){
   const t = todayISO();
   const days = [];
@@ -708,6 +822,8 @@ function viewCoach(state){
           </div>
           <div class="muted" style="margin-top:6px;">Injury risk: ${(selected?.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
 
+          <div id="geneticsWarnings">${warningsListHTML(state, selected)}</div>
+
           <div class="muted" style="margin-top:10px;"><b>Nutrition</b></div>
           <div class="row" style="margin-top:6px;">
             <span class="tag">Carbs: ${selected?.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
@@ -719,7 +835,7 @@ function viewCoach(state){
         <button id="editGeneticsBtn" style="margin-top:10px;">Edit genetics</button>
       </div>
 
-      <label>Nutrition targets (training day)</label>
+      <label id="macroTargets">Nutrition targets (training day)</label>
       <div class="row">
         <input id="kcal" style="max-width:110px" value="${selected.macroTargets.training.kcal}" />
         <input id="p" style="max-width:110px" value="${selected.macroTargets.training.p}" />
@@ -863,6 +979,9 @@ function viewCoach(state){
                       (gN.carbTolerance && gN.carbTolerance !== "Not assessed") ||
                       (gN.fatTolerance && gN.fatTolerance !== "Not assessed") ||
                       (gN.proteinRequirement && gN.proteinRequirement !== "Not assessed");
+    const _allW = computeProgramWarnings(state, c);
+    const _resW = new Set((c.resolvedWarnings||[]));
+    const wCount = _allW.filter(w=>!_resW.has(w.id)).length;
     const gTags = gAssessed
       ? [
           gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed" ? `FT: ${gP.fastTwitchBias}` : null,
@@ -875,7 +994,7 @@ function viewCoach(state){
     const tr = el(`
       <tr style="cursor:pointer;">
         <td><b>${gAssessed ? "🧬 " : ""}${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
-        <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
+        <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}${wCount?`<span class=\\\"tag attn\\\" data-warnopen>⚠ ${wCount}</span>`:`<span class=\\\"tag\\\">✅</span>`}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
         <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
@@ -1071,6 +1190,17 @@ function viewCoach(state){
     save(state);
     render();
   };
+  // optional scroll target (used by Today table warning badge)
+  if (state.ui && state.ui.scrollTo === "geneticsWarnings") {
+    // clear first so repeated renders don't keep jumping
+    state.ui.scrollTo = null;
+    save(state);
+    setTimeout(() => {
+      const elw = document.getElementById("geneticsWarnings");
+      if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
 }
 
 /** ========= Client view ========= */
