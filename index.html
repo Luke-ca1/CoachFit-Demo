@@ -136,6 +136,10 @@ function seedClient(id, name, email, notes, constraints){
     };
   }
   return {
+    genetics:{
+      performance:{fastTwitchBias:'Not assessed',recoverySpeed:'Not assessed',injuryRisk:[],notes:''},
+      nutrition:{carbTolerance:'Not assessed',fatTolerance:'Not assessed',proteinRequirement:'Not assessed',caffeineSensitivity:'Not assessed',notes:''}
+    },
     id, name, email, role:"client", coachId:"u1",
     profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints: constraints || [], notes: notes || "" },
     macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
