@@ -1058,9 +1058,8 @@ function viewCoach(state){
       <tr style="cursor:pointer;">
         <td><b>${gAssessed ? "🧬 " : ""}${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
         <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}${wCount?`<span class=\\\"tag attn\\\" data-warnopen>⚠ ${wCount}</span>`:`<span class=\\\"tag\\\">✅</span>`}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
-        <td><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}% </span></td>
-        <td><a href="#" data-adhopen style="text-decoration:none;"><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}%</span></a></td>
-        <td>${needsAttention ?${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
+                <td><a href="#" data-adhopen style="text-decoration:none;"><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}%</span></a></td>
+        <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
         <td>${fmt(day.stressAvg)}</td>
