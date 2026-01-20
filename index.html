@@ -699,7 +699,24 @@ function viewCoach(state){
           Genetic traits guide training & nutrition decisions.<br>
           <b>Predispositions, not guarantees.</b>
         </div>
-        <button id="editGeneticsBtn" style="margin-top:8px;">Edit genetics</button>
+
+        <div style="margin-top:10px;">
+          <div class="muted"><b>Training</b></div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">${selected?.genetics?.performance?.fastTwitchBias || "Not assessed"}</span>
+            <span class="tag">${(selected?.genetics?.performance?.recoverySpeed || "Not assessed")} recovery</span>
+          </div>
+          <div class="muted" style="margin-top:6px;">Injury risk: ${(selected?.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
+
+          <div class="muted" style="margin-top:10px;"><b>Nutrition</b></div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">Carbs: ${selected?.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
+            <span class="tag">Fat: ${selected?.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
+            <span class="tag">Protein: ${selected?.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
+          </div>
+        </div>
+
+        <button id="editGeneticsBtn" style="margin-top:10px;">Edit genetics</button>
       </div>
 
       <label>Nutrition targets (training day)</label>
