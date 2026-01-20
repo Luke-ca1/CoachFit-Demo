@@ -136,6 +136,7 @@ function seedClient(id, name, email, notes, constraints){
     };
   }
   return {
+    completedSessions:{},
     genetics:{
       performance:{fastTwitchBias:'Not assessed',recoverySpeed:'Not assessed',injuryRisk:[],notes:''},
       nutrition:{carbTolerance:'Not assessed',fatTolerance:'Not assessed',proteinRequirement:'Not assessed',caffeineSensitivity:'Not assessed',notes:''}
@@ -214,7 +215,7 @@ function seedData(){
   return {
     users, clients, dietTemplates, workoutPlan, workoutLogs, messages,
     session:null,
-    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false }
+    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false, selectedWorkoutTemplateId:'w_up_a' }
   };
 }
 
@@ -319,13 +320,13 @@ function computeProgramWarnings(state, client){
     add(`Protein marked High but target is low for bodyweight (aim ~${Math.round(minHighProtein)}g/day).`, "macros");
   }
 
-  const sessionsPerWeek = (state?.workoutPlan || []).length || 0;
+  const sessionsPerWeek = (state?.workoutTemplates || []).length || 0;
   if (gp.recoverySpeed === "Slow" && sessionsPerWeek>=5){
     add("Slow recovery but training frequency is high (consider reducing volume or adding deloads).", "genetics");
   }
 
   const risk = (gp.injuryRisk || []).map(x=>String(x).toLowerCase());
-  const planText = (state?.workoutPlan || []).map(p=>`${p.name} ${p.exercises?.join(" ")||""}`).join(" ").toLowerCase();
+  const planText = (state?.workoutTemplates || []).map(p=>`${p.name} ${p.exercises?.join(" ")||""}`).join(" ").toLowerCase();
 
   if (risk.some(r=>r.includes("knee")) && (planText.includes("squat") || planText.includes("split squat") || planText.includes("leg press"))){
     add("Knee injury risk flagged and plan includes knee-dominant lifts (monitor pain/volume).", "plan");
@@ -350,6 +351,40 @@ function hashString(str){
 function warningsBadgeHTML(n){
   if (!n) return "";
   return `<span class="tag attn">⚠ ${n} warning${n===1?"":"s"}</span>`;
+}
+
+
+
+
+function isoDate(d){
+  const pad = (n)=> String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
+function getTomorrowRecommendedTemplateId(state){
+  const d = new Date();
+  d.setDate(d.getDate()+1);
+  const k = dayKey(d);
+  return (state.weeklySchedule && state.weeklySchedule[k]) ? state.weeklySchedule[k] : "rest";
+}
+function isCompletedForDate(client, dateStr){
+  return !!(client?.completedSessions && client.completedSessions[dateStr]);
+}
+
+function dayKey(d){
+  const k = ["sun","mon","tue","wed","thu","fri","sat"];
+  return k[d.getDay()];
+}
+function getRecommendedTemplateId(state){
+  const k = dayKey(new Date());
+  return (state.weeklySchedule && state.weeklySchedule[k]) ? state.weeklySchedule[k] : "rest";
+}
+function getTemplateById(state, id){
+  return (state.workoutTemplates||[]).find(t=>t.id===id) || null;
+}
+
+function getSelectedWorkoutTemplate(state){
+  const id = state?.ui?.selectedWorkoutTemplateId || "w_up_a";
+  return (state.workoutTemplates || []).find(x=>x.id===id) || (state.workoutTemplates||[])[0];
 }
 
 function explainWhyThisPlan(state, client){
@@ -912,6 +947,7 @@ function viewCoach(state){
               <tr>
                 <th>Client</th>
                 <th>Genetics</th>
+                <th>Adherence</th>
                 <th>Status</th>
                 <th>Sleep</th>
                 <th>RHR</th>
@@ -1005,6 +1041,10 @@ function viewCoach(state){
     const _allW = computeProgramWarnings(state, c);
     const _resW = new Set((c.resolvedWarnings||[]));
     const wCount = _allW.filter(w=>!_resW.has(w.id)).length;
+    const adh7 = last7CompletionCount(c);
+    const adhTarget = 6; // based on 6 templates/week (excluding rest)
+    const adhLabel = `${adh7}/${adhTarget}`;
+
     const gTags = gAssessed
       ? [
           gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed" ? `FT: ${gP.fastTwitchBias}` : null,
@@ -1018,7 +1058,9 @@ function viewCoach(state){
       <tr style="cursor:pointer;">
         <td><b>${gAssessed ? "🧬 " : ""}${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
         <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}${wCount?`<span class=\\\"tag attn\\\" data-warnopen>⚠ ${wCount}</span>`:`<span class=\\\"tag\\\">✅</span>`}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
-        <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
+        <td><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}% </span></td>
+        <td><a href="#" data-adhopen style="text-decoration:none;"><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}%</span></a></td>
+        <td>${needsAttention ?${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
         <td>${fmt(day.sleepHrs)}h</td>
         <td>${fmt(day.rhr)}</td>
         <td>${fmt(day.stressAvg)}</td>
@@ -1224,6 +1266,15 @@ function viewCoach(state){
     }, 0);
   }
 
+
+  if (state.ui && state.ui.scrollTo === "weeklySchedule") {
+    state.ui.scrollTo = null;
+    save(state);
+    setTimeout(() => {
+      const elw = document.getElementById("weeklySchedule");
+      if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
 }
 
 /** ========= Client view ========= */
@@ -1380,7 +1431,7 @@ function viewClient(state){
 
   // workout logger
   const wArea = root.querySelector("#wArea");
-  const plan = state.workoutPlan;
+  const plan = state.workoutTemplates;
   const dayIdx = (new Date()).getDay();
   const mapped = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
   const dow = mapped[dayIdx] || "Mon";
