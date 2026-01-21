@@ -391,6 +391,8 @@ function migrateState(state){
   }
     if (!Array.isArray(state.customFoods)) state.customFoods = [];
   state.ui = state.ui && typeof state.ui === "object" ? state.ui : {};
+  state.ui = (state.ui && typeof state.ui === "object") ? state.ui : {};
+
 
 return state;
 }
@@ -530,7 +532,7 @@ function wireTopNav(state){
   nav.querySelectorAll("a[data-nav]").forEach(a=>{
     a.onclick = (e) => {
       e.preventDefault();
-      state.ui.view = a.dataset.nav;
+      (state.ui = state.ui || {}).view = a.dataset.nav;
       save(dietEditorState);
       render();
     };
@@ -1033,7 +1035,7 @@ function viewLogin(state){
     </div>
   `));
 
-  root.querySelector("#gotoLandingBtn").onclick = () => { state.ui.view="landing"; save(dietEditorState); render(); };
+  root.querySelector("#gotoLandingBtn").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(dietEditorState); render(); };
 
   root.querySelector("#loginBtn").onclick = () => {
     const email = root.querySelector("#email").value.trim().toLowerCase();
@@ -1041,7 +1043,7 @@ function viewLogin(state){
     const user = state.users.find(u=>u.email===email && u.pass===pass);
     if (!user) return alert("Invalid demo credentials.");
     state.session = { userId:user.id };
-    state.ui.view = user.role==="coach" ? "coach" : "client";
+    (state.ui = state.ui || {}).view = user.role==="coach" ? "coach" : "client";
     if (user.role==="client") state.ui.selectedClientId = user.clientId || "c1";
     save(dietEditorState);
     render();
@@ -1073,8 +1075,8 @@ function viewLanding(state){
       </div>
     </div>
   `));
-  root.querySelector("#ctaPricing").onclick = () => { state.ui.view="pricing"; save(dietEditorState); render(); };
-  root.querySelector("#ctaLogin").onclick = () => { state.ui.view="login"; save(dietEditorState); render(); };
+  root.querySelector("#ctaPricing").onclick = () => { (state.ui = state.ui || {}).view ="pricing"; save(dietEditorState); render(); };
+  root.querySelector("#ctaLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(dietEditorState); render(); };
 }
 
 function viewPricing(state){
@@ -1119,8 +1121,8 @@ function viewPricing(state){
       </div>
     </div>
   `));
-  root.querySelector("#toLogin").onclick = () => { state.ui.view="login"; save(dietEditorState); render(); };
-  root.querySelector("#toLanding").onclick = () => { state.ui.view="landing"; save(dietEditorState); render(); };
+  root.querySelector("#toLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(dietEditorState); render(); };
+  root.querySelector("#toLanding").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(dietEditorState); render(); };
 }
 
 /** ========= Coach view ========= */
@@ -1979,7 +1981,7 @@ function viewCoach(state){
     };
     tr.querySelector("[data-msg]").onclick = () => {
       state.ui.selectedClientId = c.id;
-      state.ui.view = "messages";
+      (state.ui = state.ui || {}).view = "messages";
       save(dietEditorState);
       render();
     };
@@ -2105,17 +2107,17 @@ function viewCoach(state){
     render();
   };
 
-  root.querySelector("#manageDietBtn").onclick = () => { state.ui.view = "diet"; save(dietEditorState); render(); };
+  root.querySelector("#manageDietBtn").onclick = () => { (state.ui = state.ui || {}).view = "diet"; save(dietEditorState); render(); };
 
   root.querySelector("#editPlanBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
     openClientDietPlanEditor(state, sel.id);
   };
 
-  root.querySelector("#toClientBtn").onclick = () => { state.ui.view = "client"; save(dietEditorState); render(); };
-  root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(dietEditorState); render(); };
-  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(dietEditorState); render(); };
-  root.querySelector("#toMessagesBtn").onclick = () => { state.ui.view = "messages"; save(dietEditorState); render(); };
+  root.querySelector("#toClientBtn").onclick = () => { (state.ui = state.ui || {}).view = "client"; save(dietEditorState); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(dietEditorState); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(dietEditorState); render(); };
+  root.querySelector("#toMessagesBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(dietEditorState); render(); };
 
   root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
   root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
@@ -2469,7 +2471,7 @@ function viewClient(state){
     };
     block.querySelector("[data-history]").onclick = () => {
       state.ui.selectedExercise = ex;
-      state.ui.view = "history";
+      (state.ui = state.ui || {}).view = "history";
       save(dietEditorState);
       render();
     };
@@ -2500,10 +2502,10 @@ function viewClient(state){
     alert("Saved check-in (demo).");
   };
 
-  root.querySelector("#toCoachBtn").onclick = () => { state.ui.view = "coach"; save(dietEditorState); render(); };
-  root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(dietEditorState); render(); };
-  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(dietEditorState); render(); };
-  root.querySelector("#toMsgBtn").onclick = () => { state.ui.view = "messages"; save(dietEditorState); render(); };
+  root.querySelector("#toCoachBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(dietEditorState); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(dietEditorState); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(dietEditorState); render(); };
+  root.querySelector("#toMsgBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(dietEditorState); render(); };
 }
 
 /** ========= Progress view ========= */
@@ -2622,13 +2624,13 @@ function viewProgress(state){
       tr.onclick = (ev)=>{
         if (ev.target && ev.target.closest("button")) return;
         state.ui.selectedExercise = pr.exercise;
-        state.ui.view = "history";
+        (state.ui = state.ui || {}).view = "history";
         save(dietEditorState);
         render();
       };
       tr.querySelector("[data-open]").onclick = ()=>{
         state.ui.selectedExercise = pr.exercise;
-        state.ui.view = "history";
+        (state.ui = state.ui || {}).view = "history";
         save(dietEditorState);
         render();
       };
@@ -2660,9 +2662,9 @@ function viewProgress(state){
     const f = e.target.files?.[0];
     if (f) importBackupJSON(f);
   };
-  root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(dietEditorState); render(); };
-  root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(dietEditorState); render(); };
-  root.querySelector("#toHistory").onclick = () => { state.ui.view="history"; save(dietEditorState); render(); };
+  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
+  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
+  root.querySelector("#toHistory").onclick = () => { (state.ui = state.ui || {}).view ="history"; save(dietEditorState); render(); };
 }
 
 /** ========= History view (exercise history) ========= */
@@ -2687,9 +2689,9 @@ function viewHistory(state){
         </div>
       </div>
     `));
-    root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(dietEditorState); render(); };
-    root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(dietEditorState); render(); };
-    root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(dietEditorState); render(); };
+    root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
+    root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(dietEditorState); render(); };
+    root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
     return;
   }
 
@@ -2784,9 +2786,9 @@ function viewHistory(state){
     save(dietEditorState);
     render();
   };
-  root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(dietEditorState); render(); };
-  root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(dietEditorState); render(); };
-  root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(dietEditorState); render(); };
+  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
+  root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(dietEditorState); render(); };
+  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
 }
 
 /** ========= Messages view ========= */
@@ -2858,7 +2860,7 @@ function viewMessages(state){
     renderMsgs();
   };
 
-  header.querySelector("#backBtn").onclick = () => { state.ui.view = "coach"; save(dietEditorState); render(); };
+  header.querySelector("#backBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(dietEditorState); render(); };
 }
 
 /** ========= Client add/edit modal ========= */
@@ -3535,7 +3537,7 @@ function viewDiet(state){
 
   wrap.querySelector('#dt_new').onclick = ()=> openDietTemplateEditor(state);
   wrap.querySelector('#dt_export').onclick = ()=> exportDietTemplates(state);
-  wrap.querySelector('#dt_back').onclick = ()=> { state.ui.view='coach'; save(dietEditorState); render(); };
+  wrap.querySelector('#dt_back').onclick = ()=> { (state.ui = state.ui || {}).view ='coach'; save(dietEditorState); render(); };
   wrap.querySelector('#dt_import').onchange = (e)=>{
     const f = e.target.files?.[0];
     if (f) importDietTemplatesFromFile(f, state);
@@ -3546,6 +3548,7 @@ function viewDiet(state){
 function render(){
   setEnvPill();
   const state = migrateState(load() || {});
+state.ui = state.ui || {};
 
   state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
 
@@ -3565,30 +3568,30 @@ function render(){
   root.innerHTML = "";
 
   if (!state.session){
-    if (state.ui.view==="landing") return viewLanding(state);
-    if (state.ui.view==="pricing") return viewPricing(state);
-    state.ui.view="login"; save(dietEditorState);
+    if ((state.ui = state.ui || {}).view ==="landing") return viewLanding(state);
+    if ((state.ui = state.ui || {}).view ==="pricing") return viewPricing(state);
+    (state.ui = state.ui || {}).view ="login"; save(dietEditorState);
     return viewLogin(state);
   }
 
   const user = state.users.find(u=>u.id===state.session.userId);
 
-  if (state.ui.view==="landing") return viewLanding(state);
-  if (state.ui.view==="pricing") return viewPricing(state);
-  if (state.ui.view==="messages") return viewMessages(state);
-  if (state.ui.view==="progress") return viewProgress(state);
-  if (state.ui.view==="history") return viewHistory(state);
-  if (state.ui.view==="diet") return (user.role==="coach" ? viewDiet(state) : viewClient(state));
+  if ((state.ui = state.ui || {}).view ==="landing") return viewLanding(state);
+  if ((state.ui = state.ui || {}).view ==="pricing") return viewPricing(state);
+  if ((state.ui = state.ui || {}).view ==="messages") return viewMessages(state);
+  if ((state.ui = state.ui || {}).view ==="progress") return viewProgress(state);
+  if ((state.ui = state.ui || {}).view ==="history") return viewHistory(state);
+  if ((state.ui = state.ui || {}).view ==="diet") return (user.role==="coach" ? viewDiet(state) : viewClient(state));
 
   if (user.role==="coach"){
-    if (state.ui.view==="client") return viewClient(state);
-    state.ui.view="coach"; save(dietEditorState);
+    if ((state.ui = state.ui || {}).view ==="client") return viewClient(state);
+    (state.ui = state.ui || {}).view ="coach"; save(dietEditorState);
     return viewCoach(state);
   }
 
   // client role: lock to their clientId
   state.ui.selectedClientId = user.clientId || "c1";
-  state.ui.view = "client";
+  (state.ui = state.ui || {}).view = "client";
   save(dietEditorState);
   return viewClient(state);
 }
@@ -3598,7 +3601,7 @@ document.getElementById("logoutBtn").onclick = () => {
   const state = load();
 
   state.session = null;
-  state.ui.view = "landing";
+  (state.ui = state.ui || {}).view = "landing";
   save(dietEditorState);
   render();
 };
