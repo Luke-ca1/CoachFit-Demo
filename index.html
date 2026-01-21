@@ -90,7 +90,7 @@
 // Diet template editor globals (used by helper functions)
 let overlay = null;
 let working = null;
-let dietEditorState = null;
+let state.__dietEditorState_DO_NOT_USE__ = null;
 // ---- guard: ensure helpers exist even if older cached code paths reference them ----
 if (typeof window.isoDate !== "function") {
   window.isoDate = function(d){
@@ -154,17 +154,17 @@ function findFoodByName(name){
   return FOOD_LIBRARY.find(f => f.name.toLowerCase() === key) || null;
 }
 
-function getFoodLibrary(dietEditorState){
+function getFoodLibrary(state.__dietEditorState_DO_NOT_USE__){
   const base = Array.isArray(FOOD_LIBRARY) ? FOOD_LIBRARY : [];
-  const custom = Array.isArray(dietEditorState?.customFoods) ? dietEditorState.customFoods : [];
+  const custom = Array.isArray(state.__dietEditorState_DO_NOT_USE__?.customFoods) ? state.__dietEditorState_DO_NOT_USE__.customFoods : [];
   // Custom foods override base if same name
   const map = new Map();
   base.forEach(f=> map.set(String(f.name).toLowerCase(), f));
   custom.forEach(f=> map.set(String(f.name).toLowerCase(), f));
   return Array.from(map.values());
 }
-function addCustomFood(dietEditorState, food){
-  dietEditorState.customFoods = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
+function addCustomFood(state.__dietEditorState_DO_NOT_USE__, food){
+  state.__dietEditorState_DO_NOT_USE__.customFoods = Array.isArray(state.__dietEditorState_DO_NOT_USE__.customFoods) ? state.__dietEditorState_DO_NOT_USE__.customFoods : [];
   const key = String(food?.name||"").trim();
   if (!key) return false;
   const clean = {
@@ -176,14 +176,14 @@ function addCustomFood(dietEditorState, food){
     f: Number(food.f)||0
   };
   // remove existing with same name (case-insensitive)
-  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
-  dietEditorState.customFoods.unshift(clean);
+  state.__dietEditorState_DO_NOT_USE__.customFoods = state.__dietEditorState_DO_NOT_USE__.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
+  state.__dietEditorState_DO_NOT_USE__.customFoods.unshift(clean);
   return true;
 }
-function removeCustomFood(dietEditorState, name){
-  if (!Array.isArray(dietEditorState.customFoods)) return;
+function removeCustomFood(state.__dietEditorState_DO_NOT_USE__, name){
+  if (!Array.isArray(state.__dietEditorState_DO_NOT_USE__.customFoods)) return;
   const key = String(name||"").toLowerCase();
-  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
+  state.__dietEditorState_DO_NOT_USE__.customFoods = state.__dietEditorState_DO_NOT_USE__.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
 }
 
 
@@ -192,7 +192,7 @@ function removeCustomFood(dietEditorState, name){
   function renderCustomFoodsList(){
     const mount = overlay.querySelector('#customFoodsList');
     if (!mount) return;
-    const custom = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
+    const custom = Array.isArray(state.__dietEditorState_DO_NOT_USE__.customFoods) ? state.__dietEditorState_DO_NOT_USE__.customFoods : [];
     if (!custom.length){
       mount.innerHTML = '<div class="hint">No custom foods yet.</div>';
       return;
@@ -240,7 +240,7 @@ function removeCustomFood(dietEditorState, name){
         const i = Number(btn.getAttribute('data-edit-custom'));
         const item = custom[i];
         if (!item) return;
-        openCustomFoodModal(dietEditorState, item);
+        openCustomFoodModal(state.__dietEditorState_DO_NOT_USE__, item);
       };
     });
 
@@ -250,13 +250,13 @@ function removeCustomFood(dietEditorState, name){
         const item = custom[i];
         if (!item) return;
         if (!confirm(`Delete custom food: ${item.name}?`)) return;
-        removeCustomFood(dietEditorState, item.name);
-        save(dietEditorState);
+        removeCustomFood(state.__dietEditorState_DO_NOT_USE__, item.name);
+        save(state.__dietEditorState_DO_NOT_USE__);
         renderFoodLibrary();
         renderCustomFoodsList();
         // refresh datalist too
         const dl = document.getElementById("foodLibList");
-        if (dl) dl.innerHTML = getFoodLibrary(dietEditorState).map(f=>`<option value="${esc(f.name)}"></option>`).join("");
+        if (dl) dl.innerHTML = getFoodLibrary(state.__dietEditorState_DO_NOT_USE__).map(f=>`<option value="${esc(f.name)}"></option>`).join("");
       };
     });
   }
@@ -282,7 +282,7 @@ function removeCustomFood(dietEditorState, name){
     const target = Number(overlay.querySelector('#foodMealTarget')?.value || 0);
 
     if (!results) return;
-    const lib = getFoodLibrary(dietEditorState);
+    const lib = getFoodLibrary(state.__dietEditorState_DO_NOT_USE__);
     const filtered = lib.filter(f=>{
       const inCat = (cat==="All") ? true : (f.category===cat);
       const inQ = !q ? true : (f.name.toLowerCase().includes(q));
@@ -396,7 +396,8 @@ function migrateState(state){
       c.completedSessions = c.completedSessions || {};
     });
   }
-    if (!Array.isArray(dietEditorState.customFoods)) dietEditorState.customFoods = [];
+  // Ensure global custom food library exists (used by Diet editor Food library)
+  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
   state.ui = state.ui && typeof state.ui === "object" ? state.ui : {};
   state.ui = (state.ui && typeof state.ui === "object") ? state.ui : {};
 
@@ -543,7 +544,7 @@ function wireTopNav(state){
     a.onclick = (e) => {
       e.preventDefault();
       (state.ui = state.ui || {}).view = a.dataset.nav;
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
   });
@@ -1045,7 +1046,7 @@ function viewLogin(state){
     </div>
   `));
 
-  root.querySelector("#gotoLandingBtn").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(dietEditorState); render(); };
+  root.querySelector("#gotoLandingBtn").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 
   root.querySelector("#loginBtn").onclick = () => {
     const email = root.querySelector("#email").value.trim().toLowerCase();
@@ -1055,7 +1056,7 @@ function viewLogin(state){
     state.session = { userId:user.id };
     (state.ui = state.ui || {}).view = user.role==="coach" ? "coach" : "client";
     if (user.role==="client") state.ui.selectedClientId = user.clientId || "c1";
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
 
@@ -1085,8 +1086,8 @@ function viewLanding(state){
       </div>
     </div>
   `));
-  root.querySelector("#ctaPricing").onclick = () => { (state.ui = state.ui || {}).view ="pricing"; save(dietEditorState); render(); };
-  root.querySelector("#ctaLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(dietEditorState); render(); };
+  root.querySelector("#ctaPricing").onclick = () => { (state.ui = state.ui || {}).view ="pricing"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#ctaLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 function viewPricing(state){
@@ -1131,8 +1132,8 @@ function viewPricing(state){
       </div>
     </div>
   `));
-  root.querySelector("#toLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(dietEditorState); render(); };
-  root.querySelector("#toLanding").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(dietEditorState); render(); };
+  root.querySelector("#toLogin").onclick = () => { (state.ui = state.ui || {}).view ="login"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toLanding").onclick = () => { (state.ui = state.ui || {}).view ="landing"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 /** ========= Coach view ========= */
@@ -1159,7 +1160,7 @@ function renderGeneticsModal(state, root){
   const id = state?.ui?.geneticsEditingClientId;
   if (!id) return;
   const client = state.clients.find(c=>c.id===id);
-  if (!client) { state.ui.geneticsEditingClientId=null; save(dietEditorState); return; }
+  if (!client) { state.ui.geneticsEditingClientId=null; save(state.__dietEditorState_DO_NOT_USE__); return; }
   ensureGenetics(client);
 
   const p = client.genetics.performance;
@@ -1262,11 +1263,11 @@ function renderGeneticsModal(state, root){
 
   const close = ()=>{
     state.ui.geneticsEditingClientId = null;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
     overlay = null;
     working = null;
-    dietEditorState = null;
+    state.__dietEditorState_DO_NOT_USE__ = null;
   };
 
   overlay.addEventListener("click", (e)=>{
@@ -1294,7 +1295,7 @@ function renderGeneticsModal(state, root){
     n.proteinRequirement = card.querySelector("#gProt").value;
     n.notes = card.querySelector("#gNNotes").value || "";
 
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     close();
     render();
   };
@@ -1421,7 +1422,7 @@ function buildAdjustmentProposal(state, client, action){
 function openAdjustmentModal(state, clientId, action){
   state.ui = state.ui || {};
   state.ui.adjustmentModal = { clientId, action };
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
   render();
 }
 
@@ -1430,7 +1431,7 @@ function renderAdjustmentModal(state){
   if (!modal) return;
 
   const client = state.clients.find(c=>c.id===modal.clientId);
-  if (!client){ state.ui.adjustmentModal=null; save(dietEditorState); return; }
+  if (!client){ state.ui.adjustmentModal=null; save(state.__dietEditorState_DO_NOT_USE__); return; }
 
   const proposal = buildAdjustmentProposal(state, client, modal.action);
 
@@ -1454,7 +1455,7 @@ function renderAdjustmentModal(state){
 
   const close = ()=>{
     state.ui.adjustmentModal = null;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
   };
 
@@ -1526,17 +1527,17 @@ function renderAdjustmentModal(state){
       client.resolvedWarnings = client.resolvedWarnings || [];
       if (!client.resolvedWarnings.includes(w.id)) client.resolvedWarnings.push(w.id);
     }
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     close();
     render();
   };
 }
 
-function openCustomFoodModal(dietEditorState, existing){
+function openCustomFoodModal(state.__dietEditorState_DO_NOT_USE__, existing){
   state.ui = state.ui || {};
   const ex = existing || {};
   state.ui.customFoodModal = {name: ex.name||"", category: ex.category||"Other", kcal: ex.kcal||0, p: ex.p||0, c: ex.c||0, f: ex.f||0, originalName: ex.name||""};
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
   render();
 }
 
@@ -1612,7 +1613,7 @@ function renderCustomFoodModal(state){
 
   const close = ()=>{
     state.ui.customFoodModal = null;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
   };
 
@@ -1634,10 +1635,10 @@ function renderCustomFoodModal(state){
     };
     if (m.originalName && String(m.originalName).trim() && String(m.originalName).toLowerCase() !== String(food.name).toLowerCase()) {
       // rename: remove old entry first
-      removeCustomFood(dietEditorState, m.originalName);
+      removeCustomFood(state.__dietEditorState_DO_NOT_USE__, m.originalName);
     }
-    addCustomFood(dietEditorState, food);
-    save(dietEditorState);
+    addCustomFood(state.__dietEditorState_DO_NOT_USE__, food);
+    save(state.__dietEditorState_DO_NOT_USE__);
     close();
     render();
   };
@@ -1663,7 +1664,7 @@ function bindProgramWarnings(state, root, selected){
       if (action === "plan"){
         // for now, jump to schedule as the closest editable plan surface
         state.ui.scrollTo = "weeklySchedule";
-        save(dietEditorState);
+        save(state.__dietEditorState_DO_NOT_USE__);
         render();
         return;
       }
@@ -1679,7 +1680,7 @@ function bindProgramWarnings(state, root, selected){
       const set = new Set(selected.resolvedWarnings);
       if (ch.checked) set.add(id); else set.delete(id);
       selected.resolvedWarnings = Array.from(set);
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
   });
@@ -1692,7 +1693,7 @@ function bindProgramWarnings(state, root, selected){
     const set = new Set(selected.resolvedWarnings);
     all.forEach(w=>set.add(w.id));
     selected.resolvedWarnings = Array.from(set);
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
 
@@ -1700,14 +1701,14 @@ function bindProgramWarnings(state, root, selected){
   if (clearResolved) clearResolved.onclick = (ev)=>{
     ev.preventDefault?.();
     selected.resolvedWarnings = [];
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
 
   const toggle = gw.querySelector("#toggleResolvedWarnings");
   if (toggle) toggle.onchange = ()=>{
     state.ui.showResolvedWarnings = !!toggle.checked;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
 }
@@ -1797,7 +1798,7 @@ function viewCoach(state){
 
       <label style="margin-top:14px;">Assign diet template (optional)</label>
       <select id="tplSel">
-        ${dietEditorState.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
+        ${state.__dietEditorState_DO_NOT_USE__.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
       </select>
       <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
 
@@ -1897,7 +1898,7 @@ function viewCoach(state){
             <b>${c.name}</b><div class="muted">${c.email}</div>
           </button>
         `);
-        row.onclick = () => { state.ui.selectedClientId = c.id; save(dietEditorState); render(); };
+        row.onclick = () => { state.ui.selectedClientId = c.id; save(state.__dietEditorState_DO_NOT_USE__); render(); };
         list.appendChild(row);
       });
   }
@@ -1908,7 +1909,7 @@ function viewCoach(state){
   root.querySelector("#alertsOnly").onchange = (e) => {
     state.ui.coach = state.ui.coach || {};
     state.ui.coach.alertsOnly = !!e.target.checked;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
 
@@ -1973,7 +1974,7 @@ function viewCoach(state){
 
     tr.onclick = (ev) => {
       if (ev.target && ev.target.closest("button")) return;
-      state.ui.selectedClientId = c.id; save(dietEditorState); render();
+      state.ui.selectedClientId = c.id; save(state.__dietEditorState_DO_NOT_USE__); render();
     };
 
     tr.querySelector("[data-sync]").onclick = () => {
@@ -1985,14 +1986,14 @@ function viewCoach(state){
       c.daily[t].bodyBatteryStart = rand(70, 96);
       c.daily[t].bodyBatteryEnd = rand(15, 58);
       c.daily[t].activeCals = rand(250, 900);
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       alert(`Simulated sync for ${c.name}`);
       render();
     };
     tr.querySelector("[data-msg]").onclick = () => {
       state.ui.selectedClientId = c.id;
       (state.ui = state.ui || {}).view = "messages";
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
 
@@ -2003,7 +2004,7 @@ function viewCoach(state){
         ev.preventDefault?.();
         ev.stopPropagation();
         state.ui.selectedClientId = c.id;
-        save(dietEditorState);
+        save(state.__dietEditorState_DO_NOT_USE__);
         openGeneticsEditor(state, c.id);
       };
     });
@@ -2079,14 +2080,14 @@ function viewCoach(state){
     const c = Number(root.querySelector("#c").value);
     const f = Number(root.querySelector("#f").value);
     sel.macroTargets.training = { kcal,p,c,f };
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     alert("Saved training-day targets (demo).");
     render();
   };
   root.querySelector("#assignTplBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
     const templateId = root.querySelector("#tplSel").value;
-    const tpl = (dietEditorState.dietTemplates||[]).find(t=>t.id===templateId);
+    const tpl = (state.__dietEditorState_DO_NOT_USE__.dietTemplates||[]).find(t=>t.id===templateId);
     sel.assignedTemplateId = templateId;
 
     // copy template into client active plan (so later template edits don't retroactively change clients)
@@ -2112,22 +2113,22 @@ function viewCoach(state){
       sel.macroTargets.training = JSON.parse(JSON.stringify(sel.activeDietPlan.macros));
     }
 
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     alert("Template assigned (demo).\n\nTip: Client view will now show the copied plan under Active diet plan.");
     render();
   };
 
-  root.querySelector("#manageDietBtn").onclick = () => { (state.ui = state.ui || {}).view = "diet"; save(dietEditorState); render(); };
+  root.querySelector("#manageDietBtn").onclick = () => { (state.ui = state.ui || {}).view = "diet"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 
   root.querySelector("#editPlanBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
     openClientDietPlanEditor(state, sel.id);
   };
 
-  root.querySelector("#toClientBtn").onclick = () => { (state.ui = state.ui || {}).view = "client"; save(dietEditorState); render(); };
-  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(dietEditorState); render(); };
-  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(dietEditorState); render(); };
-  root.querySelector("#toMessagesBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(dietEditorState); render(); };
+  root.querySelector("#toClientBtn").onclick = () => { (state.ui = state.ui || {}).view = "client"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toMessagesBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 
   root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
   root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
@@ -2143,14 +2144,14 @@ function viewCoach(state){
     if (!confirm(`Delete ${sel.name}?`)) return;
     state.clients = state.clients.filter(c=>c.id!==sel.id);
     state.ui.selectedClientId = state.clients[0]?.id || "";
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
   // optional scroll target (used by Today table warning badge)
   if (state.ui && state.ui.scrollTo === "geneticsWarnings") {
     // clear first so repeated renders don't keep jumping
     state.ui.scrollTo = null;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     setTimeout(() => {
       const elw = document.getElementById("geneticsWarnings");
       if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2160,7 +2161,7 @@ function viewCoach(state){
 
   if (state.ui && state.ui.scrollTo === "weeklySchedule") {
     state.ui.scrollTo = null;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     setTimeout(() => {
       const elw = document.getElementById("weeklySchedule");
       if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2198,7 +2199,7 @@ function initSessionUI(state, client, root){
       state.ui.selectedWorkoutTemplateId = rec.id;
       const t = getSelectedWorkoutTemplate(state);
       if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
   }
@@ -2218,7 +2219,7 @@ function initSessionUI(state, client, root){
       state.ui.selectedWorkoutTemplateId = id;
       const t = getSelectedWorkoutTemplate(state);
       if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
   });
@@ -2251,7 +2252,7 @@ function viewClient(state){
     </div>
   `);
 
-  const activePlan = client.activeDietPlan || (dietEditorState.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
+  const activePlan = client.activeDietPlan || (state.__dietEditorState_DO_NOT_USE__.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
   const targets = (activePlan && activePlan.macros) ? activePlan.macros : client.macroTargets.training;
 
   const left = el(`
@@ -2475,14 +2476,14 @@ function viewClient(state){
       state.workoutLogs[logKey][client.id][ex] = newSets;
       client.daily[t].workoutDone = true;
       client.daily[t].workoutMins = 45;
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       renderSessionPRs();
       alert("Saved workout sets (demo).");
     };
     block.querySelector("[data-history]").onclick = () => {
       state.ui.selectedExercise = ex;
       (state.ui = state.ui || {}).view = "history";
-      save(dietEditorState);
+      save(state.__dietEditorState_DO_NOT_USE__);
       render();
     };
 
@@ -2496,7 +2497,7 @@ function viewClient(state){
     client.daily[t].bodyWeightKg = root.querySelector("#bw").value.trim();
     client.daily[t].waistCm = root.querySelector("#waist").value.trim();
     client.daily[t].dayNote = root.querySelector("#dayNote").value.trim();
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     alert("Saved today (demo).");
   };
 
@@ -2508,14 +2509,14 @@ function viewClient(state){
       energy: Number(root.querySelector("#ener").value),
       digestion: Number(root.querySelector("#dig").value)
     };
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     alert("Saved check-in (demo).");
   };
 
-  root.querySelector("#toCoachBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(dietEditorState); render(); };
-  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(dietEditorState); render(); };
-  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(dietEditorState); render(); };
-  root.querySelector("#toMsgBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(dietEditorState); render(); };
+  root.querySelector("#toCoachBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { (state.ui = state.ui || {}).view = "progress"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { (state.ui = state.ui || {}).view = "history"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toMsgBtn").onclick = () => { (state.ui = state.ui || {}).view = "messages"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 /** ========= Progress view ========= */
@@ -2635,13 +2636,13 @@ function viewProgress(state){
         if (ev.target && ev.target.closest("button")) return;
         state.ui.selectedExercise = pr.exercise;
         (state.ui = state.ui || {}).view = "history";
-        save(dietEditorState);
+        save(state.__dietEditorState_DO_NOT_USE__);
         render();
       };
       tr.querySelector("[data-open]").onclick = ()=>{
         state.ui.selectedExercise = pr.exercise;
         (state.ui = state.ui || {}).view = "history";
-        save(dietEditorState);
+        save(state.__dietEditorState_DO_NOT_USE__);
         render();
       };
       prBody.appendChild(tr);
@@ -2672,9 +2673,9 @@ function viewProgress(state){
     const f = e.target.files?.[0];
     if (f) importBackupJSON(f);
   };
-  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
-  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
-  root.querySelector("#toHistory").onclick = () => { (state.ui = state.ui || {}).view ="history"; save(dietEditorState); render(); };
+  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toHistory").onclick = () => { (state.ui = state.ui || {}).view ="history"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 /** ========= History view (exercise history) ========= */
@@ -2699,16 +2700,16 @@ function viewHistory(state){
         </div>
       </div>
     `));
-    root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
-    root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(dietEditorState); render(); };
-    root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
+    root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+    root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+    root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
     return;
   }
 
   // pick current selected exercise
   const selEx = exercises.includes(state.ui.selectedExercise) ? state.ui.selectedExercise : exercises[0];
   state.ui.selectedExercise = selEx;
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
 
   const history = computeExerciseHistory(state, client.id, selEx);
   const prs = computePRsForClient(state, client.id);
@@ -2793,12 +2794,12 @@ function viewHistory(state){
 
   root.querySelector("#exSel").onchange = (e)=>{
     state.ui.selectedExercise = e.target.value;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     render();
   };
-  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(dietEditorState); render(); };
-  root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(dietEditorState); render(); };
-  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(dietEditorState); render(); };
+  root.querySelector("#toClient").onclick = () => { (state.ui = state.ui || {}).view ="client"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toProgress").onclick = () => { (state.ui = state.ui || {}).view ="progress"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
+  root.querySelector("#toCoach").onclick = () => { (state.ui = state.ui || {}).view ="coach"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 /** ========= Messages view ========= */
@@ -2866,11 +2867,11 @@ function viewMessages(state){
     if (!text) return;
     state.messages.push({ id:"m"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
     card.querySelector("#msgInput").value = "";
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     renderMsgs();
   };
 
-  header.querySelector("#backBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(dietEditorState); render(); };
+  header.querySelector("#backBtn").onclick = () => { (state.ui = state.ui || {}).view = "coach"; save(state.__dietEditorState_DO_NOT_USE__); render(); };
 }
 
 /** ========= Client add/edit modal ========= */
@@ -2937,7 +2938,7 @@ function openClientModal(state, {mode, clientId}){
       existing.profile.weightKg = weightKg;
     }
 
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
     render();
   };
@@ -2978,7 +2979,7 @@ function normalizeDietTemplate(tpl){
 }
 
 function exportDietTemplates(state){
-  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(dietEditorState.dietTemplates || [], null, 2));
+  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(state.__dietEditorState_DO_NOT_USE__.dietTemplates || [], null, 2));
 }
 function importDietTemplatesFromFile(file, state){
   const r = new FileReader();
@@ -2988,8 +2989,8 @@ function importDietTemplatesFromFile(file, state){
       const arr = Array.isArray(parsed) ? parsed : (parsed?.dietTemplates || parsed?.templates || []);
       if (!Array.isArray(arr)) throw new Error('Not an array');
       state.dietTemplates = state.dietTemplates || [];
-      arr.forEach(x=> dietEditorState.dietTemplates.push(normalizeDietTemplate(x)));
-      save(dietEditorState);
+      arr.forEach(x=> state.__dietEditorState_DO_NOT_USE__.dietTemplates.push(normalizeDietTemplate(x)));
+      save(state.__dietEditorState_DO_NOT_USE__);
       alert(`Imported ${arr.length} template(s).`);
       render();
     } catch(e){
@@ -3000,10 +3001,10 @@ function importDietTemplatesFromFile(file, state){
 }
 
 function openDietTemplateEditor(state, {templateId}={}){
-  dietEditorState = state; // set global ref for helpers
+  state.__dietEditorState_DO_NOT_USE__ = state; // set global ref for helpers
   state.dietTemplates = state.dietTemplates || [];
   const isEdit = !!templateId;
-  const existing = isEdit ? dietEditorState.dietTemplates.find(t=>t.id===templateId) : null;
+  const existing = isEdit ? state.__dietEditorState_DO_NOT_USE__.dietTemplates.find(t=>t.id===templateId) : null;
   working = normalizeDietTemplate(deepCopy(existing || { id: uid(), name:'', notes:'', macros:{kcal:'',p:'',c:'',f:''}, meals:[] }));
 
   overlay = el(`
@@ -3286,7 +3287,7 @@ function openDietTemplateEditor(state, {templateId}={}){
 
   const addCustomFoodBtn = overlay.querySelector('#addCustomFoodBtn');
   if (addCustomFoodBtn) addCustomFoodBtn.onclick = () => {
-    openCustomFoodModal(dietEditorState);
+    openCustomFoodModal(state.__dietEditorState_DO_NOT_USE__);
   };
 
   const addMealBtn = overlay.querySelector('#dt_add_meal');
@@ -3355,13 +3356,13 @@ function openDietTemplateEditor(state, {templateId}={}){
     tpl.updatedAt = Date.now();
 
     if (isEdit){
-      const idx = dietEditorState.dietTemplates.findIndex(t=>t.id===templateId);
-      if (idx>=0) dietEditorState.dietTemplates[idx] = tpl;
+      const idx = state.__dietEditorState_DO_NOT_USE__.dietTemplates.findIndex(t=>t.id===templateId);
+      if (idx>=0) state.__dietEditorState_DO_NOT_USE__.dietTemplates[idx] = tpl;
     } else {
-      dietEditorState.dietTemplates.push(tpl);
+      state.__dietEditorState_DO_NOT_USE__.dietTemplates.push(tpl);
     }
 
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
     render();
   };
@@ -3376,7 +3377,7 @@ function openClientDietPlanEditor(state, clientId){
   const base = client.activeDietPlan
     ? deepCopy(client.activeDietPlan)
     : (()=>{
-        const tpl = dietEditorState.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
+        const tpl = state.__dietEditorState_DO_NOT_USE__.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
         if (tpl) return { planId: uid(), sourceTemplateId: tpl.id, name: tpl.name, notes: tpl.notes||'', macros: tpl.macros||computeMacrosFromMeals(tpl.meals), meals: deepCopy(tpl.meals||[]), assignedAt: Date.now(), assignedBy:'coach' };
         return { planId: uid(), sourceTemplateId: null, name: 'Custom plan', notes:'', macros: deepCopy(client.macroTargets?.training||{kcal:0,p:0,c:0,f:0}), meals: [], assignedAt: Date.now(), assignedBy:'coach' };
       })();
@@ -3450,7 +3451,7 @@ function openClientDietPlanEditor(state, clientId){
     client.macroTargets = client.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
     client.macroTargets.training = deepCopy(client.activeDietPlan.macros);
 
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
     overlay.remove();
     alert('Saved client diet plan.');
     render();
@@ -3463,8 +3464,8 @@ function viewDiet(state){
   const root = document.getElementById('app');
   root.innerHTML = '';
 
-  dietEditorState.dietTemplates = (dietEditorState.dietTemplates || []).map(normalizeDietTemplate);
-  save(dietEditorState);
+  state.__dietEditorState_DO_NOT_USE__.dietTemplates = (state.__dietEditorState_DO_NOT_USE__.dietTemplates || []).map(normalizeDietTemplate);
+  save(state.__dietEditorState_DO_NOT_USE__);
 
   const wrap = el(`
     <div class="card">
@@ -3495,12 +3496,12 @@ function viewDiet(state){
   const list = wrap.querySelector('#dt_list');
   function paint(){
     list.innerHTML = '';
-    if (!dietEditorState.dietTemplates.length){
+    if (!state.__dietEditorState_DO_NOT_USE__.dietTemplates.length){
       list.appendChild(el('<div class="card warn" style="border-radius:12px;"><b>No plans yet</b><div class="muted">Click “New template” to create one.</div></div>'));
       return;
     }
 
-    dietEditorState.dietTemplates
+    state.__dietEditorState_DO_NOT_USE__.dietTemplates
       .slice()
       .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0))
       .forEach(tpl=>{
@@ -3532,16 +3533,16 @@ function viewDiet(state){
           copy.id = uid();
           copy.name = (copy.name||'Template') + ' (copy)';
           copy.updatedAt = Date.now();
-          dietEditorState.dietTemplates.push(copy);
-          save(dietEditorState);
+          state.__dietEditorState_DO_NOT_USE__.dietTemplates.push(copy);
+          save(state.__dietEditorState_DO_NOT_USE__);
           paint();
         };
         row.querySelector('[data-del]').onclick = ()=>{
           if (!confirm('Delete this template?')) return;
-          dietEditorState.dietTemplates = dietEditorState.dietTemplates.filter(x=>x.id!==tpl.id);
+          state.__dietEditorState_DO_NOT_USE__.dietTemplates = state.__dietEditorState_DO_NOT_USE__.dietTemplates.filter(x=>x.id!==tpl.id);
           // also detach from clients
           (state.clients||[]).forEach(c=>{ if (c.assignedTemplateId===tpl.id) c.assignedTemplateId=''; });
-          save(dietEditorState);
+          save(state.__dietEditorState_DO_NOT_USE__);
           paint();
         };
         list.appendChild(row);
@@ -3551,7 +3552,7 @@ function viewDiet(state){
 
   wrap.querySelector('#dt_new').onclick = ()=> openDietTemplateEditor(state);
   wrap.querySelector('#dt_export').onclick = ()=> exportDietTemplates(state);
-  wrap.querySelector('#dt_back').onclick = ()=> { (state.ui = state.ui || {}).view ='coach'; save(dietEditorState); render(); };
+  wrap.querySelector('#dt_back').onclick = ()=> { (state.ui = state.ui || {}).view ='coach'; save(state.__dietEditorState_DO_NOT_USE__); render(); };
   wrap.querySelector('#dt_import').onchange = (e)=>{
     const f = e.target.files?.[0];
     if (f) importDietTemplatesFromFile(f, state);
@@ -3570,7 +3571,7 @@ state.ui = state.ui || {};
   // selected client sanity
   if (state.clients?.length && (!state.ui.selectedClientId || !state.clients.find(c=>c.id===state.ui.selectedClientId))){
     state.ui.selectedClientId = state.clients[0].id;
-    save(dietEditorState);
+    save(state.__dietEditorState_DO_NOT_USE__);
   }
 
   // ensure today's daily row exists
@@ -3585,7 +3586,7 @@ state.ui = state.ui || {};
   if (!state.session){
     if ((state.ui = state.ui || {}).view ==="landing") return viewLanding(state);
     if ((state.ui = state.ui || {}).view ==="pricing") return viewPricing(state);
-    (state.ui = state.ui || {}).view ="login"; save(dietEditorState);
+    (state.ui = state.ui || {}).view ="login"; save(state.__dietEditorState_DO_NOT_USE__);
     return viewLogin(state);
   }
 
@@ -3600,14 +3601,14 @@ state.ui = state.ui || {};
 
   if (user.role==="coach"){
     if ((state.ui = state.ui || {}).view ==="client") return viewClient(state);
-    (state.ui = state.ui || {}).view ="coach"; save(dietEditorState);
+    (state.ui = state.ui || {}).view ="coach"; save(state.__dietEditorState_DO_NOT_USE__);
     return viewCoach(state);
   }
 
   // client role: lock to their clientId
   state.ui.selectedClientId = user.clientId || "c1";
   (state.ui = state.ui || {}).view = "client";
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
   return viewClient(state);
 }
 
@@ -3617,7 +3618,7 @@ document.getElementById("logoutBtn").onclick = () => {
 
   state.session = null;
   (state.ui = state.ui || {}).view = "landing";
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
   render();
 };
 
@@ -3627,7 +3628,7 @@ render();
 function openGeneticsEditor(state, clientId){
   state.ui = state.ui || {};
   state.ui.geneticsEditingClientId = clientId;
-  save(dietEditorState);
+  save(state.__dietEditorState_DO_NOT_USE__);
   render();
 }
 
