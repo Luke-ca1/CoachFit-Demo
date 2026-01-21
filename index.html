@@ -118,7 +118,205 @@ if (typeof window.esc !== "function") {
   };
 }
 
-// ------------------------------------------------------------------------------
+
+const FOOD_LIBRARY = [
+  {name:"Chicken breast (100g)", category:"Protein", kcal:165, p:31, c:0, f:3.6},
+  {name:"Lean beef mince (100g)", category:"Protein", kcal:170, p:26, c:0, f:7},
+  {name:"Salmon (100g)", category:"Protein", kcal:208, p:20, c:0, f:13},
+  {name:"Egg (1 large)", category:"Protein", kcal:72, p:6, c:0.4, f:5},
+  {name:"Greek yogurt 0% (200g)", category:"Protein", kcal:118, p:20, c:7, f:0},
+  {name:"Whey protein (1 scoop)", category:"Protein", kcal:120, p:24, c:3, f:2},
+  {name:"Oats (50g)", category:"Carb", kcal:194, p:8, c:33, f:3.5},
+  {name:"Rice cooked (150g)", category:"Carb", kcal:195, p:4, c:43, f:0.4},
+  {name:"Potato (250g)", category:"Carb", kcal:215, p:6, c:49, f:0},
+  {name:"Banana (1 medium)", category:"Carb", kcal:105, p:1.3, c:27, f:0.4},
+  {name:"Olive oil (1 tbsp)", category:"Fat", kcal:119, p:0, c:0, f:13.5},
+  {name:"Avocado (100g)", category:"Fat", kcal:160, p:2, c:9, f:15},
+  {name:"Almonds (30g)", category:"Fat", kcal:174, p:6, c:6, f:15},
+  {name:"Broccoli (150g)", category:"Veg", kcal:50, p:4, c:10, f:0.6},
+
+  {name:"Pasta cooked (180g)", category:"Carb", kcal:270, p:10, c:54, f:2},
+  {name:"White bread (2 slices)", category:"Carb", kcal:160, p:6, c:28, f:2},
+  {name:"Peanut butter (1 tbsp)", category:"Fat", kcal:95, p:4, c:3, f:8},
+  {name:"Cheddar cheese (30g)", category:"Fat", kcal:120, p:7, c:0.5, f:10},
+  {name:"Apple (1 medium)", category:"Carb", kcal:95, p:0.5, c:25, f:0.3},
+
+];
+
+function findFoodByName(name){
+  const key = String(name||"").trim().toLowerCase();
+  if (!key) return null;
+  return FOOD_LIBRARY.find(f => f.name.toLowerCase() === key) || null;
+}
+
+function getFoodLibrary(state){
+  const base = Array.isArray(FOOD_LIBRARY) ? FOOD_LIBRARY : [];
+  const custom = Array.isArray(state?.customFoods) ? state.customFoods : [];
+  // Custom foods override base if same name
+  const map = new Map();
+  base.forEach(f=> map.set(String(f.name).toLowerCase(), f));
+  custom.forEach(f=> map.set(String(f.name).toLowerCase(), f));
+  return Array.from(map.values());
+}
+function addCustomFood(state, food){
+  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
+  const key = String(food?.name||"").trim();
+  if (!key) return false;
+  const clean = {
+    name: key,
+    category: (food.category||"General"),
+    kcal: Number(food.kcal)||0,
+    p: Number(food.p)||0,
+    c: Number(food.c)||0,
+    f: Number(food.f)||0
+  };
+  // remove existing with same name (case-insensitive)
+  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
+  state.customFoods.unshift(clean);
+  return true;
+}
+function removeCustomFood(state, name){
+  if (!Array.isArray(state.customFoods)) return;
+  const key = String(name||"").toLowerCase();
+  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
+}
+
+
+
+
+  function renderCustomFoodsList(){
+    const mount = overlay.querySelector('#customFoodsList');
+    if (!mount) return;
+    const custom = Array.isArray(state.customFoods) ? state.customFoods : [];
+    if (!custom.length){
+      mount.innerHTML = '<div class="hint">No custom foods yet.</div>';
+      return;
+    }
+    mount.innerHTML = `
+      <hr class="hr">
+      <b>⭐ Your custom foods</b>
+      <div class="hint" style="margin-top:6px;">These are saved in your browser (localStorage) for quick reuse.</div>
+      ${custom.slice(0,10).map((f,i)=>`
+        <div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin-top:8px;">
+          <div style="flex:1;">
+            <b>${esc(f.name)}</b>
+            <div class="hint">${esc(f.category||"General")} • ${esc(f.kcal)} kcal • P ${esc(f.p)} / C ${esc(f.c)} / F ${esc(f.f)}</div>
+          </div>
+          <div class="row" style="gap:8px;">
+            <button class="small" data-add-custom="${i}">Add</button>
+            <button class="small" data-edit-custom="${i}">Edit</button>
+            <button class="small" data-del-custom="${i}">Delete</button>
+          </div>
+        </div>
+      `).join("")}
+    `;
+
+    mount.querySelectorAll('[data-add-custom]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const i = Number(btn.getAttribute('data-add-custom'));
+        const item = custom[i];
+        if (!item) return;
+        const target = Number(overlay.querySelector('#foodMealTarget')?.value || 0);
+        working.meals = working.meals || [];
+        if (!working.meals.length) working.meals.push({slot:"Meal 1", items:[]});
+        const mi = isFinite(target) ? Math.min(Math.max(target,0), working.meals.length-1) : 0;
+        working.meals[mi].items = working.meals[mi].items || [];
+        working.meals[mi].items.push({food:item.name, kcal:item.kcal, p:item.p, c:item.c, f:item.f});
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+
+
+    mount.querySelectorAll('[data-edit-custom]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const i = Number(btn.getAttribute('data-edit-custom'));
+        const item = custom[i];
+        if (!item) return;
+        openCustomFoodModal(state, item);
+      };
+    });
+
+    mount.querySelectorAll('[data-del-custom]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const i = Number(btn.getAttribute('data-del-custom'));
+        const item = custom[i];
+        if (!item) return;
+        if (!confirm(`Delete custom food: ${item.name}?`)) return;
+        removeCustomFood(state, item.name);
+        save(state);
+        renderFoodLibrary();
+        renderCustomFoodsList();
+        // refresh datalist too
+        const dl = document.getElementById("foodLibList");
+        if (dl) dl.innerHTML = getFoodLibrary(state).map(f=>`<option value="${esc(f.name)}"></option>`).join("");
+      };
+    });
+  }
+
+  // ----------------------------------------------
+
+  // ----- Food library quick add -----
+  function refreshMealTargetOptions(){
+    const sel = overlay.querySelector('#foodMealTarget');
+    if (!sel) return;
+    const meals = working.meals || [];
+    const opts = meals.map((m,i)=>{
+      const label = (m.slot && m.slot.trim()) ? m.slot.trim() : ("Meal " + (i+1));
+      return `<option value="${i}">Add to: ${esc(label)}</option>`;
+    }).join("");
+    sel.innerHTML = opts || '<option value="0">Add to: first meal</option>';
+  }
+
+  function renderFoodLibrary(){
+    const results = overlay.querySelector('#foodResults');
+    const q = (overlay.querySelector('#foodSearch')?.value || "").trim().toLowerCase();
+    const cat = overlay.querySelector('#foodCat')?.value || "All";
+    const target = Number(overlay.querySelector('#foodMealTarget')?.value || 0);
+
+    if (!results) return;
+    const lib = getFoodLibrary(state);
+    const filtered = lib.filter(f=>{
+      const inCat = (cat==="All") ? true : (f.category===cat);
+      const inQ = !q ? true : (f.name.toLowerCase().includes(q));
+      return inCat && inQ;
+    }).slice(0, 12);
+
+    results.innerHTML = filtered.map((f, idx)=>`
+      <div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin-top:8px;">
+        <div style="flex:1;">
+          <b>${esc(f.name)}</b>
+          <div class="hint">${esc(f.category)} • ${esc(f.kcal)} kcal • P ${esc(f.p)} / C ${esc(f.c)} / F ${esc(f.f)}</div>
+        </div>
+        <button class="small" data-quickadd="${idx}">Add</button>
+      </div>
+    `).join("") || '<div class="hint">No matches. Try another search.</div>';
+
+    results.querySelectorAll('[data-quickadd]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const idx = Number(btn.getAttribute('data-quickadd'));
+        const item = filtered[idx];
+        if (!item) return;
+
+        working.meals = working.meals || [];
+        if (!working.meals.length){
+          working.meals.push({slot:"Meal 1", items:[]});
+        }
+        const mi = isFinite(target) ? Math.min(Math.max(target,0), working.meals.length-1) : 0;
+        working.meals[mi].items = working.meals[mi].items || [];
+        working.meals[mi].items.push({food:item.name, kcal:item.kcal, p:item.p, c:item.c, f:item.f});
+
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+  }
+  // ----------------------------------
+--------------------------------
 
 /** ========= Basics ========= */
 const LS_KEY = "coachfit_demo_pitch_v6_genetics"; // changed -> reset recommended
@@ -186,6 +384,7 @@ function migrateState(state){
       c.completedSessions = c.completedSessions || {};
     });
   }
+  if (!Array.isArray(state.customFoods)) state.customFoods = [];
 return state;
 }
 
@@ -1308,6 +1507,119 @@ function renderAdjustmentModal(state){
   };
 }
 
+function openCustomFoodModal(state, existing){
+  state.ui = state.ui || {};
+  const ex = existing || {};
+  state.ui.customFoodModal = {name: ex.name||"", category: ex.category||"Other", kcal: ex.kcal||0, p: ex.p||0, c: ex.c||0, f: ex.f||0, originalName: ex.name||""};
+  save(state);
+  render();
+}
+
+function renderCustomFoodModal(state){
+  const m = state?.ui?.customFoodModal;
+  if (!m) return;
+
+  const overlay = document.createElement("div");
+  overlay.style.position="fixed";
+  overlay.style.inset="0";
+  overlay.style.background="rgba(0,0,0,0.45)";
+  overlay.style.zIndex="9999";
+  overlay.style.display="flex";
+  overlay.style.alignItems="center";
+  overlay.style.justifyContent="center";
+  overlay.style.padding="16px";
+
+  const card = document.createElement("div");
+  card.className="card";
+  card.style.maxWidth="560px";
+  card.style.width="100%";
+  card.style.borderRadius="18px";
+
+  const cats = ["Other","Protein","Carb","Fat","Veg"];
+  card.innerHTML = `
+    <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+      <div>
+        <div class="hint">Food library</div>
+        <h2 style="margin:4px 0 0 0;">${(m.originalName && String(m.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</h2>
+      </div>
+      <button class="small" id="cfClose">✕</button>
+    </div>
+
+    <hr class="hr">
+
+    <div class="muted">Food name</div>
+    <input id="cfName" placeholder="e.g. My Granola (50g)" value="${esc(m.name||"")}" style="width:100%;margin-top:6px;">
+
+    <div class="muted" style="margin-top:12px;">Category</div>
+    <select id="cfCat" style="width:100%;margin-top:6px;">
+      ${cats.map(v=>`<option value="${v}" ${String(m.category||"Other")===v?"selected":""}>${v}</option>`).join("")}
+    </select>
+
+    <div class="grid2" style="margin-top:12px;">
+      <div>
+        <div class="muted">Calories (kcal)</div>
+        <input id="cfKcal" type="number" step="1" value="${esc(m.kcal)}" style="width:100%;margin-top:6px;">
+      </div>
+      <div>
+        <div class="muted">Protein (g)</div>
+        <input id="cfP" type="number" step="0.1" value="${esc(m.p)}" style="width:100%;margin-top:6px;">
+      </div>
+      <div>
+        <div class="muted">Carbs (g)</div>
+        <input id="cfC" type="number" step="0.1" value="${esc(m.c)}" style="width:100%;margin-top:6px;">
+      </div>
+      <div>
+        <div class="muted">Fat (g)</div>
+        <input id="cfF" type="number" step="0.1" value="${esc(m.f)}" style="width:100%;margin-top:6px;">
+      </div>
+    </div>
+
+    <hr class="hr">
+
+    <div class="row" style="justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+      <button class="small" id="cfCancel">Cancel</button>
+      <button class="small" id="cfSave">Save food</button>
+    </div>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const close = ()=>{
+    state.ui.customFoodModal = null;
+    save(state);
+    overlay.remove();
+  };
+
+  overlay.addEventListener("click", (e)=>{ if (e.target===overlay) close(); });
+  card.querySelector("#cfClose").onclick = (e)=>{ e.preventDefault?.(); close(); };
+  card.querySelector("#cfCancel").onclick = (e)=>{ e.preventDefault?.(); close(); };
+
+  card.querySelector("#cfSave").onclick = (e)=>{
+    e.preventDefault?.();
+    const name = String(card.querySelector("#cfName").value||"").trim();
+    if (!name) return alert("Please enter a food name.");
+    const food = {
+      name,
+      category: card.querySelector("#cfCat").value || "Other",
+      kcal: Number(card.querySelector("#cfKcal").value)||0,
+      p: Number(card.querySelector("#cfP").value)||0,
+      c: Number(card.querySelector("#cfC").value)||0,
+      f: Number(card.querySelector("#cfF").value)||0,
+    };
+    if (m.originalName && String(m.originalName).trim() && String(m.originalName).toLowerCase() !== String(food.name).toLowerCase()) {
+      // rename: remove old entry first
+      removeCustomFood(state, m.originalName);
+    }
+    addCustomFood(state, food);
+    save(state);
+    close();
+    render();
+  };
+}
+
+
+
 
 function bindProgramWarnings(state, root, selected){
   const gw = root.querySelector("#geneticsWarnings");
@@ -1836,6 +2148,7 @@ function viewCoach(state){
   bindProgramWarnings(state, root, selected);
   // adjustment preview modal
   renderAdjustmentModal(state);
+  renderCustomFoodModal(state);
 
 }
 
@@ -2692,12 +3005,52 @@ function openDietTemplateEditor(state, {templateId}={}){
             <button class="small" id="dt_autocalc" style="margin-top:8px;">Auto-calc from meals</button>
           </div>
           <div>
-            <h3>Meals JSON</h3>
-            <div class="hint">Format: <code>[{slot:"Breakfast", items:[{food:"",kcal:0,p:0,c:0,f:0}]}]</code></div>
-          </div>
-        </div>
+            
 
-        <textarea id="dt_meals" style="min-height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${JSON.stringify(working.meals||[], null, 2)}</textarea>
+<h3>Meals</h3>
+<div class="hint">Add meal slots and items. Enter calories + macros manually (no JSON needed).</div>
+
+<div class="card" style="border-radius:14px;margin-top:10px;">
+  <b>🍎 Food library</b>
+  <div class="hint" style="margin-top:6px;">Search once and click to add an item into a meal.</div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+    <button class="small" id="addCustomFoodBtn">+ ${(m.originalName && String(m.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</button>
+    <input id="foodSearch" placeholder="Search foods (e.g. chicken, rice, yogurt)" style="min-width:240px;flex:1;">
+    <select id="foodCat" style="max-width:200px;">
+      <option value="All">All categories</option>
+      <option value="Protein">Protein</option>
+      <option value="Carb">Carb</option>
+      <option value="Fat">Fat</option>
+      <option value="Veg">Veg</option>
+      <option value="General">Other</option>
+    </select>
+    <select id="foodMealTarget" style="max-width:220px;">
+      <option value="0">Add to: first meal</option>
+    </select>
+  </div>
+  <div id="foodResults" style="margin-top:10px;"></div>
+  <div id="customFoodsList" style="margin-top:12px;"></div>
+</div>
+
+<div id="dt_meals_ui" style="margin-top:10px;"></div>
+
+<div class="row" style="margin-top:10px;gap:10px;flex-wrap:wrap;">
+  <button class="small" id="dt_add_meal">+ Add meal slot</button>
+  <button class="small" id="dt_sync_json">Sync to JSON</button>
+  <label class="row" style="margin:0;gap:8px;align-items:center;">
+    <input type="checkbox" id="dt_show_json" />
+    <span class="muted">Show advanced JSON</span>
+  </label>
+</div>
+
+<div id="dt_json_wrap" style="display:none;margin-top:10px;">
+  <div class="hint">Advanced: you can still paste JSON here if you want. Editing below updates the UI when you click “Sync from JSON”.</div>
+  <textarea id="dt_meals" style="min-height:220px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;white-space:pre;">${JSON.stringify(working.meals||[], null, 2)}</textarea>
+  <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px;">
+    <button class="small" id="dt_sync_from_json">Sync from JSON</button>
+  </div>
+</div>
+
 
         <div class="row" style="justify-content:flex-end;margin-top:10px;">
           <button id="dt_cancel">Cancel</button>
@@ -2707,7 +3060,236 @@ function openDietTemplateEditor(state, {templateId}={}){
     </div>
   `);
 
+
+
+  // ----- Meals UI builder (no JSON required) -----
+  function sanitizeNum(v){
+    const n = Number(v);
+    return isFinite(n) ? n : 0;
+  }
+  function renderMealsUI(meals){
+    const mount = overlay.querySelector('#dt_meals_ui');
+    if (!mount) return;
+
+    const safeMeals = (meals||[]).map(m=>({ slot: m.slot || '', items: (m.items||[]).map(it=>({
+      food: it.food||'', kcal: sanitizeNum(it.kcal), p: sanitizeNum(it.p), c: sanitizeNum(it.c), f: sanitizeNum(it.f)
+    })) }));
+
+    mount.innerHTML = safeMeals.map((m, mi)=>{
+      const items = m.items || [];
+      const rows = items.map((it, ii)=>`
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">
+          <input list="foodLibList" data-mi="${mi}" data-ii="${ii}" data-k="food" placeholder="Food item (type to search)" value="${esc(it.food)}" style="min-width:220px;flex:1;">
+          <input data-mi="${mi}" data-ii="${ii}" data-k="kcal" placeholder="kcal" value="${esc(it.kcal)}" style="max-width:110px;">
+          <input data-mi="${mi}" data-ii="${ii}" data-k="p" placeholder="P" value="${esc(it.p)}" style="max-width:90px;">
+          <input data-mi="${mi}" data-ii="${ii}" data-k="c" placeholder="C" value="${esc(it.c)}" style="max-width:90px;">
+          <input data-mi="${mi}" data-ii="${ii}" data-k="f" placeholder="F" value="${esc(it.f)}" style="max-width:90px;">
+          <button class="small" data-fill-item="${mi}:${ii}">Fill</button>
+          <button class="small" data-copy-item="${mi}:${ii}">Copy</button>
+          <button class="small" data-remove-item="${mi}:${ii}">Remove</button>
+        </div>
+      `).join("");
+
+      return `
+        <div class="card" style="border-radius:14px;margin-top:10px;">
+          <div class="row" style="justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;flex:1;">
+              <b style="min-width:90px;">Meal slot</b>
+              <input data-mi="${mi}" data-k="slot" placeholder="e.g. Breakfast" value="${esc(m.slot)}" style="min-width:220px;flex:1;">
+            </div>
+            <div class="row" style="gap:8px;flex-wrap:wrap;">
+              <button class="small" data-add-item="${mi}">+ Add item</button>
+              <button class="small" data-remove-meal="${mi}">Remove meal</button>
+            </div>
+          </div>
+          ${rows || '<div class="hint" style="margin-top:10px;">No items yet.</div>'}
+        </div>
+      `;
+    }).join("") + (safeMeals.length ? "" : '<div class="hint">No meals yet. Click “Add meal slot”.</div>');
+
+    // wire buttons
+    mount.querySelectorAll('[data-add-item]').forEach(btn=>{
+      btn.onclick = () => {
+        const mi = Number(btn.getAttribute('data-add-item'));
+        working.meals = working.meals || [];
+        working.meals[mi] = working.meals[mi] || {slot:'', items:[]};
+        working.meals[mi].items = working.meals[mi].items || [];
+        working.meals[mi].items.push({food:'',kcal:0,p:0,c:0,f:0});
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+    mount.querySelectorAll('[data-remove-meal]').forEach(btn=>{
+      btn.onclick = () => {
+        const mi = Number(btn.getAttribute('data-remove-meal'));
+        working.meals = (working.meals||[]).filter((_,i)=>i!==mi);
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+    mount.querySelectorAll('[data-remove-item]').forEach(btn=>{
+      btn.onclick = () => {
+        const [mi,ii] = btn.getAttribute('data-remove-item').split(':').map(Number);
+        if (!working.meals || !working.meals[mi]) return;
+        working.meals[mi].items = (working.meals[mi].items||[]).filter((_,i)=>i!==ii);
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+
+
+    mount.querySelectorAll('[data-fill-item]').forEach(btn=>{
+      btn.onclick = () => {
+        const [mi,ii] = btn.getAttribute('data-fill-item').split(':').map(Number);
+        const it = working?.meals?.[mi]?.items?.[ii];
+        if (!it) return;
+        const f = findFoodByName(it.food);
+        if (!f) { alert("No exact match found in library. Pick an option from the suggestions or type the exact name."); return; }
+        it.kcal = f.kcal; it.p = f.p; it.c = f.c; it.f = f.f;
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+
+    mount.querySelectorAll('[data-copy-item]').forEach(btn=>{
+      btn.onclick = () => {
+        const [mi,ii] = btn.getAttribute('data-copy-item').split(':').map(Number);
+        const it = working?.meals?.[mi]?.items?.[ii];
+        if (!it) return;
+        working.meals[mi].items.splice(ii+1, 0, {food:it.food, kcal:it.kcal, p:it.p, c:it.c, f:it.f});
+        renderMealsUI(working.meals);
+        refreshMealTargetOptions();
+        renderFoodLibrary();
+        syncJsonFromWorking(true);
+      };
+    });
+
+    // live input changes
+    mount.querySelectorAll('input[data-k="slot"]').forEach(inp=>{
+      inp.oninput = () => {
+        const mi = Number(inp.getAttribute('data-mi'));
+        working.meals = working.meals || [];
+        working.meals[mi] = working.meals[mi] || {slot:'', items:[]};
+        working.meals[mi].slot = inp.value;
+      };
+    });
+
+    mount.querySelectorAll('input[data-ii]').forEach(inp=>{
+      inp.oninput = () => {
+        const mi = Number(inp.getAttribute('data-mi'));
+        const ii = Number(inp.getAttribute('data-ii'));
+        const k = inp.getAttribute('data-k');
+        working.meals = working.meals || [];
+        working.meals[mi] = working.meals[mi] || {slot:'', items:[]};
+        working.meals[mi].items = working.meals[mi].items || [];
+        working.meals[mi].items[ii] = working.meals[mi].items[ii] || {food:'',kcal:0,p:0,c:0,f:0};
+        if (k === 'food') working.meals[mi].items[ii].food = inp.value;
+        else working.meals[mi].items[ii][k] = sanitizeNum(inp.value);
+      };
+      inp.onblur = () => {
+        const k2 = inp.getAttribute('data-k');
+        if (k2 !== 'food') return;
+        const mi2 = Number(inp.getAttribute('data-mi'));
+        const ii2 = Number(inp.getAttribute('data-ii'));
+        const it2 = working?.meals?.[mi2]?.items?.[ii2];
+        if (!it2) return;
+        const f2 = findFoodByName(it2.food);
+        if (f2) {
+          it2.kcal = f2.kcal; it2.p = f2.p; it2.c = f2.c; it2.f = f2.f;
+          renderMealsUI(working.meals);
+          syncJsonFromWorking(true);
+        }
+      };
+    });
+  }
+
+  function syncJsonFromWorking(force=true){
+    const ta = overlay.querySelector('#dt_meals');
+    if (!ta) return;
+    if (!force){
+      // if advanced JSON is visible, don't overwrite user's edits unless forced
+      const wrap = overlay.querySelector('#dt_json_wrap');
+      if (wrap && wrap.style.display !== 'none') return;
+    }
+    ta.value = JSON.stringify(working.meals||[], null, 2);
+  }
+
+  function readMealsFromUI(){
+    const meals = (working.meals||[]).map(m=>{
+      const slot = (m.slot||'').trim();
+      const items = (m.items||[]).map(it=>({
+        food: (it.food||'').trim(),
+        kcal: sanitizeNum(it.kcal),
+        p: sanitizeNum(it.p),
+        c: sanitizeNum(it.c),
+        f: sanitizeNum(it.f),
+      })).filter(it=>it.food || it.kcal || it.p || it.c || it.f);
+      return { slot: slot || 'Meal', items };
+    }).filter(m=>m.items.length || (m.slot && m.slot.trim()));
+    return meals;
+  }
+  // ----------------------------------------------
+
   overlay.querySelector('#dt_cancel').onclick = () => overlay.remove();
+
+
+  // Meals UI init
+  working.meals = working.meals || [];
+  renderMealsUI(working.meals);
+  refreshMealTargetOptions();
+  renderFoodLibrary();
+  syncJsonFromWorking(true);
+
+  const foodSearch = overlay.querySelector('#foodSearch');
+  const foodCat = overlay.querySelector('#foodCat');
+  const foodMealTarget = overlay.querySelector('#foodMealTarget');
+  if (foodSearch) foodSearch.oninput = () => renderFoodLibrary();
+  if (foodCat) foodCat.onchange = () => renderFoodLibrary();
+  if (foodMealTarget) foodMealTarget.onchange = () => renderFoodLibrary();
+
+  const addCustomFoodBtn = overlay.querySelector('#addCustomFoodBtn');
+  if (addCustomFoodBtn) addCustomFoodBtn.onclick = () => {
+    openCustomFoodModal(state);
+  };
+
+  const addMealBtn = overlay.querySelector('#dt_add_meal');
+  if (addMealBtn) addMealBtn.onclick = () => {
+    working.meals = working.meals || [];
+    working.meals.push({slot:'', items:[{food:'',kcal:0,p:0,c:0,f:0}]});
+    renderMealsUI(working.meals);
+    syncJsonFromWorking(true);
+  };
+
+  const showJson = overlay.querySelector('#dt_show_json');
+  const jsonWrap = overlay.querySelector('#dt_json_wrap');
+  if (showJson && jsonWrap) showJson.onchange = () => {
+    jsonWrap.style.display = showJson.checked ? 'block' : 'none';
+    if (showJson.checked) syncJsonFromWorking(true);
+  };
+
+  const syncJsonBtn = overlay.querySelector('#dt_sync_json');
+  if (syncJsonBtn) syncJsonBtn.onclick = () => syncJsonFromWorking(true);
+
+  const syncFromJsonBtn = overlay.querySelector('#dt_sync_from_json');
+  if (syncFromJsonBtn) syncFromJsonBtn.onclick = () => {
+    try{
+      const meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]');
+      working.meals = (meals||[]);
+      renderMealsUI(working.meals);
+    } catch(e){
+      console.error(e);
+      alert('Meals JSON is invalid.');
+    }
+  };
+
   overlay.querySelector('#dt_autocalc').onclick = () => {
     try{
       const meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]');
@@ -2726,8 +3308,8 @@ function openDietTemplateEditor(state, {templateId}={}){
     if (!name) return alert('Name is required.');
 
     let meals = [];
-    try{ meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]'); }
-    catch(e){ return alert('Meals JSON is invalid.'); }
+    try{ meals = readMealsFromUI(); }
+    catch(e){ console.error(e); return alert('Please check meal inputs.'); }
 
     const tpl = normalizeDietTemplate({
       id: working.id,
