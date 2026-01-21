@@ -48,7 +48,10 @@
     .nav a.active{background:#111;color:#fff;border-color:#111}
     .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
     .hint{font-size:12px;color:#666;margin-top:6px}
-  </style>
+  
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <header>
@@ -137,7 +140,18 @@ function migrateState(state){
   // Ensure UI fields exist
   state.ui = state.ui || {};
   if (!state.ui.selectedWorkoutTemplateId) state.ui.selectedWorkoutTemplateId = "w_up_a";
-  return state;
+  
+  // Ensure each client has genetics structure
+  if (Array.isArray(state.clients)) {
+    state.clients.forEach(c=>{
+      c.genetics = c.genetics || {};
+      c.genetics.performance = c.genetics.performance || {};
+      c.genetics.nutrition = c.genetics.nutrition || {};
+      c.resolvedWarnings = c.resolvedWarnings || [];
+      c.completedSessions = c.completedSessions || {};
+    });
+  }
+return state;
 }
 
 function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -246,7 +260,7 @@ function seedData(){
   return {
     users, clients, dietTemplates, workoutPlan, workoutLogs, messages,
     session:null,
-    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false, selectedWorkoutTemplateId:'w_up_a' }
+    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false, selectedWorkoutTemplateId:'w_up_a', geneticsEditingClientId:null }
   };
 }
 
@@ -391,6 +405,20 @@ function isoDate(d){
   const pad = (n)=> String(n).padStart(2,"0");
   return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 }
+
+function last7CompletionCount(client){
+  const cs = (client && client.completedSessions) ? client.completedSessions : {};
+  let n = 0;
+  const d = new Date();
+  for (let i=0;i<7;i++){
+    const dd = new Date(d); dd.setDate(d.getDate()-i);
+    const key = isoDate(dd);
+    if (cs[key]) n++;
+  }
+  return n;
+}
+
+
 function getTomorrowRecommendedTemplateId(state){
   const d = new Date();
   d.setDate(d.getDate()+1);
@@ -851,6 +879,167 @@ function viewPricing(state){
 }
 
 /** ========= Coach view ========= */
+
+function ensureGenetics(client){
+  client.genetics = client.genetics || {};
+  client.genetics.performance = client.genetics.performance || {};
+  client.genetics.nutrition = client.genetics.nutrition || {};
+  const p = client.genetics.performance;
+  const n = client.genetics.nutrition;
+
+  p.fastTwitchBias = p.fastTwitchBias || "Not assessed";
+  p.recoverySpeed = p.recoverySpeed || "Not assessed";
+  p.injuryRisk = Array.isArray(p.injuryRisk) ? p.injuryRisk : [];
+  p.notes = p.notes || "";
+
+  n.carbTolerance = n.carbTolerance || "Not assessed";
+  n.fatTolerance = n.fatTolerance || "Not assessed";
+  n.proteinRequirement = n.proteinRequirement || "Not assessed";
+  n.notes = n.notes || "";
+}
+
+function renderGeneticsModal(state, root){
+  const id = state?.ui?.geneticsEditingClientId;
+  if (!id) return;
+  const client = state.clients.find(c=>c.id===id);
+  if (!client) { state.ui.geneticsEditingClientId=null; save(state); return; }
+  ensureGenetics(client);
+
+  const p = client.genetics.performance;
+  const n = client.genetics.nutrition;
+
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.45)";
+  overlay.style.zIndex = "9999";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "16px";
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.maxWidth = "760px";
+  card.style.width = "100%";
+  card.style.maxHeight = "85vh";
+  card.style.overflow = "auto";
+  card.style.borderRadius = "18px";
+
+  card.innerHTML = `
+    <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+      <div>
+        <div class="hint">Editing genetics for</div>
+        <h2 style="margin:4px 0 0 0;">${esc(client.name || "Client")}</h2>
+      </div>
+      <button class="small" id="genClose">✕</button>
+    </div>
+
+    <hr class="hr">
+
+    <div class="grid2">
+      <div>
+        <h3 style="margin:0 0 8px 0;">🏋️ Performance traits</h3>
+
+        <div class="muted" style="margin-bottom:6px;">Muscle fiber bias</div>
+        <select id="gFast" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${p.fastTwitchBias===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Recovery speed</div>
+        <select id="gRec" style="width:100%;">
+          ${["Not assessed","Fast","Moderate","Slow"].map(v=>`<option value="${v}" ${p.recoverySpeed===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Injury risk tags</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          ${["knee","shoulder","lower back","ankle","wrist"].map(tag=>`
+            <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer;">
+              <input type="checkbox" data-inj="${tag}" ${p.injuryRisk.includes(tag)?"checked":""}>
+              ${tag}
+            </label>
+          `).join("")}
+        </div>
+        <div class="hint" style="margin-top:6px;">Add custom tags (comma-separated)</div>
+        <input id="gInjCustom" placeholder="e.g. elbow, hip" value="" style="width:100%;margin-top:6px;">
+
+        <div class="muted" style="margin:12px 0 6px;">Notes (optional)</div>
+        <textarea id="gPNotes" rows="3" style="width:100%;">${esc(p.notes||"")}</textarea>
+      </div>
+
+      <div>
+        <h3 style="margin:0 0 8px 0;">🥗 Dietary traits</h3>
+
+        <div class="muted" style="margin-bottom:6px;">Carb tolerance</div>
+        <select id="gCarb" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.carbTolerance===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Fat tolerance</div>
+        <select id="gFat" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.fatTolerance===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Protein requirement</div>
+        <select id="gProt" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.proteinRequirement===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Notes (optional)</div>
+        <textarea id="gNNotes" rows="3" style="width:100%;">${esc(n.notes||"")}</textarea>
+
+        <div class="hint" style="margin-top:10px;">Genetics indicate predisposition, not prescription.</div>
+      </div>
+    </div>
+
+    <hr class="hr">
+
+    <div class="row" style="justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+      <button class="small" id="genCancel">Cancel</button>
+      <button class="small" id="genSave">Save genetics</button>
+    </div>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const close = ()=>{
+    state.ui.geneticsEditingClientId = null;
+    save(state);
+    overlay.remove();
+  };
+
+  overlay.addEventListener("click", (e)=>{
+    if (e.target === overlay) close();
+  });
+
+  card.querySelector("#genClose").onclick = (e)=>{ e.preventDefault?.(); close(); };
+  card.querySelector("#genCancel").onclick = (e)=>{ e.preventDefault?.(); close(); };
+
+  card.querySelector("#genSave").onclick = (e)=>{
+    e.preventDefault?.();
+
+    p.fastTwitchBias = card.querySelector("#gFast").value;
+    p.recoverySpeed = card.querySelector("#gRec").value;
+
+    // injury tags
+    const chosen = Array.from(card.querySelectorAll("[data-inj]")).filter(x=>x.checked).map(x=>x.getAttribute("data-inj"));
+    const custom = (card.querySelector("#gInjCustom").value || "").split(",").map(s=>s.trim()).filter(Boolean);
+    p.injuryRisk = Array.from(new Set(chosen.concat(custom)));
+
+    p.notes = card.querySelector("#gPNotes").value || "";
+
+    n.carbTolerance = card.querySelector("#gCarb").value;
+    n.fatTolerance = card.querySelector("#gFat").value;
+    n.proteinRequirement = card.querySelector("#gProt").value;
+    n.notes = card.querySelector("#gNNotes").value || "";
+
+    save(state);
+    close();
+    render();
+  };
+}
+
 function viewCoach(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -1305,6 +1494,9 @@ function viewCoach(state){
       if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 0);
   }
+
+  // genetics form modal
+  renderGeneticsModal(state, root);
 }
 
 /** ========= Client view ========= */
@@ -2480,25 +2672,9 @@ render();
 
 /** ========= Genetics Editor ========= */
 function openGeneticsEditor(state, clientId){
-  const c = state.clients.find(x=>x.id===clientId);
-  if (!c) return;
-
-  const p = c.genetics.performance;
-  const n = c.genetics.nutrition;
-
-  p.fastTwitchBias = prompt("Muscle fiber bias (High / Moderate / Low)", p.fastTwitchBias) || p.fastTwitchBias;
-  p.recoverySpeed = prompt("Recovery speed (Fast / Moderate / Slow)", p.recoverySpeed) || p.recoverySpeed;
-  p.injuryRisk = (prompt("Injury risks (comma separated)", (p.injuryRisk||[]).join(",")) || "").split(",").map(x=>x.trim()).filter(Boolean);
-  p.notes = prompt("Performance notes", p.notes) || p.notes;
-
-  n.carbTolerance = prompt("Carb tolerance (High / Moderate / Low)", n.carbTolerance) || n.carbTolerance;
-  n.fatTolerance = prompt("Fat tolerance (High / Moderate / Low)", n.fatTolerance) || n.fatTolerance;
-  n.proteinRequirement = prompt("Protein requirement (High / Moderate / Low)", n.proteinRequirement) || n.proteinRequirement;
-  n.caffeineSensitivity = prompt("Caffeine sensitivity (High / Moderate / Low)", n.caffeineSensitivity) || n.caffeineSensitivity;
-  n.notes = prompt("Nutrition notes", n.notes) || n.notes;
-
+  state.ui = state.ui || {};
+  state.ui.geneticsEditingClientId = clientId;
   save(state);
-  alert("Genetics saved");
   render();
 }
 
