@@ -400,7 +400,7 @@ function computeProgramWarnings(state, client){
     add(`Protein marked High but target is low for bodyweight (aim ~${Math.round(minHighProtein)}g/day).`, "macros");
   }
 
-  const sessionsPerWeek = (state?.workoutTemplates || []).length || 0;
+  const sessionsPerWeek = countScheduledSessions(state);
   if (gp.recoverySpeed === "Slow" && sessionsPerWeek>=5){
     add("Slow recovery but training frequency is high (consider reducing volume or adding deloads).", "genetics");
   }
@@ -420,6 +420,122 @@ function computeProgramWarnings(state, client){
 
   return warns;
 }
+
+function countScheduledSessions(state){
+  const s = state?.weeklySchedule || {};
+  return Object.values(s).filter(v=>v && v!=="rest").length;
+}
+
+function applyAutoMacrosFromGenetics(state, client){
+  const g = client?.genetics || {};
+  const gn = g.nutrition || {};
+  const bw = Number(client?.profile?.weightKg);
+  const t = client?.macroTargets?.training || {};
+  const kcal = Number(t.kcal)||0;
+  let p = Math.round(Number(t.p)||0);
+  let c = Math.round(Number(t.c)||0);
+  let f = Math.round(Number(t.f)||0);
+
+  if (!kcal || kcal<=0) return { ok:false, msg:"Set kcal targets first." };
+
+  const clampInt = (x, lo, hi)=> Math.max(lo, Math.min(hi, Math.round(x)));
+
+  // Keep protein stable unless High protein requirement
+  if (gn.proteinRequirement === "High" && isFinite(bw) && bw>0){
+    const minP = Math.round(bw*1.8);
+    if (p < minP) p = minP;
+  }
+
+  // Macros adjustments based on tolerance
+  if (gn.carbTolerance === "Low"){
+    // reduce carbs ~15% (min -50g, but not below 80g unless already)
+    const targetC = clampInt(Math.min(c-50, c*0.85), 80, c);
+    c = targetC;
+  }
+  if (gn.fatTolerance === "Low"){
+    // reduce fats ~15% (min -15g, but not below 40g unless already)
+    const targetF = clampInt(Math.min(f-15, f*0.85), 40, f);
+    f = targetF;
+  }
+
+  // Rebalance remaining calories primarily into the opposite macro
+  // Compute remaining after protein
+  let rem = kcal - (p*4);
+  if (rem < 0) rem = 0;
+
+  // If carb low, push remaining into fats; if fat low, push into carbs; else keep as-is but reconcile
+  const carbLow = gn.carbTolerance === "Low";
+  const fatLow = gn.fatTolerance === "Low";
+
+  if (carbLow && !fatLow){
+    // compute fats from remaining after carbs
+    const remAfterC = rem - (c*4);
+    f = clampInt(remAfterC/9, 35, 200);
+  } else if (fatLow && !carbLow){
+    const remAfterF = rem - (f*9);
+    c = clampInt(remAfterF/4, 80, 600);
+  } else {
+    // reconcile both to match kcal roughly by adjusting carbs last
+    const remAfterF = rem - (f*9);
+    c = clampInt(remAfterF/4, 50, 700);
+  }
+
+  // Final sanity: ensure totals not wildly off
+  client.macroTargets = client.macroTargets || {};
+  client.macroTargets.training = { kcal: Math.round(kcal), p, c, f };
+  save(state);
+  return { ok:true, msg:`Updated training targets to ${kcal} kcal / P${p} C${c} F${f}.` };
+}
+
+function applyAutoRecoveryAdjustment(state){
+  // For slow recovery: reduce frequency by inserting a rest day (Wed first)
+  state.weeklySchedule = state.weeklySchedule || {};
+  const s = state.weeklySchedule;
+  const sessions = Object.values(s).filter(v=>v && v!=="rest").length;
+  if (sessions <= 4) return { ok:false, msg:"Schedule already low frequency." };
+  if (s.wed !== "rest"){
+    s.wed = "rest";
+    save(state);
+    return { ok:true, msg:"Set Wednesday to Rest to support recovery." };
+  }
+  // if Wed already rest, set Sat to rest
+  if (s.sat !== "rest"){
+    s.sat = "rest";
+    save(state);
+    return { ok:true, msg:"Set Saturday to Rest to support recovery." };
+  }
+  return { ok:false, msg:"Rest days already applied." };
+}
+
+function handleWarningAction(state, client, action, warnId){
+  if (action === "genetics"){
+    openGeneticsEditor(state, client.id);
+    return;
+  }
+  if (action === "macros"){
+    const res = applyAutoMacrosFromGenetics(state, client);
+    alert(res.msg);
+    render();
+    return;
+  }
+  if (action === "plan"){
+    // try recovery adjustment if slow recovery warning present
+    const txt = (computeProgramWarnings(state, client).find(w=>w.id===warnId)?.text||"").toLowerCase();
+    if (txt.includes("slow recovery")){
+      const res = applyAutoRecoveryAdjustment(state);
+      alert(res.msg);
+      render();
+      return;
+    }
+    // otherwise scroll to weekly schedule
+    state.ui = state.ui || {};
+    state.ui.scrollTo = "weeklySchedule";
+    save(state);
+    render();
+    return;
+  }
+}
+
 function hashString(str){
   let h = 5381;
   for (let i=0;i<str.length;i++){
@@ -1509,6 +1625,63 @@ function viewCoach(state){
     save(state);
     render();
   };
+  // ---- genetics warnings interactivity ----
+  const resolveAllBtn = root.querySelector("#resolveAllWarnings");
+  if (resolveAllBtn && selected) {
+    resolveAllBtn.onclick = (e) => {
+      e.preventDefault?.();
+      const all = computeProgramWarnings(state, selected);
+      selected.resolvedWarnings = selected.resolvedWarnings || [];
+      const set = new Set(selected.resolvedWarnings);
+      all.forEach(w=>set.add(w.id));
+      selected.resolvedWarnings = Array.from(set);
+      save(state);
+      render();
+    };
+  }
+  const clearResolvedBtn = root.querySelector("#clearResolvedWarnings");
+  if (clearResolvedBtn && selected) {
+    clearResolvedBtn.onclick = (e) => {
+      e.preventDefault?.();
+      selected.resolvedWarnings = [];
+      save(state);
+      render();
+    };
+  }
+  const showResolved = root.querySelector("#showResolvedWarnings");
+  if (showResolved) {
+    showResolved.onchange = () => {
+      state.ui = state.ui || {};
+      state.ui.showResolvedWarnings = !!showResolved.checked;
+      save(state);
+      render();
+    };
+  }
+
+  root.querySelectorAll("[data-warncheck]").forEach(chk=>{
+    chk.onchange = () => {
+      if (!selected) return;
+      const id = chk.getAttribute("data-warncheck");
+      selected.resolvedWarnings = selected.resolvedWarnings || [];
+      const set = new Set(selected.resolvedWarnings);
+      if (chk.checked) set.add(id); else set.delete(id);
+      selected.resolvedWarnings = Array.from(set);
+      save(state);
+      render();
+    };
+  });
+
+  root.querySelectorAll("[data-warnline]").forEach(a=>{
+    a.onclick = (ev) => {
+      ev.preventDefault?.();
+      if (!selected) return;
+      const action = a.getAttribute("data-warnline");
+      const wid = a.getAttribute("data-warnid");
+      handleWarningAction(state, selected, action, wid);
+    };
+  });
+  // -----------------------------------------
+
   // optional scroll target (used by Today table warning badge)
   if (state.ui && state.ui.scrollTo === "geneticsWarnings") {
     // clear first so repeated renders don't keep jumping
