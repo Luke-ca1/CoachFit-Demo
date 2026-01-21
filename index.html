@@ -81,7 +81,8 @@
 </header>
 
 <main>
-  <div id="app"></div>
+  <div id="app">
+  <div id="dietMount" style="display:none;"></div></div>
 </main>
 
 <script>
@@ -2721,7 +2722,7 @@ function openClientDietPlanEditor(state, clientId){
 }
 
 
-function viewDiet(state){
+function (state.ui = state.ui || {}).view = "diet"; save(state); render();{
   const root = document.createElement("div");
 
   // Ensure required state
@@ -3074,6 +3075,16 @@ function viewDiet(state){
 }
 
 function render(){
+  const dm = document.getElementById("dietMount");
+  if (dm) dm.style.display = "none";
+
+  // Diet view uses the integrated meal-builder module
+  if ((state.ui && state.ui.view) === "diet") {
+    if (dm) dm.style.display = "block";
+    if (window.DietModule && typeof DietModule.open === "function") DietModule.open(state);
+    return;
+  }
+
   setEnvPill();
   const state = migrateState(load());
 
@@ -3108,7 +3119,7 @@ function render(){
   if (state.ui.view==="messages") return viewMessages(state);
   if (state.ui.view==="progress") return viewProgress(state);
   if (state.ui.view==="history") return viewHistory(state);
-  if (state.ui.view==="diet") return (user.role==="coach" ? viewDiet(state) : viewClient(state));
+  if (state.ui.view==="diet") return (user.role==="coach" ? (state.ui = state.ui || {}).view = "diet"; save(state); render();: viewClient(state));
 
   if (user.role==="coach"){
     if (state.ui.view==="client") return viewClient(state);
