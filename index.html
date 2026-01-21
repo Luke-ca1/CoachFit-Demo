@@ -3235,6 +3235,9 @@ function openDietTemplateEditor(state, {templateId}={}){
       };
     });
   }
+  // Expose for helpers outside this scope (e.g., Food library quick-add)
+  window.renderMealsUI = renderMealsUI;
+
 
   function syncJsonFromWorking(force=true){
     const ta = overlay.querySelector('#dt_meals');
