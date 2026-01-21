@@ -395,7 +395,10 @@ function migrateState(state){
 return state;
 }
 
-function save(dietEditorState){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function save(s){
+  const safe = (s && typeof s === "object") ? s : {};
+  localStorage.setItem(LS_KEY, JSON.stringify(safe));
+}
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
 /** ========= Seed ========= */
