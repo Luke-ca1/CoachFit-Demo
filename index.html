@@ -106,6 +106,18 @@ if (typeof window.last7CompletionCount !== "function") {
     return n;
   };
 }
+
+if (typeof window.esc !== "function") {
+  window.esc = function(s){
+    return String(s==null?"":s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  };
+}
+
 // ------------------------------------------------------------------------------
 
 /** ========= Basics ========= */
