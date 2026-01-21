@@ -1,364 +1,3148 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>CoachFit – Diet Templates</title>
-<style>
-  body { font-family: system-ui; background:#f6f7fb; padding:20px; }
-  .card { background:#fff; padding:16px; border-radius:12px; margin-bottom:16px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  input, button, select { padding:6px 8px; }
-  button { cursor:pointer; }
-  h2, h3 { margin:6px 0; }
-  .meal { border:1px solid #ddd; padding:10px; border-radius:10px; margin-top:10px; background:#fff; }
-  .food { display:flex; gap:6px; margin-top:6px; align-items:center; flex-wrap:wrap; }
-  .hdr { display:flex; gap:6px; margin-top:10px; font-size:12px; color:#555; flex-wrap:wrap; }
-  .hdr div { padding:2px 4px; }
-  .w-food { width:240px; max-width:70vw; }
-  .w-num { width:90px; }
-  .muted { color:#666; font-size:12px; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CoachFit Demo (Pitch + Tracking + PRs + History)</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111;line-height:1.35}
+    body{margin:0}
+    header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
+    .bar{max-width:1120px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{font-weight:900;letter-spacing:.2px}
+    .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
+    main{max-width:1120px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){.grid{grid-template-columns:360px 1fr}}
+    .card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    h1,h2,h3{margin:0 0 10px 0}
+    h1{font-size:24px}
+    h2{font-size:18px}
+    h3{font-size:14px;color:#333}
+    label{display:block;font-size:12px;color:#444;margin-top:8px}
+    input,select,textarea{width:100%;padding:9px 10px;border:1px solid #d9dbe3;border-radius:10px;background:#fff;font-size:14px}
+    textarea{min-height:72px}
+    button{padding:10px 12px;border:1px solid #d9dbe3;border-radius:12px;background:#fff;cursor:pointer}
+    button.primary{background:#111;color:#fff;border-color:#111}
+    button.small{padding:6px 10px;border-radius:10px;font-size:12px}
+    button.danger{background:#fff0f0;border-color:#ffc2c2}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff;cursor:pointer;font-size:13px}
+    .tab.active{background:#111;color:#fff;border-color:#111}
+    .muted{color:#666;font-size:13px}
+    .tablewrap{overflow:auto;border:1px solid #e6e8ef;border-radius:12px}
+    table{border-collapse:collapse;width:100%;min-width:1200px;background:#fff}
+    th,td{padding:10px;border-bottom:1px solid #eef0f6;text-align:left;font-size:13px;vertical-align:top}
+    th{font-size:12px;color:#555;background:#fafbff;position:sticky;top:0}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap}
+    .kpi .box{border:1px solid #e6e8ef;border-radius:12px;padding:10px;background:#fafbff}
+    .tag{display:inline-block;font-size:11px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fff;margin:2px 4px 0 0}
+    .tag.attn{background:#fff8e6;border-color:#ffe2a3}
+    .split{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:980px){.split{grid-template-columns:1fr 1fr}}
+    .warn{background:#fff8e6;border:1px solid #ffe2a3}
+    .ok{background:#eefbf1;border:1px solid #bfe9c8}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .nav a{font-size:13px;color:#111;text-decoration:none;padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff}
+    .nav a.active{background:#111;color:#fff;border-color:#111}
+    .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
+    .hint{font-size:12px;color:#666;margin-top:6px}
+  
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
-
 <body>
-<div id="app"></div>
+<header>
+  <div class="bar">
+    <div class="row">
+      <div class="brand">CoachFit</div>
+      <span class="pill">Pitch + Tracking Demo</span>
+      <span class="pill" id="envPill">local</span>
+    </div>
+
+    <div class="nav" id="topNav" style="display:none;">
+      <a href="#" data-nav="landing">Landing</a>
+      <a href="#" data-nav="pricing">Pricing</a>
+      <a href="#" data-nav="coach">Coach</a>
+      <a href="#" data-nav="client">Client</a>
+      <a href="#" data-nav="progress">Progress</a>
+      <a href="#" data-nav="history">History</a>
+      <a href="#" data-nav="messages">Messages</a>
+      <a href="#" data-nav="diet">Diet</a>
+    </div>
+
+    <div class="row">
+      <span class="muted" id="whoami"></span>
+      <button class="small" id="logoutBtn" style="display:none;">Log out</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="app"></div>
+</main>
 
 <script>
-/* ------------------ STATE ------------------ */
-const KEY = "coachfit_diet_state_v2";
 
-function loadState() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY));
-    if (!raw || typeof raw !== "object") throw 0;
-    if (!Array.isArray(raw.templates)) raw.templates = [];
-    return raw;
-  } catch {
-    const seed = { templates: [] };
-    localStorage.setItem(KEY, JSON.stringify(seed));
-    return seed;
+// ---- guard: ensure helpers exist even if older cached code paths reference them ----
+if (typeof window.isoDate !== "function") {
+  window.isoDate = function(d){
+    const pad = (n)=> String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  };
+}
+if (typeof window.last7CompletionCount !== "function") {
+  window.last7CompletionCount = function(client){
+    const cs = (client && client.completedSessions) ? client.completedSessions : {};
+    let n = 0;
+    const d = new Date();
+    for (let i=0;i<7;i++){
+      const dd = new Date(d); dd.setDate(d.getDate()-i);
+      const key = window.isoDate(dd);
+      if (cs[key]) n++;
+    }
+    return n;
+  };
+}
+
+if (typeof window.esc !== "function") {
+  window.esc = function(s){
+    return String(s==null?"":s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  };
+}
+
+// ------------------------------------------------------------------------------
+
+/** ========= Basics ========= */
+const LS_KEY = "coachfit_demo_pitch_v6_genetics"; // changed -> reset recommended
+const todayISO = () => new Date().toISOString().slice(0,10);
+const addDays = (iso, delta) => {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().slice(0,10);
+};
+const fmt = (n) => (n === null || n === undefined || n === "" ? "—" : n);
+const rand = (min,max)=>Math.round(min + Math.random()*(max-min));
+
+function el(html){
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+}
+function setEnvPill(){
+  const host = location.host || "";
+  document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
+}
+function load() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (raw) return JSON.parse(raw);
+  const seed = seedData();
+  localStorage.setItem(LS_KEY, JSON.stringify(seed));
+  return seed;
+}
+
+function migrateState(state){
+  // Ensure workout templates exist even for older localStorage saves
+  if (!state.workoutTemplates || !Array.isArray(state.workoutTemplates) || state.workoutTemplates.length < 6) {
+    state.workoutTemplates = [
+    {id:"w_up_a", name:"Upper A", focus:"upper", exercises:["Bench Press","Pull-up / Lat Pulldown","DB Shoulder Press","Seated Row","Lateral Raise","Triceps Pushdown","Biceps Curl"]},
+    {id:"w_up_b", name:"Upper B", focus:"upper", exercises:["Incline DB Press","Barbell Row","Push-up / Dip","Chest-Supported Row","Face Pull","Overhead Triceps Extension","Hammer Curl"]},
+    {id:"w_back", name:"Back", focus:"back", exercises:["Deadlift / Trap Bar Deadlift","Pull-up / Lat Pulldown","Single-Arm DB Row","Seated Row","Back Extension","Face Pull","Farmer Carry"]},
+    {id:"w_chest", name:"Chest", focus:"chest", exercises:["Bench Press","Incline Press","DB Fly / Cable Fly","Dip / Push-up","Chest Press Machine","Lateral Raise","Triceps Pushdown"]},
+    {id:"w_leg_a", name:"Legs A", focus:"legs", exercises:["Back Squat","Romanian Deadlift (RDL)","Leg Press","Walking Lunge","Leg Curl","Calf Raise","Core: Plank"]},
+    {id:"w_leg_b", name:"Legs B", focus:"legs", exercises:["Front Squat / Goblet Squat","Hip Thrust","Split Squat","Leg Extension","Hamstring Curl","Calf Raise","Core: Hanging Knee Raise"]}
+  ];
+  }
+  // Ensure weekly schedule exists
+  if (!state.weeklySchedule) {
+    state.weeklySchedule = {
+    mon:"w_up_a",
+    tue:"w_leg_a",
+    wed:"w_back",
+    thu:"w_up_b",
+    fri:"w_chest",
+    sat:"w_leg_b",
+    sun:"rest"
+  };
+  }
+  // Ensure UI fields exist
+  state.ui = state.ui || {};
+  if (!state.ui.selectedWorkoutTemplateId) state.ui.selectedWorkoutTemplateId = "w_up_a";
+  
+  // Ensure each client has genetics structure
+  if (Array.isArray(state.clients)) {
+    state.clients.forEach(c=>{
+      c.genetics = c.genetics || {};
+      c.genetics.performance = c.genetics.performance || {};
+      c.genetics.nutrition = c.genetics.nutrition || {};
+      c.resolvedWarnings = c.resolvedWarnings || [];
+      c.completedSessions = c.completedSessions || {};
+    });
+  }
+  if (!Array.isArray(state.customFoods)) state.customFoods = [];
+  state.ui = state.ui || {};
+  state.ui.dietMode = state.ui.dietMode || "list";
+  if (!state.ui.editDietTemplateId) state.ui.editDietTemplateId = null;
+return state;
+}
+
+function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+/** ========= Seed ========= */
+function seedClient(id, name, email, notes, constraints){
+  const t = todayISO();
+  const daily = {};
+  for (let i=0;i<28;i++){
+    const date = addDays(t, -i);
+    daily[date] = {
+      steps: rand(6500, 12000),
+      sleepHrs: rand(6,8),
+      rhr: rand(50,64),
+      stressAvg: rand(18,42),
+      bodyBatteryStart: rand(70,96),
+      bodyBatteryEnd: rand(15,58),
+      activeCals: rand(250, 900),
+      workoutDone: i%2===0,
+      workoutMins: i%2===0 ? 45 : 0,
+      nutritionCompliancePct: i%3===0 ? 90 : 75,
+      bodyWeightKg: (70 + (Math.random()*2-1)).toFixed(1),
+      waistCm: (82 + (Math.random()*2-1)).toFixed(1),
+      dayNote: "",
+      selfReport:{ soreness: rand(2,6), mood: rand(6,9), energy: rand(6,9), digestion: rand(3,8) }
+    };
+  }
+  return {
+    completedSessions:{},
+    genetics:{
+      performance:{fastTwitchBias:'Not assessed',recoverySpeed:'Not assessed',injuryRisk:[],notes:''},
+      nutrition:{carbTolerance:'Not assessed',fatTolerance:'Not assessed',proteinRequirement:'Not assessed',caffeineSensitivity:'Not assessed',notes:''}
+    },
+    id, name, email, role:"client", coachId:"u1",
+    profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints: constraints || [], notes: notes || "" },
+    macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
+    assignedTemplateId:"mt1",
+    activeDietPlan:null,
+    dietPlanHistory:[],
+    daily
+  };
+}
+
+function seedData(){
+  const clients = [
+    seedClient("c1","Luke (Client)","client@demo.com","Back/knee/hip history; coeliac; gut dysbiosis",["coeliac"]),
+    seedClient("c2","Ava (Client)","ava@demo.com","Running focus; sleep inconsistent",["dairy_free"]),
+    seedClient("c3","Noah (Client)","noah@demo.com","Strength + body comp; high stress week",[])
+  ];
+
+  const users = [
+    { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
+    // client user points to clientId c1
+    { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" }
+  ];
+
+  const dietTemplates = [
+    { id:"mt1", name:"GF High-Protein Training Day", tags:["gluten_free","high_protein"], meals:[
+      { slot:"Breakfast", items:[{food:"Eggs (2)", kcal:140,p:12,c:1,f:10},{food:"Greek yogurt (200g)",kcal:140,p:20,c:8,f:0}] },
+      { slot:"Lunch", items:[{food:"Chicken breast (180g)",kcal:300,p:55,c:0,f:6},{food:"Rice (250g cooked)",kcal:325,p:6,c:70,f:1}] },
+      { slot:"Dinner", items:[{food:"Salmon (180g)",kcal:360,p:38,c:0,f:22},{food:"Potato (300g)",kcal:260,p:7,c:60,f:0}] },
+      { slot:"Snack", items:[{food:"Whey isolate (1 scoop)",kcal:110,p:25,c:1,f:1}] },
+    ]},
+    { id:"mt2", name:"Simple Fat-Loss Template", tags:["high_fibre"], meals:[
+      { slot:"Breakfast", items:[{food:"Oats (60g)",kcal:230,p:8,c:40,f:4},{food:"Whey (1 scoop)",kcal:110,p:25,c:1,f:1}] },
+      { slot:"Lunch", items:[{food:"Lean mince (180g)",kcal:330,p:40,c:0,f:18},{food:"Salad + olive oil",kcal:200,p:2,c:10,f:18}] },
+      { slot:"Dinner", items:[{food:"White fish (200g)",kcal:220,p:44,c:0,f:2},{food:"Veg + rice (200g cooked)",kcal:260,p:5,c:55,f:1}] },
+      { slot:"Snack", items:[{food:"Fruit + nuts",kcal:220,p:4,c:22,f:12}] },
+    ]}
+  ];
+
+  const workoutPlan = [
+    { day:"Mon", name:"Upper A", exercises:["Bench Press","Row","Incline DB","Lateral Raise"] },
+    { day:"Tue", name:"Lower A", exercises:["Squat","RDL","Split Squat","Calf Raise"] },
+    { day:"Wed", name:"Upper B", exercises:["OHP","Pull-up","Cable Fly","Curl"] },
+    { day:"Thu", name:"Lower B", exercises:["Deadlift","Leg Press","Ham Curl","Core"] },
+    { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
+  ];
+
+  // workoutLogs[date][clientId][exercise] = [{reps, weight}, ...]
+  const workoutLogs = {};
+
+  // seed a few historical logs so PRs/histories show right away
+  const seedLifts = [
+    { ex:"Bench Press", sets:[{reps:5,weight:90},{reps:5,weight:90},{reps:4,weight:92.5}] },
+    { ex:"Squat", sets:[{reps:5,weight:140},{reps:5,weight:140},{reps:3,weight:150}] },
+    { ex:"Deadlift", sets:[{reps:3,weight:180},{reps:3,weight:185},{reps:2,weight:190}] },
+    { ex:"OHP", sets:[{reps:6,weight:60},{reps:6,weight:60},{reps:5,weight:62.5}] },
+    { ex:"Row", sets:[{reps:8,weight:90},{reps:8,weight:90},{reps:7,weight:95}] },
+  ];
+  const t = todayISO();
+  for (let i=3;i<=18;i+=5){
+    const d = addDays(t, -i);
+    workoutLogs[d] = workoutLogs[d] || {};
+    workoutLogs[d]["c1"] = workoutLogs[d]["c1"] || {};
+    seedLifts.forEach(l=>{
+      workoutLogs[d]["c1"][l.ex] = l.sets.map(s=>({reps:String(s.reps), weight:String(s.weight)}));
+    });
+  }
+
+  const messages = [
+    { id:"m1", from:"u1", to:"c1", at:new Date().toISOString(), text:"Welcome! Log today’s workout + quick check-in." }
+  ];
+
+  return {
+    users, clients, dietTemplates, workoutPlan, workoutLogs, messages,
+    session:null,
+    ui:{ view:"landing", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press", scrollTo:null, showResolvedWarnings:false, selectedWorkoutTemplateId:'w_up_a', geneticsEditingClientId:null }
+  };
+}
+
+/** ========= Session header + nav ========= */
+function setHeaderSession(state){
+  const who = document.getElementById("whoami");
+  const btn = document.getElementById("logoutBtn");
+  const nav = document.getElementById("topNav");
+
+  if (!state.session){
+    who.textContent="";
+    btn.style.display="none";
+    nav.style.display="none";
+    return;
+  }
+  const u = state.users.find(x=>x.id===state.session.userId);
+  who.textContent = `${u.name} • ${u.role}`;
+  btn.style.display="";
+  nav.style.display="flex";
+}
+function wireTopNav(state){
+  const nav = document.getElementById("topNav");
+  nav.querySelectorAll("a[data-nav]").forEach(a=>{
+    a.onclick = (e) => {
+      e.preventDefault();
+      state.ui.view = a.dataset.nav;
+      save(state);
+      render();
+    };
+  });
+  nav.querySelectorAll("a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===state.ui.view));
+}
+
+/** ========= Ensure client has today's daily row ========= */
+function ensureClientToday(client){
+  const t = todayISO();
+  client.daily = client.daily || {};
+  if (!client.daily[t]) {
+    client.daily[t] = {
+      steps: rand(6500, 11000),
+      sleepHrs: rand(6,8),
+      rhr: rand(52,62),
+      stressAvg: rand(20,40),
+      bodyBatteryStart: rand(70,95),
+      bodyBatteryEnd: rand(20,55),
+      activeCals: rand(300,800),
+      workoutDone: false,
+      workoutMins: 0,
+      nutritionCompliancePct: 75,
+      bodyWeightKg: "",
+      waistCm: "",
+      dayNote: "",
+      selfReport:{ soreness: 4, mood: 7, energy: 7, digestion: 6 }
+    };
   }
 }
 
-function saveState() {
-  localStorage.setItem(KEY, JSON.stringify(state));
+/** ========= Flags + aggregates ========= */
+function flagRow(day){
+  const flags = [];
+  if (!day) return flags;
+  if (day.sleepHrs !== undefined && Number(day.sleepHrs) <= 6) flags.push("Low sleep");
+  if (day.stressAvg !== undefined && Number(day.stressAvg) >= 38) flags.push("High stress");
+  if (day.steps !== undefined && Number(day.steps) <= 7000) flags.push("Low steps");
+  if (day.workoutDone === false) flags.push("Missed workout");
+  if (day.nutritionCompliancePct !== undefined && Number(day.nutritionCompliancePct) < 70) flags.push("Low nutrition");
+  return flags;
 }
 
-let state = loadState();
+/** ========= Genetics → Program Warnings ========= */
+function computeProgramWarnings(state, client){
+  const warns = [];
+  const g = client?.genetics || {};
+  const gp = g.performance || {};
+  const gn = g.nutrition || {};
 
-/* ------------------ SIMPLE ROUTER ------------------ */
-let view = { mode: "list", index: null }; // mode: list | edit
+  const targets = client?.macroTargets?.training || {};
+  const kcal = Number(targets.kcal);
+  const p = Number(targets.p);
+  const c = Number(targets.c);
+  const f = Number(targets.f);
 
-function render() {
+  const fatPct = (isFinite(kcal) && kcal>0 && isFinite(f)) ? (f*9)/kcal : null;
+  const carbPct = (isFinite(kcal) && kcal>0 && isFinite(c)) ? (c*4)/kcal : null;
+
+  const add = (text, action) => {
+    // stable-ish id derived from action + text
+    const id = "w_" + hashString(action + "|" + text);
+    warns.push({ id, text, action });
+  };
+
+  if (gn.fatTolerance === "Low" && ( (fatPct!==null && fatPct>0.35) || (isFinite(f) && f>=90) )){
+    add("Low fat tolerance but fats are high (consider reducing fat % or grams).", "macros");
+  }
+  if (gn.carbTolerance === "Low" && ( (carbPct!==null && carbPct>0.55) || (isFinite(c) && c>=300) )){
+    add("Low carb tolerance but carbs are high (consider lowering carbs / distributing around training).", "macros");
+  }
+
+  const bw = Number(client?.profile?.weightKg);
+  const minHighProtein = (isFinite(bw) && bw>0) ? (bw*1.8) : null;
+  if (gn.proteinRequirement === "High" && minHighProtein!==null && isFinite(p) && p>0 && p < minHighProtein){
+    add(`Protein marked High but target is low for bodyweight (aim ~${Math.round(minHighProtein)}g/day).`, "macros");
+  }
+
+  const sessionsPerWeek = countScheduledSessions(state);
+  if (gp.recoverySpeed === "Slow" && sessionsPerWeek>=5){
+    add("Slow recovery but training frequency is high (consider reducing volume or adding deloads).", "genetics");
+  }
+
+  const risk = (gp.injuryRisk || []).map(x=>String(x).toLowerCase());
+  const planText = (state?.workoutTemplates || []).map(p=>`${p.name} ${p.exercises?.join(" ")||""}`).join(" ").toLowerCase();
+
+  if (risk.some(r=>r.includes("knee")) && (planText.includes("squat") || planText.includes("split squat") || planText.includes("leg press"))){
+    add("Knee injury risk flagged and plan includes knee-dominant lifts (monitor pain/volume).", "plan");
+  }
+  if (risk.some(r=>r.includes("achilles")) && (planText.includes("calf") || planText.includes("carry") || planText.includes("run") || planText.includes("jump"))){
+    add("Achilles injury risk flagged (be cautious with calf volume, running, and plyometrics).", "plan");
+  }
+  if (risk.some(r=>r.includes("back")) && (planText.includes("deadlift") || planText.includes("rdl") || planText.includes("good morning"))){
+    add("Back injury risk flagged and plan includes hinge work (prioritise technique, manage load).", "plan");
+  }
+
+  return warns;
+}
+
+function countScheduledSessions(state){
+  const s = state?.weeklySchedule || {};
+  return Object.values(s).filter(v=>v && v!=="rest").length;
+}
+
+function applyAutoMacrosFromGenetics(state, client){
+  const g = client?.genetics || {};
+  const gn = g.nutrition || {};
+  const bw = Number(client?.profile?.weightKg);
+  const t = client?.macroTargets?.training || {};
+  const kcal = Number(t.kcal)||0;
+  let p = Math.round(Number(t.p)||0);
+  let c = Math.round(Number(t.c)||0);
+  let f = Math.round(Number(t.f)||0);
+
+  if (!kcal || kcal<=0) return { ok:false, msg:"Set kcal targets first." };
+
+  const clampInt = (x, lo, hi)=> Math.max(lo, Math.min(hi, Math.round(x)));
+
+  // Keep protein stable unless High protein requirement
+  if (gn.proteinRequirement === "High" && isFinite(bw) && bw>0){
+    const minP = Math.round(bw*1.8);
+    if (p < minP) p = minP;
+  }
+
+  // Macros adjustments based on tolerance
+  if (gn.carbTolerance === "Low"){
+    // reduce carbs ~15% (min -50g, but not below 80g unless already)
+    const targetC = clampInt(Math.min(c-50, c*0.85), 80, c);
+    c = targetC;
+  }
+  if (gn.fatTolerance === "Low"){
+    // reduce fats ~15% (min -15g, but not below 40g unless already)
+    const targetF = clampInt(Math.min(f-15, f*0.85), 40, f);
+    f = targetF;
+  }
+
+  // Rebalance remaining calories primarily into the opposite macro
+  // Compute remaining after protein
+  let rem = kcal - (p*4);
+  if (rem < 0) rem = 0;
+
+  // If carb low, push remaining into fats; if fat low, push into carbs; else keep as-is but reconcile
+  const carbLow = gn.carbTolerance === "Low";
+  const fatLow = gn.fatTolerance === "Low";
+
+  if (carbLow && !fatLow){
+    // compute fats from remaining after carbs
+    const remAfterC = rem - (c*4);
+    f = clampInt(remAfterC/9, 35, 200);
+  } else if (fatLow && !carbLow){
+    const remAfterF = rem - (f*9);
+    c = clampInt(remAfterF/4, 80, 600);
+  } else {
+    // reconcile both to match kcal roughly by adjusting carbs last
+    const remAfterF = rem - (f*9);
+    c = clampInt(remAfterF/4, 50, 700);
+  }
+
+  // Final sanity: ensure totals not wildly off
+  client.macroTargets = client.macroTargets || {};
+  client.macroTargets.training = { kcal: Math.round(kcal), p, c, f };
+  save(state);
+  return { ok:true, msg:`Updated training targets to ${kcal} kcal / P${p} C${c} F${f}.` };
+}
+
+function applyAutoRecoveryAdjustment(state){
+  // For slow recovery: reduce frequency by inserting a rest day (Wed first)
+  state.weeklySchedule = state.weeklySchedule || {};
+  const s = state.weeklySchedule;
+  const sessions = Object.values(s).filter(v=>v && v!=="rest").length;
+  if (sessions <= 4) return { ok:false, msg:"Schedule already low frequency." };
+  if (s.wed !== "rest"){
+    s.wed = "rest";
+    save(state);
+    return { ok:true, msg:"Set Wednesday to Rest to support recovery." };
+  }
+  // if Wed already rest, set Sat to rest
+  if (s.sat !== "rest"){
+    s.sat = "rest";
+    save(state);
+    return { ok:true, msg:"Set Saturday to Rest to support recovery." };
+  }
+  return { ok:false, msg:"Rest days already applied." };
+}
+
+function handleWarningAction(state, client, action, warnId){
+  if (action === "genetics"){
+    openGeneticsEditor(state, client.id);
+    return;
+  }
+  if (action === "macros"){
+    const res = applyAutoMacrosFromGenetics(state, client);
+    alert(res.msg);
+    render();
+    return;
+  }
+  if (action === "plan"){
+    // try recovery adjustment if slow recovery warning present
+    const txt = (computeProgramWarnings(state, client).find(w=>w.id===warnId)?.text||"").toLowerCase();
+    if (txt.includes("slow recovery")){
+      const res = applyAutoRecoveryAdjustment(state);
+      alert(res.msg);
+      render();
+      return;
+    }
+    // otherwise scroll to weekly schedule
+    state.ui = state.ui || {};
+    state.ui.scrollTo = "weeklySchedule";
+    save(state);
+    render();
+    return;
+  }
+}
+
+function hashString(str){
+  let h = 5381;
+  for (let i=0;i<str.length;i++){
+    h = ((h<<5)+h) + str.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h.toString(16);
+}
+function warningsBadgeHTML(n){
+  if (!n) return "";
+  return `<span class="tag attn">⚠ ${n} warning${n===1?"":"s"}</span>`;
+}
+
+
+
+
+function isoDate(d){
+  const pad = (n)=> String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
+
+function last7CompletionCount(client){
+  const cs = (client && client.completedSessions) ? client.completedSessions : {};
+  let n = 0;
+  const d = new Date();
+  for (let i=0;i<7;i++){
+    const dd = new Date(d); dd.setDate(d.getDate()-i);
+    const key = isoDate(dd);
+    if (cs[key]) n++;
+  }
+  return n;
+}
+
+
+function getTomorrowRecommendedTemplateId(state){
+  const d = new Date();
+  d.setDate(d.getDate()+1);
+  const k = dayKey(d);
+  return (state.weeklySchedule && state.weeklySchedule[k]) ? state.weeklySchedule[k] : "rest";
+}
+function isCompletedForDate(client, dateStr){
+  return !!(client?.completedSessions && client.completedSessions[dateStr]);
+}
+
+function dayKey(d){
+  const k = ["sun","mon","tue","wed","thu","fri","sat"];
+  return k[d.getDay()];
+}
+function getRecommendedTemplateId(state){
+  const k = dayKey(new Date());
+  return (state.weeklySchedule && state.weeklySchedule[k]) ? state.weeklySchedule[k] : "rest";
+}
+function getTemplateById(state, id){
+  return (state.workoutTemplates||[]).find(t=>t.id===id) || null;
+}
+
+function getSelectedWorkoutTemplate(state){
+  const id = state?.ui?.selectedWorkoutTemplateId || "w_up_a";
+  return (state.workoutTemplates || []).find(x=>x.id===id) || (state.workoutTemplates||[])[0];
+}
+
+function explainWhyThisPlan(state, client){
+  const lines = [];
+  const g = client.genetics || {};
+  const gp = g.performance || {};
+  const gn = g.nutrition || {};
+
+  // Nutrition reasoning
+  if (gn.carbTolerance === "High") lines.push("Carbohydrates are emphasized because you tend to tolerate carbs well and they support training output.");
+  if (gn.carbTolerance === "Low") lines.push("Carbohydrates are moderated because your profile suggests lower carb tolerance.");
+  if (gn.fatTolerance === "Low") lines.push("Dietary fats are kept controlled due to lower fat tolerance.");
+  if (gn.proteinRequirement === "High") lines.push("Protein intake is set higher to support recovery and muscle maintenance.");
+
+  // Training/recovery reasoning
+  if (gp.recoverySpeed === "Slow") lines.push("Training load and recovery are managed carefully due to slower recovery characteristics.");
+  if (gp.fastTwitchBias === "High") lines.push("Training includes strength/power emphasis that aligns with your muscle fiber profile.");
+
+  if (!lines.length) lines.push("Your plan is built around your goals, current training status, and ongoing progress.");
+
+  lines.push("These decisions are based on tendencies and trends, not fixed limitations, and will adapt as your progress changes.");
+  return lines;
+}
+
+function warningsListHTML(state, client){
+  const all = computeProgramWarnings(state, client);
+  const resolved = new Set(client?.resolvedWarnings || []);
+  const showResolved = !!(state?.ui?.showResolvedWarnings);
+
+  const unresolved = all.filter(w=>!resolved.has(w.id));
+  const shown = showResolved ? all : unresolved;
+
+  if (!all.length) return `<div class="muted" style="margin-top:8px;">No program warnings detected.</div>`;
+
+  const line = (w) => {
+    const isResolved = resolved.has(w.id);
+    const label = w.action==="macros" ? "Adjust targets" : w.action==="plan" ? "Review plan" : "Edit genetics";
+    return `<div class="muted" style="display:flex;gap:8px;align-items:flex-start;opacity:${isResolved?0.55:1};">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+        <input type="checkbox" data-warncheck="${w.id}" ${isResolved?"checked":""} style="margin-top:3px;">
+        <span><a href="#" data-warnline="${w.action}" style="text-decoration:none;" data-warnid="${w.id}">${w.text}</a> <span class="hint">(${label})</span></span>
+      </label>
+    </div>`;
+  };
+
+  const headerBadge = warningsBadgeHTML(unresolved.length);
+  const resolvedCount = resolved.size;
+
+  return `
+    <div style="margin-top:8px;">
+      <div class="row" style="margin-bottom:6px;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+          ${headerBadge}
+          <span class="hint">${resolvedCount ? `${resolvedCount} resolved` : ""}</span>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="small" id="resolveAllWarnings">Resolve all</button>
+          <button class="small" id="clearResolvedWarnings">Clear resolved</button>
+          <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer;">
+            <input type="checkbox" id="toggleResolvedWarnings" ${showResolved?"checked":""}>
+            Show resolved
+          </label>
+        </div>
+      </div>
+      ${(shown.length ? shown.slice(0,10).map(line).join("") : `<div class="muted">All warnings resolved ✅</div>`)}
+      ${shown.length>10 ? `<div class="muted">+ ${shown.length-10} more…</div>` : ""}
+    </div>
+  `;
+}
+
+function compute7d(client){
+  const t = todayISO();
+  const days = [];
+  for (let i=0;i<7;i++){
+    const d = addDays(t, -i);
+    days.push({ date:d, ...(client.daily[d] || {}) });
+  }
+  const avg = (k)=> Math.round(days.reduce((s,x)=>s+(x?.[k] ? Number(x[k]) : 0),0)/days.length);
+  const avgFloat = (k)=> {
+    const vals = days.map(x => x?.[k]).filter(v => v!==undefined && v!==null && v!=="").map(Number);
+    if (!vals.length) return null;
+    return (vals.reduce((a,b)=>a+b,0)/vals.length);
+  };
+  return {
+    avgSleep: avg("sleepHrs"),
+    avgSteps: avg("steps"),
+    avgStress: avg("stressAvg"),
+    avgRHR: avg("rhr"),
+    avgCompliance: avg("nutritionCompliancePct"),
+    avgWeight: avgFloat("bodyWeightKg"),
+    avgWaist: avgFloat("waistCm"),
+    workouts: days.reduce((s,x)=>s+(x?.workoutDone?1:0),0),
+    days
+  };
+}
+
+/** ========= PR tracking + Exercise history ========= */
+// e1RM formula: Epley
+function e1rmEpley(weight, reps){
+  const w = Number(weight);
+  const r = Number(reps);
+  if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return null;
+  const rc = Math.min(20, r);
+  return w * (1 + rc / 30);
+}
+function parseSetInputs(repsStr, weightStr){
+  const reps = Number(String(repsStr ?? "").replace(/[^\d.]/g, ""));
+  const weight = Number(String(weightStr ?? "").replace(/[^\d.]/g, ""));
+  if (!isFinite(reps) || !isFinite(weight)) return null;
+  if (reps <= 0 || weight <= 0) return null;
+  return { reps, weight };
+}
+
+// PRs: best e1RM per exercise across all dates
+function computePRsForClient(state, clientId){
+  const prs = {}; // exercise -> {exercise, bestE1rm, bestSet, date}
+  const logs = state.workoutLogs || {};
+
+  Object.keys(logs).forEach(date=>{
+    const byClient = logs[date];
+    if (!byClient || !byClient[clientId]) return;
+    const exMap = byClient[clientId];
+
+    Object.keys(exMap).forEach(exercise=>{
+      const sets = exMap[exercise] || [];
+      sets.forEach(s=>{
+        const parsed = parseSetInputs(s.reps, s.weight);
+        if (!parsed) return;
+        const e1 = e1rmEpley(parsed.weight, parsed.reps);
+        if (!e1) return;
+
+        const current = prs[exercise];
+        const bestSetStr = `${parsed.weight} x ${parsed.reps}`;
+        if (!current || e1 > current.bestE1rm){
+          prs[exercise] = { exercise, bestE1rm: e1, bestSet: bestSetStr, date };
+        }
+      });
+    });
+  });
+
+  return Object.values(prs).sort((a,b)=>b.bestE1rm - a.bestE1rm);
+}
+
+// Session PRs for a given date (best per exercise)
+function computeTodaysPRs(state, clientId, dateISO){
+  const byDate = state.workoutLogs?.[dateISO]?.[clientId] || {};
+  const out = [];
+  Object.keys(byDate).forEach(exercise=>{
+    let best = null;
+    (byDate[exercise]||[]).forEach(s=>{
+      const parsed = parseSetInputs(s.reps, s.weight);
+      if (!parsed) return;
+      const e1 = e1rmEpley(parsed.weight, parsed.reps);
+      if (!e1) return;
+      if (!best || e1 > best.bestE1rm){
+        best = { exercise, bestE1rm: e1, bestSet: `${parsed.weight} x ${parsed.reps}`, date: dateISO };
+      }
+    });
+    if (best) out.push(best);
+  });
+  return out.sort((a,b)=>b.bestE1rm-a.bestE1rm);
+}
+
+// Exercise history: best e1RM per date, plus best set
+function computeExerciseHistory(state, clientId, exercise){
+  const logs = state.workoutLogs || {};
+  const items = [];
+
+  Object.keys(logs).forEach(date=>{
+    const exMap = logs[date]?.[clientId];
+    if (!exMap) return;
+    const sets = exMap[exercise];
+    if (!sets || !sets.length) return;
+
+    let bestE1 = null;
+    let bestSet = null;
+
+    sets.forEach(s=>{
+      const parsed = parseSetInputs(s.reps, s.weight);
+      if (!parsed) return;
+      const e1 = e1rmEpley(parsed.weight, parsed.reps);
+      if (!e1) return;
+      if (bestE1 === null || e1 > bestE1){
+        bestE1 = e1;
+        bestSet = `${parsed.weight} x ${parsed.reps}`;
+      }
+    });
+
+    if (bestE1 !== null){
+      items.push({ date, bestSet, bestE1rm: bestE1, setCount: sets.length });
+    }
+  });
+
+  // sort by date desc (ISO sorts lexicographically)
+  items.sort((a,b)=>b.date.localeCompare(a.date));
+  return items;
+}
+
+// list available exercises from logs for client
+function listExercisesForClient(state, clientId){
+  const ex = new Set();
+  const logs = state.workoutLogs || {};
+  Object.keys(logs).forEach(date=>{
+    const exMap = logs[date]?.[clientId];
+    if (!exMap) return;
+    Object.keys(exMap).forEach(k=>ex.add(k));
+  });
+  return Array.from(ex).sort((a,b)=>a.localeCompare(b));
+}
+
+/** ========= Export / Backup ========= */
+function downloadText(filename, text){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type:"text/plain"}));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function exportTodayCSV(state){
+  const t = todayISO();
+  const header = [
+    "date","client","sleepHrs","rhr","stressAvg","bodyBatteryStart","bodyBatteryEnd","steps",
+    "workoutDone","workoutMins","kcalTarget","protein","carbs","fat",
+    "nutritionCompliancePct","bodyWeightKg","waistCm","dayNote",
+    "soreness","mood","energy","digestion","flags"
+  ];
+  const rows = [header.join(",")];
+
+  state.clients.forEach(c=>{
+    ensureClientToday(c);
+    const d = c.daily[t];
+    const trg = c.macroTargets?.training || {kcal:"",p:"",c:"",f:""};
+    const flags = flagRow(d).join("|");
+    const line = [
+      t,
+      `"${c.name.replaceAll('"','""')}"`,
+      d.sleepHrs, d.rhr, d.stressAvg, d.bodyBatteryStart, d.bodyBatteryEnd, d.steps,
+      d.workoutDone ? "Yes":"No",
+      d.workoutMins,
+      trg.kcal, trg.p, trg.c, trg.f,
+      d.nutritionCompliancePct,
+      d.bodyWeightKg ?? "",
+      d.waistCm ?? "",
+      `"${(d.dayNote||"").replaceAll('"','""')}"`,
+      d.selfReport?.soreness ?? "",
+      d.selfReport?.mood ?? "",
+      d.selfReport?.energy ?? "",
+      d.selfReport?.digestion ?? "",
+      `"${flags.replaceAll('"','""')}"`
+    ];
+    rows.push(line.join(","));
+  });
+
+  downloadText(`coachfit-today-${t}.csv`, rows.join("\n"));
+}
+function exportAllCSV(state){
+  const header = [
+    "date","clientId","client","sleepHrs","rhr","stressAvg","steps","workoutDone","workoutMins",
+    "nutritionCompliancePct","bodyWeightKg","waistCm","dayNote","soreness","mood","energy","digestion"
+  ];
+  const rows = [header.join(",")];
+  state.clients.forEach(c=>{
+    Object.keys(c.daily || {}).sort().forEach(date=>{
+      const d = c.daily[date];
+      rows.push([
+        date,
+        c.id,
+        `"${c.name.replaceAll('"','""')}"`,
+        d.sleepHrs ?? "", d.rhr ?? "", d.stressAvg ?? "", d.steps ?? "",
+        d.workoutDone ? "Yes":"No",
+        d.workoutMins ?? "",
+        d.nutritionCompliancePct ?? "",
+        d.bodyWeightKg ?? "",
+        d.waistCm ?? "",
+        `"${(d.dayNote||"").replaceAll('"','""')}"`,
+        d.selfReport?.soreness ?? "",
+        d.selfReport?.mood ?? "",
+        d.selfReport?.energy ?? "",
+        d.selfReport?.digestion ?? ""
+      ].join(","));
+    });
+  });
+  downloadText(`coachfit-all-data-${todayISO()}.csv`, rows.join("\n"));
+}
+function exportBackupJSON(state){
+  downloadText(`coachfit-backup-${todayISO()}.json`, JSON.stringify(state, null, 2));
+}
+function importBackupJSON(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const obj = JSON.parse(reader.result);
+      localStorage.setItem(LS_KEY, JSON.stringify(obj));
+      alert("Backup restored. Reloading…");
+      location.reload();
+    } catch(e){
+      alert("Could not import JSON. Make sure it’s a CoachFit backup file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/** ========= Views ========= */
+function viewLogin(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(el(`
+    <div class="grid">
+      <div class="card">
+        <h1>CoachFit</h1>
+        <p class="muted">Pitch + personal tracking demo (localStorage). Use demo accounts below.</p>
+        <div class="row">
+          <span class="tag">coach@demo.com / demo</span>
+          <span class="tag">client@demo.com / demo</span>
+        </div>
+        <label>Email</label>
+        <input id="email" placeholder="coach@demo.com" />
+        <label>Password</label>
+        <input id="pass" type="password" placeholder="demo" />
+        <div class="row" style="margin-top:10px;">
+          <button class="primary" id="loginBtn">Login</button>
+          <button id="resetBtn">Reset demo data</button>
+          <button id="gotoLandingBtn">View landing</button>
+        </div>
+        <p class="hint">After code updates, click <b>Reset demo data</b> once if anything looks odd.</p>
+      </div>
+
+      <div class="card">
+        <h2>Includes</h2>
+        <div class="row">
+          <span class="tag">Coach Today + 7-day</span>
+          <span class="tag">Alerts-only</span>
+          <span class="tag">Bodyweight + waist</span>
+          <span class="tag">Progress + backups</span>
+          <span class="tag">PRs (e1RM)</span>
+          <span class="tag">Exercise history</span>
+          <span class="tag">Workout logging</span>
+          <span class="tag">Messaging</span>
+        </div>
+      </div>
+    </div>
+  `));
+
+  root.querySelector("#gotoLandingBtn").onclick = () => { state.ui.view="landing"; save(state); render(); };
+
+  root.querySelector("#loginBtn").onclick = () => {
+    const email = root.querySelector("#email").value.trim().toLowerCase();
+    const pass = root.querySelector("#pass").value.trim();
+    const user = state.users.find(u=>u.email===email && u.pass===pass);
+    if (!user) return alert("Invalid demo credentials.");
+    state.session = { userId:user.id };
+    state.ui.view = user.role==="coach" ? "coach" : "client";
+    if (user.role==="client") state.ui.selectedClientId = user.clientId || "c1";
+    save(state);
+    render();
+  };
+
+  root.querySelector("#resetBtn").onclick = () => {
+    localStorage.removeItem(LS_KEY);
+    location.reload();
+  };
+}
+
+function viewLanding(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(el(`
+    <div class="card">
+      <h1>High-performance coaching, made scalable</h1>
+      <p class="muted">Clients log training + nutrition + recovery daily. Coaches scan a Today table with flags, PRs, and trends.</p>
+      <div class="row">
+        <span class="tag">Targets-first nutrition</span>
+        <span class="tag">Workout logging</span>
+        <span class="tag">Daily check-in</span>
+        <span class="tag">PR tracking</span>
+        <span class="tag">Exercise history</span>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="ctaPricing">See pricing</button>
+        <button id="ctaLogin">Login (demo)</button>
+      </div>
+    </div>
+  `));
+  root.querySelector("#ctaPricing").onclick = () => { state.ui.view="pricing"; save(state); render(); };
+  root.querySelector("#ctaLogin").onclick = () => { state.ui.view="login"; save(state); render(); };
+}
+
+function viewPricing(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(el(`
+    <div class="grid">
+      <div class="card">
+        <h1>Pricing</h1>
+        <p class="muted">Example: setup fee + monthly subscription + per-session in-person.</p>
+        <div class="split">
+          <div class="card" style="border-radius:12px;margin:0;">
+            <h2>Starter</h2>
+            <div class="row"><span class="tag">Setup: $199</span><span class="tag">Monthly: $39</span></div>
+            <ul class="muted">
+              <li>Targets + templates</li>
+              <li>Workout logging</li>
+              <li>Daily check-ins</li>
+              <li>Messaging</li>
+            </ul>
+          </div>
+          <div class="card ok" style="border-radius:12px;margin:0;">
+            <h2>Pro</h2>
+            <div class="row"><span class="tag">Setup: $399</span><span class="tag">Monthly: $79</span></div>
+            <ul class="muted">
+              <li>Coach Today + 7-day</li>
+              <li>Flags + alerts-only</li>
+              <li>Progress + PRs</li>
+              <li>Exercise history</li>
+              <li>CSV export</li>
+            </ul>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="primary" id="toLogin">Login (demo)</button>
+          <button id="toLanding">Back</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Demo note</h2>
+        <div class="muted">This is static/localStorage. Full-stack comes later (real accounts + DB + Garmin + Stripe).</div>
+      </div>
+    </div>
+  `));
+  root.querySelector("#toLogin").onclick = () => { state.ui.view="login"; save(state); render(); };
+  root.querySelector("#toLanding").onclick = () => { state.ui.view="landing"; save(state); render(); };
+}
+
+/** ========= Coach view ========= */
+
+function ensureGenetics(client){
+  client.genetics = client.genetics || {};
+  client.genetics.performance = client.genetics.performance || {};
+  client.genetics.nutrition = client.genetics.nutrition || {};
+  const p = client.genetics.performance;
+  const n = client.genetics.nutrition;
+
+  p.fastTwitchBias = p.fastTwitchBias || "Not assessed";
+  p.recoverySpeed = p.recoverySpeed || "Not assessed";
+  p.injuryRisk = Array.isArray(p.injuryRisk) ? p.injuryRisk : [];
+  p.notes = p.notes || "";
+
+  n.carbTolerance = n.carbTolerance || "Not assessed";
+  n.fatTolerance = n.fatTolerance || "Not assessed";
+  n.proteinRequirement = n.proteinRequirement || "Not assessed";
+  n.notes = n.notes || "";
+}
+
+function renderGeneticsModal(state, root){
+  const id = state?.ui?.geneticsEditingClientId;
+  if (!id) return;
+  const client = state.clients.find(c=>c.id===id);
+  if (!client) { state.ui.geneticsEditingClientId=null; save(state); return; }
+  ensureGenetics(client);
+
+  const p = client.genetics.performance;
+  const n = client.genetics.nutrition;
+
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.45)";
+  overlay.style.zIndex = "9999";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "16px";
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.maxWidth = "760px";
+  card.style.width = "100%";
+  card.style.maxHeight = "85vh";
+  card.style.overflow = "auto";
+  card.style.borderRadius = "18px";
+
+  card.innerHTML = `
+    <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+      <div>
+        <div class="hint">Editing genetics for</div>
+        <h2 style="margin:4px 0 0 0;">${esc(client.name || "Client")}</h2>
+      </div>
+      <button class="small" id="genClose">✕</button>
+    </div>
+
+    <hr class="hr">
+
+    <div class="grid2">
+      <div>
+        <h3 style="margin:0 0 8px 0;">🏋️ Performance traits</h3>
+
+        <div class="muted" style="margin-bottom:6px;">Muscle fiber bias</div>
+        <select id="gFast" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${p.fastTwitchBias===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Recovery speed</div>
+        <select id="gRec" style="width:100%;">
+          ${["Not assessed","Fast","Moderate","Slow"].map(v=>`<option value="${v}" ${p.recoverySpeed===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Injury risk tags</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          ${["knee","shoulder","lower back","ankle","wrist"].map(tag=>`
+            <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer;">
+              <input type="checkbox" data-inj="${tag}" ${p.injuryRisk.includes(tag)?"checked":""}>
+              ${tag}
+            </label>
+          `).join("")}
+        </div>
+        <div class="hint" style="margin-top:6px;">Add custom tags (comma-separated)</div>
+        <input id="gInjCustom" placeholder="e.g. elbow, hip" value="" style="width:100%;margin-top:6px;">
+
+        <div class="muted" style="margin:12px 0 6px;">Notes (optional)</div>
+        <textarea id="gPNotes" rows="3" style="width:100%;">${esc(p.notes||"")}</textarea>
+      </div>
+
+      <div>
+        <h3 style="margin:0 0 8px 0;">🥗 Dietary traits</h3>
+
+        <div class="muted" style="margin-bottom:6px;">Carb tolerance</div>
+        <select id="gCarb" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.carbTolerance===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Fat tolerance</div>
+        <select id="gFat" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.fatTolerance===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Protein requirement</div>
+        <select id="gProt" style="width:100%;">
+          ${["Not assessed","High","Moderate","Low"].map(v=>`<option value="${v}" ${n.proteinRequirement===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+
+        <div class="muted" style="margin:12px 0 6px;">Notes (optional)</div>
+        <textarea id="gNNotes" rows="3" style="width:100%;">${esc(n.notes||"")}</textarea>
+
+        <div class="hint" style="margin-top:10px;">Genetics indicate predisposition, not prescription.</div>
+      </div>
+    </div>
+
+    <hr class="hr">
+
+    <div class="row" style="justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+      <button class="small" id="genCancel">Cancel</button>
+      <button class="small" id="genSave">Save genetics</button>
+    </div>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const close = ()=>{
+    state.ui.geneticsEditingClientId = null;
+    save(state);
+    overlay.remove();
+  };
+
+  overlay.addEventListener("click", (e)=>{
+    if (e.target === overlay) close();
+  });
+
+  card.querySelector("#genClose").onclick = (e)=>{ e.preventDefault?.(); close(); };
+  card.querySelector("#genCancel").onclick = (e)=>{ e.preventDefault?.(); close(); };
+
+  card.querySelector("#genSave").onclick = (e)=>{
+    e.preventDefault?.();
+
+    p.fastTwitchBias = card.querySelector("#gFast").value;
+    p.recoverySpeed = card.querySelector("#gRec").value;
+
+    // injury tags
+    const chosen = Array.from(card.querySelectorAll("[data-inj]")).filter(x=>x.checked).map(x=>x.getAttribute("data-inj"));
+    const custom = (card.querySelector("#gInjCustom").value || "").split(",").map(s=>s.trim()).filter(Boolean);
+    p.injuryRisk = Array.from(new Set(chosen.concat(custom)));
+
+    p.notes = card.querySelector("#gPNotes").value || "";
+
+    n.carbTolerance = card.querySelector("#gCarb").value;
+    n.fatTolerance = card.querySelector("#gFat").value;
+    n.proteinRequirement = card.querySelector("#gProt").value;
+    n.notes = card.querySelector("#gNNotes").value || "";
+
+    save(state);
+    close();
+    render();
+  };
+}
+
+function viewCoach(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
 
-  if (view.mode === "list") {
-    root.appendChild(renderList());
-  } else {
-    root.appendChild(renderEditor(view.index));
-  }
-}
+  state.clients.forEach(ensureClientToday);
 
-/* ------------------ LIST VIEW ------------------ */
-function renderList() {
-  const wrap = document.createElement("div");
+  const selectedId = state.ui.selectedClientId || state.clients[0]?.id;
+  const selected = state.clients.find(c=>c.id===selectedId) || state.clients[0];
 
-  wrap.innerHTML = `
-    <h2>Diet Templates</h2>
-    <div class="card">
-      <button id="btnNew">➕ New Template</button>
-      <div class="muted" style="margin-top:8px;">Templates are saved in your browser (localStorage).</div>
-    </div>
-    <div id="templates"></div>
-  `;
-
-  wrap.querySelector("#btnNew").onclick = () => newTemplate();
-
-  const list = wrap.querySelector("#templates");
-  if (!state.templates.length) {
-    const empty = document.createElement("div");
-    empty.className = "card";
-    empty.innerHTML = `<b>No templates yet.</b><div class="muted" style="margin-top:6px;">Click “New Template”.</div>`;
-    list.appendChild(empty);
-    return wrap;
-  }
-
-  state.templates.forEach((t, idx) => {
-    const div = document.createElement("div");
-    div.className = "card";
-
-    const mealCount = (t.meals || []).length;
-    const foodCount = (t.meals || []).reduce((acc, m) => acc + ((m.foods || []).length), 0);
-
-    div.innerHTML = `
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <b>${escapeHtml(t.name || "Untitled Diet")}</b><br>
-          <span class="muted">
-            Meals: ${mealCount} • Items: ${foodCount}
-          </span><br>
-          <span class="muted">
-            Total: ${num(t.kcal)} kcal • P ${num(t.p)} / C ${num(t.c)} / F ${num(t.f)}
-          </span>
-        </div>
-        <div class="row">
-          <button data-edit> Edit </button>
-          <button data-del> Delete </button>
-        </div>
-      </div>
-    `;
-
-    div.querySelector("[data-edit]").onclick = () => { view = { mode:"edit", index: idx }; render(); };
-    div.querySelector("[data-del]").onclick = () => deleteTemplate(idx);
-
-    list.appendChild(div);
-  });
-
-  return wrap;
-}
-
-/* ------------------ TEMPLATE CRUD ------------------ */
-function newTemplate() {
-  state.templates.push({
-    name: "New Diet",
-    meals: [],
-    kcal: 0, p: 0, c: 0, f: 0
-  });
-  saveState();
-  view = { mode:"edit", index: state.templates.length - 1 };
-  render();
-}
-
-function deleteTemplate(i) {
-  if (!confirm("Delete this template?")) return;
-  state.templates.splice(i, 1);
-  saveState();
-  view = { mode:"list", index:null };
-  render();
-}
-
-/* ------------------ EDITOR VIEW ------------------ */
-function renderEditor(i) {
-  const t = state.templates[i];
-  const wrap = document.createElement("div");
-
-  wrap.innerHTML = `
-    <div class="row" style="justify-content:space-between;align-items:flex-start;">
-      <div>
-        <h2>Edit Diet Template</h2>
-        <div class="muted">Edits save automatically.</div>
+  const header = el(`
+    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+      <div class="row">
+        <span class="tag">Coach</span>
+        <span class="tag">Clients: ${state.clients.length}</span>
+        <span class="tag">Selected: ${selected ? selected.name : "—"}</span>
       </div>
       <div class="row">
-        <button id="btnBack">← Back</button>
+        <label class="row" style="margin:0;gap:6px;">
+          <input id="alertsOnly" type="checkbox" style="width:auto;" ${state.ui.coach?.alertsOnly ? "checked":""}>
+          <span class="muted">Alerts only</span>
+        </label>
+        <button class="small" id="csvBtn">Export Today CSV</button>
+        <button class="small" id="allCsvBtn">Export All CSV</button>
+        <button class="small" id="addClientBtn">Add client</button>
       </div>
     </div>
+  `);
 
+  const sidebar = el(`
     <div class="card">
-      <div class="muted">Template name</div>
-      <input id="name" value="${escapeAttr(t.name)}" style="width:min(520px, 92vw); margin-top:6px;">
-      <div class="row" style="margin-top:10px;">
-        <button id="btnAddMeal">➕ Add Meal</button>
-        <button id="btnAuto">⚡ Auto-calc totals</button>
+      <h2>Clients</h2>
+      <label>Search</label>
+      <input id="q" placeholder="Type a name..." />
+      <div id="clientList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
+
+      <hr class="hr">
+      <h3>Selected client</h3>
+      <div class="row">
+        <span class="tag" id="selName">${selected?.name || ""}</span>
+        <span class="tag">${selected?.profile?.constraints?.join(", ") || "no constraints"}</span>
       </div>
 
-      <div class="row" style="margin-top:12px;">
-        <div class="muted" style="min-width:160px;">Template totals</div>
-        <div class="muted">kcal</div><input id="totK" class="w-num" type="number" value="${num(t.kcal)}" readonly>
-        <div class="muted">P</div><input id="totP" class="w-num" type="number" value="${num(t.p)}" readonly>
-        <div class="muted">C</div><input id="totC" class="w-num" type="number" value="${num(t.c)}" readonly>
-        <div class="muted">F</div><input id="totF" class="w-num" type="number" value="${num(t.f)}" readonly>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;">
+        <span style="font-size:18px;">🧬</span>
+        <h3 style="margin:0;">Genetics profile</h3>
+      </div>
+      <div class="card warn" style="border-radius:12px;margin-bottom:12px;">
+        <div class="muted">
+          Genetic traits guide training & nutrition decisions.<br>
+          <b>Predispositions, not guarantees.</b>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="muted"><b>Training</b></div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">${selected?.genetics?.performance?.fastTwitchBias || "Not assessed"}</span>
+            <span class="tag">${(selected?.genetics?.performance?.recoverySpeed || "Not assessed")} recovery</span>
+          </div>
+          <div class="muted" style="margin-top:6px;">Injury risk: ${(selected?.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
+
+          <div id="geneticsWarnings">${warningsListHTML(state, selected)}</div>
+
+          <div class="muted" style="margin-top:10px;"><b>Nutrition</b></div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">Carbs: ${selected?.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
+            <span class="tag">Fat: ${selected?.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
+            <span class="tag">Protein: ${selected?.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
+          </div>
+        </div>
+
+        <button id="editGeneticsBtn" style="margin-top:10px;">Edit genetics</button>
+      </div>
+
+      <label id="macroTargets">Nutrition targets (training day)</label>
+      <div class="row">
+        <input id="kcal" style="max-width:110px" value="${selected.macroTargets.training.kcal}" />
+        <input id="p" style="max-width:110px" value="${selected.macroTargets.training.p}" />
+        <input id="c" style="max-width:110px" value="${selected.macroTargets.training.c}" />
+        <input id="f" style="max-width:110px" value="${selected.macroTargets.training.f}" />
+      </div>
+      <div class="muted">kcal / P / C / F</div>
+      <button class="primary" id="saveTargetsBtn" style="margin-top:10px;">Save targets</button>
+
+      <label style="margin-top:14px;">Assign diet template (optional)</label>
+      <select id="tplSel">
+        ${state.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
+      </select>
+      <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
+
+      <div class="row" style="margin-top:8px;">
+        <button class="small" id="manageDietBtn">Manage templates</button>
+        <button class="small" id="editPlanBtn">Edit active plan</button>
+      </div>
+
+      <hr class="hr">
+      <div class="row">
+        <button id="editClientBtn">Edit client</button>
+        <button class="danger" id="delClientBtn">Delete</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="toClientBtn">Open client</button>
+        <button id="toProgressBtn">Progress</button>
+        <button id="toHistoryBtn">History</button>
+        <button id="toMessagesBtn">Messages</button>
       </div>
     </div>
+  `);
 
-    <div id="meals"></div>
-  `;
+  const right = el(`
+    <div class="row" style="flex-direction:column;gap:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <div class="tabs">
+          <button class="tab active" data-tab="today">Today</button>
+          <button class="tab" data-tab="week">Rolling 7 days</button>
+        </div>
+        <div class="muted">Click a row to select.</div>
+      </div>
 
-  wrap.querySelector("#btnBack").onclick = () => { view = { mode:"list", index:null }; render(); };
+      <div class="card" id="todayCard">
+        <h2>Today (${todayISO()})</h2>
+        <p class="muted">Notes column + Alerts-only filter. Use “Sim sync” as Garmin placeholder.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Genetics</th>
+                <th>Adherence</th>
+                <th>Status</th>
+                <th>Sleep</th>
+                <th>RHR</th>
+                <th>Stress</th>
+                <th>Steps</th>
+                <th>Workout</th>
+                <th>Nutrition %</th>
+                <th>Weight</th>
+                <th>Waist</th>
+                <th>Notes</th>
+                <th>Flags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyToday"></tbody>
+          </table>
+        </div>
+      </div>
 
-  const nameEl = wrap.querySelector("#name");
-  nameEl.oninput = () => {
-    state.templates[i].name = nameEl.value;
-    saveState();
+      <div class="card" id="weekCard" style="display:none;">
+        <h2>Rolling 7 days (${selected.name})</h2>
+        <p class="muted">Weekly averages include weight + waist if logged.</p>
+        <div id="weekKPIs"></div>
+        <div class="tablewrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Steps</th><th>Workout</th><th>Nutrition %</th><th>Weight</th><th>Waist</th><th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyWeek"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
+
+  root.appendChild(header);
+  const grid = el(`<div class="grid"></div>`);
+  grid.appendChild(sidebar);
+  grid.appendChild(right);
+  root.appendChild(grid);
+
+  // client list
+  const list = root.querySelector("#clientList");
+  function paintClientList(filter=""){
+    list.innerHTML = "";
+    const q = filter.trim().toLowerCase();
+    state.clients
+      .filter(c=>!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+      .forEach(c=>{
+        const isSel = c.id===state.ui.selectedClientId;
+        const row = el(`
+          <button class="${isSel?'primary':''}" style="text-align:left;">
+            <b>${c.name}</b><div class="muted">${c.email}</div>
+          </button>
+        `);
+        row.onclick = () => { state.ui.selectedClientId = c.id; save(state); render(); };
+        list.appendChild(row);
+      });
+  }
+  paintClientList();
+  root.querySelector("#q").oninput = (e)=>paintClientList(e.target.value);
+
+  // Alerts-only toggle
+  root.querySelector("#alertsOnly").onchange = (e) => {
+    state.ui.coach = state.ui.coach || {};
+    state.ui.coach.alertsOnly = !!e.target.checked;
+    save(state);
+    render();
   };
 
-  wrap.querySelector("#btnAddMeal").onclick = () => addMeal(i);
-  wrap.querySelector("#btnAuto").onclick = () => { autoCalc(i); render(); };
+  // today table
+  const t = todayISO();
+  const tbody = root.querySelector("#tbodyToday");
+  tbody.innerHTML = "";
+  state.clients.forEach(c=>{
+    ensureClientToday(c);
+    const day = c.daily[t];
+    const flags = flagRow(day);
+    const needsAttention = flags.length > 0;
 
-  const mealsRoot = wrap.querySelector("#meals");
-  mealsRoot.appendChild(renderMeals(i));
+    const g = c.genetics || {performance:{}, nutrition:{}};
+    const gP = g.performance || {};
+    const gN = g.nutrition || {};
+    const gAssessed = (gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed") ||
+                      (gP.recoverySpeed && gP.recoverySpeed !== "Not assessed") ||
+                      (gN.carbTolerance && gN.carbTolerance !== "Not assessed") ||
+                      (gN.fatTolerance && gN.fatTolerance !== "Not assessed") ||
+                      (gN.proteinRequirement && gN.proteinRequirement !== "Not assessed");
+    const _allW = computeProgramWarnings(state, c);
+    const _resW = new Set((c.resolvedWarnings||[]));
+    const wCount = _allW.filter(w=>!_resW.has(w.id)).length;
+    const adh7 = last7CompletionCount(c);
+    const adhTarget = 6; // based on 6 templates/week (excluding rest)
+    const adhLabel = `${adh7}/${adhTarget}`;
 
-  return wrap;
+    const gTags = gAssessed
+      ? [
+          gP.fastTwitchBias && gP.fastTwitchBias !== "Not assessed" ? `FT: ${gP.fastTwitchBias}` : null,
+          gP.recoverySpeed && gP.recoverySpeed !== "Not assessed" ? `Rec: ${gP.recoverySpeed}` : null,
+          gN.carbTolerance && gN.carbTolerance !== "Not assessed" ? `Carbs: ${gN.carbTolerance}` : null
+        ].filter(Boolean).slice(0,3)
+      : [];
+    if (state.ui.coach?.alertsOnly && !needsAttention) return;
+
+    const tr = el(`
+      <tr style="cursor:pointer;">
+        <td><b>${gAssessed ? "🧬 " : ""}${c.name}</b><div class="muted">${c.profile.notes || ""}</div></td>
+        <td>${gAssessed ? `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;">${gTags.map(t=>`<span class=\\\"tag\\\">${t}</span>`).join("")}${wCount?`<span class=\\\"tag attn\\\" data-warnopen>⚠ ${wCount}</span>`:`<span class=\\\"tag\\\">✅</span>`}</div><div class="hint" style="margin-top:6px;"><a href="#" data-genopen style="text-decoration:none;">Edit genetics</a></div>` : `<div class="row" data-genopen style="gap:6px;flex-wrap:wrap;align-items:center;"><span class="tag attn">Not assessed</span><span class="hint">Click to add</span></div>`}</td>
+                <td><a href="#" data-adhopen style="text-decoration:none;"><span class="tag">${adhLabel}</span> <span class="hint">${Math.round((adh7/adhTarget)*100)}%</span></a></td>
+        <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
+        <td>${fmt(day.sleepHrs)}h</td>
+        <td>${fmt(day.rhr)}</td>
+        <td>${fmt(day.stressAvg)}</td>
+        <td>${fmt(day.steps)}</td>
+        <td>${day.workoutDone ? "Done" : "Not done"} <div class="muted">${day.workoutMins?day.workoutMins+"m":""}</div></td>
+        <td>${fmt(day.nutritionCompliancePct)}%</td>
+        <td>${fmt(day.bodyWeightKg)}</td>
+        <td>${fmt(day.waistCm)}</td>
+        <td class="muted">${(day.dayNote || "—").slice(0,60)}</td>
+        <td>${flags.length ? flags.map(f=>`<span class="tag">${f}</span>`).join("") : '<span class="tag">OK</span>'}</td>
+        <td>
+          <div class="row">
+            <button class="small" data-sync>Sim sync</button>
+            <button class="small" data-msg>Message</button>
+          </div>
+        </td>
+      </tr>
+    `);
+
+    tr.onclick = (ev) => {
+      if (ev.target && ev.target.closest("button")) return;
+      state.ui.selectedClientId = c.id; save(state); render();
+    };
+
+    tr.querySelector("[data-sync]").onclick = () => {
+      ensureClientToday(c);
+      c.daily[t].steps = rand(7000, 14000);
+      c.daily[t].sleepHrs = rand(6, 8);
+      c.daily[t].rhr = rand(50, 64);
+      c.daily[t].stressAvg = rand(18, 42);
+      c.daily[t].bodyBatteryStart = rand(70, 96);
+      c.daily[t].bodyBatteryEnd = rand(15, 58);
+      c.daily[t].activeCals = rand(250, 900);
+      save(state);
+      alert(`Simulated sync for ${c.name}`);
+      render();
+    };
+    tr.querySelector("[data-msg]").onclick = () => {
+      state.ui.selectedClientId = c.id;
+      state.ui.view = "messages";
+      save(state);
+      render();
+    };
+
+
+    const genOpen = tr.querySelectorAll("[data-genopen]");
+    genOpen.forEach(x=>{
+      x.onclick = (ev) => {
+        ev.preventDefault?.();
+        ev.stopPropagation();
+        state.ui.selectedClientId = c.id;
+        save(state);
+        openGeneticsEditor(state, c.id);
+      };
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  // week view for selected
+  function paintWeek(){
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    ensureClientToday(sel);
+    const wk = compute7d(sel);
+
+    const kpi = root.querySelector("#weekKPIs");
+    kpi.innerHTML = "";
+    kpi.appendChild(el(`
+      <div class="kpi">
+        <div class="box"><div class="muted">Avg sleep</div><div><b>${wk.avgSleep}</b> h</div></div>
+        <div class="box"><div class="muted">Avg steps</div><div><b>${wk.avgSteps}</b></div></div>
+        <div class="box"><div class="muted">Avg stress</div><div><b>${wk.avgStress}</b></div></div>
+        <div class="box"><div class="muted">Avg RHR</div><div><b>${wk.avgRHR}</b></div></div>
+        <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
+        <div class="box"><div class="muted">Nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
+        <div class="box"><div class="muted">Avg weight</div><div><b>${wk.avgWeight ? wk.avgWeight.toFixed(1) : "—"}</b> kg</div></div>
+        <div class="box"><div class="muted">Avg waist</div><div><b>${wk.avgWaist ? wk.avgWaist.toFixed(1) : "—"}</b> cm</div></div>
+      </div>
+    `));
+
+    const tbodyW = root.querySelector("#tbodyWeek");
+    tbodyW.innerHTML = "";
+    wk.days.forEach(d=>{
+      tbodyW.appendChild(el(`
+        <tr>
+          <td><b>${d.date}</b></td>
+          <td>${fmt(d.sleepHrs)}h</td>
+          <td>${fmt(d.rhr)}</td>
+          <td>${fmt(d.stressAvg)}</td>
+          <td>${fmt(d.steps)}</td>
+          <td>${d.workoutDone ? "Done" : "No"}</td>
+          <td>${fmt(d.nutritionCompliancePct)}%</td>
+          <td>${fmt(d.bodyWeightKg)}</td>
+          <td>${fmt(d.waistCm)}</td>
+          <td class="muted">${(d.dayNote || "—").slice(0,60)}</td>
+        </tr>
+      `));
+    });
+  }
+  paintWeek();
+
+  // tabs
+  const todayCard = root.querySelector("#todayCard");
+  const weekCard = root.querySelector("#weekCard");
+  const tabBtns = root.querySelectorAll(".tab");
+  tabBtns.forEach(btn=>{
+    btn.onclick = () => {
+      tabBtns.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const which = btn.dataset.tab;
+      todayCard.style.display = which==="today" ? "" : "none";
+      weekCard.style.display = which==="week" ? "" : "none";
+      if (which==="week") paintWeek();
+    };
+  });
+
+  // coach actions
+  root.querySelector("#csvBtn").onclick = () => exportTodayCSV(state);
+  root.querySelector("#allCsvBtn").onclick = () => exportAllCSV(state);
+
+  root.querySelector("#saveTargetsBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    const kcal = Number(root.querySelector("#kcal").value);
+    const p = Number(root.querySelector("#p").value);
+    const c = Number(root.querySelector("#c").value);
+    const f = Number(root.querySelector("#f").value);
+    sel.macroTargets.training = { kcal,p,c,f };
+    save(state);
+    alert("Saved training-day targets (demo).");
+    render();
+  };
+  root.querySelector("#assignTplBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    const templateId = root.querySelector("#tplSel").value;
+    const tpl = (state.dietTemplates||[]).find(t=>t.id===templateId);
+    sel.assignedTemplateId = templateId;
+
+    // copy template into client active plan (so later template edits don't retroactively change clients)
+    if (tpl){
+      const copiedMeals = JSON.parse(JSON.stringify(tpl.meals||[]));
+      const macros = tpl.macros || computeMacrosFromMeals(copiedMeals);
+      sel.activeDietPlan = {
+        planId: uid(),
+        sourceTemplateId: tpl.id,
+        name: tpl.name,
+        notes: tpl.notes || '',
+        macros: JSON.parse(JSON.stringify(macros)),
+        meals: copiedMeals,
+        assignedAt: Date.now(),
+        assignedBy: 'coach',
+        updatedAt: Date.now(),
+      };
+      sel.dietPlanHistory = sel.dietPlanHistory || [];
+      sel.dietPlanHistory.push({ planId: sel.activeDietPlan.planId, name: sel.activeDietPlan.name, at: Date.now(), note: 'Assigned template' });
+
+      // keep existing macroTargets UI consistent
+      sel.macroTargets = sel.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
+      sel.macroTargets.training = JSON.parse(JSON.stringify(sel.activeDietPlan.macros));
+    }
+
+    save(state);
+    alert("Template assigned (demo).\n\nTip: Client view will now show the copied plan under Active diet plan.");
+    render();
+  };
+
+  root.querySelector("#manageDietBtn").onclick = () => { state.ui.view = "diet"; save(state); render(); };
+
+  root.querySelector("#editPlanBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
+    openClientDietPlanEditor(state, sel.id);
+  };
+
+  root.querySelector("#toClientBtn").onclick = () => { state.ui.view = "client"; save(state); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(state); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(state); render(); };
+  root.querySelector("#toMessagesBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
+
+  root.querySelector("#addClientBtn").onclick = () => openClientModal(state, {mode:"add"});
+  root.querySelector("#editClientBtn").onclick = () => openClientModal(state, {mode:"edit", clientId: state.ui.selectedClientId});
+  
+  const genBtn = root.querySelector("#editGeneticsBtn");
+  if (genBtn) {
+    genBtn.onclick = () => openGeneticsEditor(state, state.ui.selectedClientId);
+  }
+
+  root.querySelector("#delClientBtn").onclick = () => {
+    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId);
+    if (!sel) return;
+    if (!confirm(`Delete ${sel.name}?`)) return;
+    state.clients = state.clients.filter(c=>c.id!==sel.id);
+    state.ui.selectedClientId = state.clients[0]?.id || "";
+    save(state);
+    render();
+  };
+  // ---- genetics warnings interactivity ----
+  const resolveAllBtn = root.querySelector("#resolveAllWarnings");
+  if (resolveAllBtn && selected) {
+    resolveAllBtn.onclick = (e) => {
+      e.preventDefault?.();
+      const all = computeProgramWarnings(state, selected);
+      selected.resolvedWarnings = selected.resolvedWarnings || [];
+      const set = new Set(selected.resolvedWarnings);
+      all.forEach(w=>set.add(w.id));
+      selected.resolvedWarnings = Array.from(set);
+      save(state);
+      render();
+    };
+  }
+  const clearResolvedBtn = root.querySelector("#clearResolvedWarnings");
+  if (clearResolvedBtn && selected) {
+    clearResolvedBtn.onclick = (e) => {
+      e.preventDefault?.();
+      selected.resolvedWarnings = [];
+      save(state);
+      render();
+    };
+  }
+  const showResolved = root.querySelector("#showResolvedWarnings");
+  if (showResolved) {
+    showResolved.onchange = () => {
+      state.ui = state.ui || {};
+      state.ui.showResolvedWarnings = !!showResolved.checked;
+      save(state);
+      render();
+    };
+  }
+
+  root.querySelectorAll("[data-warncheck]").forEach(chk=>{
+    chk.onchange = () => {
+      if (!selected) return;
+      const id = chk.getAttribute("data-warncheck");
+      selected.resolvedWarnings = selected.resolvedWarnings || [];
+      const set = new Set(selected.resolvedWarnings);
+      if (chk.checked) set.add(id); else set.delete(id);
+      selected.resolvedWarnings = Array.from(set);
+      save(state);
+      render();
+    };
+  });
+
+  root.querySelectorAll("[data-warnline]").forEach(a=>{
+    a.onclick = (ev) => {
+      ev.preventDefault?.();
+      if (!selected) return;
+      const action = a.getAttribute("data-warnline");
+      const wid = a.getAttribute("data-warnid");
+      handleWarningAction(state, selected, action, wid);
+    };
+  });
+  // -----------------------------------------
+
+  // optional scroll target (used by Today table warning badge)
+  if (state.ui && state.ui.scrollTo === "geneticsWarnings") {
+    // clear first so repeated renders don't keep jumping
+    state.ui.scrollTo = null;
+    save(state);
+    setTimeout(() => {
+      const elw = document.getElementById("geneticsWarnings");
+      if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+
+  if (state.ui && state.ui.scrollTo === "weeklySchedule") {
+    state.ui.scrollTo = null;
+    save(state);
+    setTimeout(() => {
+      const elw = document.getElementById("weeklySchedule");
+      if (elw) elw.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  // genetics form modal
+  renderGeneticsModal(state, root);
 }
 
-/* ------------------ MEALS ------------------ */
-function addMeal(i) {
-  const t = state.templates[i];
+/** ========= Client view ========= */
+
+function initSessionUI(state, client, root){
+  const btnMount = root.querySelector("#sessionBtns");
+  const hint = root.querySelector("#sessionHint");
+  const recTag = root.querySelector("#recSessionTag");
+  const useRec = root.querySelector("#useRecLink");
+
+  if (!btnMount || !hint || !recTag) return;
+
+  const recId = getRecommendedTemplateId(state);
+  const rec = recId==="rest" ? null : getTemplateById(state, recId);
+  recTag.textContent = rec ? rec.name : "Rest day";
+  if (useRec) {
+    useRec.style.display = (rec ? "inline" : "none");
+    useRec.onclick = (ev) => {
+      ev.preventDefault?.();
+      if (!rec) return;
+      state.ui.selectedWorkoutTemplateId = rec.id;
+      const t = getSelectedWorkoutTemplate(state);
+      if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
+      save(state);
+      render();
+    };
+  }
+
+  btnMount.innerHTML = (state.workoutTemplates||[]).map(t=>{
+    const active = (state.ui.selectedWorkoutTemplateId===t.id);
+    return `<button class="small" data-wtpl="${t.id}" style="border-radius:999px;${active?"border:2px solid #111;":""}">${t.name}</button>`;
+  }).join("");
+
+  const sel = getSelectedWorkoutTemplate(state);
+  hint.textContent = sel ? ("Exercises: " + (sel.exercises||[]).slice(0,8).join(", ") + ((sel.exercises||[]).length>8 ? "…" : "")) : "";
+
+  btnMount.querySelectorAll("[data-wtpl]").forEach(b=>{
+    b.onclick = (ev) => {
+      ev.preventDefault?.();
+      const id = b.getAttribute("data-wtpl");
+      state.ui.selectedWorkoutTemplateId = id;
+      const t = getSelectedWorkoutTemplate(state);
+      if (t?.exercises?.length) state.ui.selectedExercise = t.exercises[0];
+      save(state);
+      render();
+    };
+  });
+}
+
+function viewClient(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+  ensureClientToday(client);
+
+  const t = todayISO();
+  const day = client.daily[t];
+
+  const top = el(`
+    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+      <div class="row">
+        <span class="tag">Client</span>
+        <span class="tag">${client.name}</span>
+        <span class="tag">${t}</span>
+      </div>
+      <div class="row">
+        <button class="small" id="toCoachBtn">Coach</button>
+        <button class="small" id="toProgressBtn">Progress</button>
+        <button class="small" id="toHistoryBtn">History</button>
+        <button class="small" id="toMsgBtn">Messages</button>
+      </div>
+    </div>
+  `);
+
+  const activePlan = client.activeDietPlan || (state.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
+  const targets = (activePlan && activePlan.macros) ? activePlan.macros : client.macroTargets.training;
+
+  const left = el(`
+    <div class="card">
+      <h2>Today’s targets</h2>
+      <div class="kpi">
+        <div class="box"><div class="muted">Calories</div><div><b>${targets.kcal}</b> kcal</div></div>
+        <div class="box"><div class="muted">Protein</div><div><b>${targets.p}</b> g</div></div>
+        <div class="box"><div class="muted">Carbs</div><div><b>${targets.c}</b> g</div></div>
+        <div class="box"><div class="muted">Fat</div><div><b>${targets.f}</b> g</div></div>
+      </div>
+
+      <label style="margin-top:12px;">Nutrition compliance (%)</label>
+      <input id="comp" type="number" min="0" max="100" value="${day.nutritionCompliancePct}" />
+
+      <hr class="hr">
+
+      <h3>Body metrics</h3>
+      <div class="row">
+        <input id="bw" style="max-width:160px" placeholder="Bodyweight (kg)" value="${day.bodyWeightKg ?? ""}" />
+        <input id="waist" style="max-width:160px" placeholder="Waist (cm)" value="${day.waistCm ?? ""}" />
+      </div>
+
+      <label>Daily note</label>
+      <textarea id="dayNote" placeholder="Energy, digestion, stressors, anything notable...">${day.dayNote ?? ""}</textarea>
+
+      <button class="primary" id="saveDailyBtn" style="margin-top:10px;">Save today</button>
+
+      <hr class="hr">
+
+      <h3>Daily check-in (1–10)</h3>
+      <div class="row">
+        <input id="sore" style="max-width:110px" value="${day.selfReport.soreness}" />
+        <input id="mood" style="max-width:110px" value="${day.selfReport.mood}" />
+        <input id="ener" style="max-width:110px" value="${day.selfReport.energy}" />
+        <input id="dig"  style="max-width:110px" value="${day.selfReport.digestion}" />
+      </div>
+      <div class="muted">Soreness / Mood / Energy / Digestion</div>
+      <button id="saveCheckBtn" style="margin-top:10px;">Save check-in</button>
+
+      <hr class="hr">
+      <div class="muted">Constraints: <b>${client.profile.constraints.join(", ") || "—"}</b></div>
+    </div>
+  `);
+
+  const right = el(`
+    <div class="card">
+      <h2>Diet plan (optional)</h2>
+      <p class="muted">${activePlan ? activePlan.name : "No plan assigned yet."} ${activePlan && activePlan.sourceTemplateId ? "• from template" : ""}</p>
+      <div id="tplArea"></div>
+
+      <hr class="hr">
+
+      <h2>🧬 Genetic insights</h2>
+      <div class="row">
+        ${((client.genetics?.performance?.fastTwitchBias || "Not assessed") === "Not assessed" &&
+           (client.genetics?.nutrition?.carbTolerance || "Not assessed") === "Not assessed")
+          ? '<span class="tag attn">Genetics not assessed</span>'
+          : ''}
+      </div>
+      <div class="card" style="border-radius:12px;">
+        <b>Training</b>
+        <div class="row" style="margin-top:6px;">
+          <span class="tag">${client.genetics?.performance?.fastTwitchBias || "Not assessed"}</span>
+          <span class="tag">${client.genetics?.performance?.recoverySpeed || "Not assessed"} recovery</span>
+        </div>
+        <div class="muted" style="margin-top:6px;">Injury risk: ${(client.genetics?.performance?.injuryRisk||[]).join(", ") || "—"}</div>
+        ${client.genetics?.performance?.notes ? '<div class="muted" style="margin-top:6px;">' + client.genetics.performance.notes + '</div>' : ""}
+        <hr class="hr">
+        <b>Nutrition</b>
+        <div class="row" style="margin-top:6px;">
+          <span class="tag">Carbs: ${client.genetics?.nutrition?.carbTolerance || "Not assessed"}</span>
+          <span class="tag">Fat: ${client.genetics?.nutrition?.fatTolerance || "Not assessed"}</span>
+          <span class="tag">Protein: ${client.genetics?.nutrition?.proteinRequirement || "Not assessed"}</span>
+        </div>
+        ${client.genetics?.nutrition?.notes ? '<div class="muted" style="margin-top:6px;">' + client.genetics.nutrition.notes + '</div>' : ""}
+        <div class="hint" style="margin-top:8px;">Genetics indicate predisposition, not prescription.</div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>🤔 Why this plan?</h2>
+      <div class="card" style="border-radius:12px;">
+        ${explainWhyThisPlan(state, client).map(l=>`<div class="muted">• ${l}</div>`).join("")}
+      </div>
+
+      <hr class="hr">
+
+      
+      <hr class="hr">
+
+      <h2>🏋️ Session selection</h2>
+      <div class="card" style="border-radius:12px;">
+        <b>Today's recommended session</b>
+        <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span class="tag" id="recSessionTag">—</span>
+          <a href="#" class="hint" id="useRecLink" style="text-decoration:none;">Use recommended</a>
+        </div>
+        <div class="muted" style="margin-top:8px;">Pick the session you are doing today.</div>
+
+        <hr class="hr">
+
+        <b>Select today’s session</b>
+        <div class="row" id="sessionBtns" style="margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
+        <div class="hint" id="sessionHint" style="margin-top:8px;"></div>
+      </div>
+
+<h2>Workout logging</h2>
+      <p class="muted">Log sets/reps/weight. PR + History update automatically.</p>
+      <div id="wArea"></div>
+    </div>
+  `);
+
+  root.appendChild(top);
+  const grid = el(`<div class="split"></div>`);
+  grid.appendChild(left);
+  grid.appendChild(right);
+  root.appendChild(grid);
+
+  // template
+  const tplArea = root.querySelector("#tplArea");
+  if (!activePlan){
+    tplArea.appendChild(el(`<div class="card warn" style="border-radius:12px;"><b>No diet plan</b><div class="muted">You can still follow macro targets.</div></div>`));
+  } else {
+    (activePlan.meals||[]).forEach(m=>{
+      let kcal=0,p=0,c=0,f=0;
+      m.items.forEach(i=>{kcal+=i.kcal;p+=i.p;c+=i.c;f+=i.f;});
+      tplArea.appendChild(el(`
+        <div class="card" style="border-radius:12px;margin:10px 0;">
+          <b>${m.slot}</b>
+          <div class="muted">${m.items.map(i=>`${i.food} (${i.kcal}kcal)`).join(" • ")}</div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">${kcal} kcal</span>
+            <span class="tag">P ${p}</span>
+            <span class="tag">C ${c}</span>
+            <span class="tag">F ${f}</span>
+          </div>
+        </div>
+      `));
+    });
+  }
+
+  // workout logger
+  const wArea = root.querySelector("#wArea");
+  const plan = state.workoutTemplates;
+  const dayIdx = (new Date()).getDay();
+  const mapped = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
+  const dow = mapped[dayIdx] || "Mon";
+  const session = plan.find(p=>p.day===dow) || plan[0];
+
+  const logKey = t;
+  state.workoutLogs[logKey] = state.workoutLogs[logKey] || {};
+  state.workoutLogs[logKey][client.id] = state.workoutLogs[logKey][client.id] || {};
+
+  wArea.appendChild(el(`<div class="tag">Today: ${session.day} • ${session.name}</div>`));
+
+  // session PRs block
+  const prSpot = el(`
+    <div class="card" style="border-radius:12px;margin-top:10px;">
+      <b>Session best (today)</b>
+      <div class="muted">Updates when you save sets. (Epley e1RM)</div>
+      <div id="sessionPRs" class="row" style="margin-top:6px;"></div>
+    </div>
+  `);
+  wArea.appendChild(prSpot);
+
+  function renderSessionPRs(){
+    const wrap = prSpot.querySelector("#sessionPRs");
+    wrap.innerHTML = "";
+    const sPRs = computeTodaysPRs(state, client.id, t);
+    if (!sPRs.length){
+      wrap.appendChild(el(`<span class="tag">No sets saved yet</span>`));
+      return;
+    }
+    sPRs.slice(0, 8).forEach(p=>{
+      wrap.appendChild(el(`<span class="tag">${p.exercise}: e1RM ${p.bestE1rm.toFixed(1)} (${p.bestSet})</span>`));
+    });
+  }
+  renderSessionPRs();
+
+  session.exercises.forEach(ex=>{
+    const sets = state.workoutLogs[logKey][client.id][ex] || [{reps:"",weight:""}];
+    const block = el(`
+      <div class="card" style="border-radius:12px;margin-top:10px;">
+        <b>${ex}</b>
+        <div class="muted">Sets</div>
+        <div class="sets"></div>
+        <div class="row" style="margin-top:8px;">
+          <button class="small" data-add>Add set</button>
+          <button class="small" data-save>Save</button>
+          <button class="small" data-history>History</button>
+        </div>
+      </div>
+    `);
+    const setsDiv = block.querySelector(".sets");
+
+    function renderSets(){
+      setsDiv.innerHTML = "";
+      sets.forEach((s, idx)=>{
+        const line = el(`
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">#${idx+1}</span>
+            <input style="max-width:110px" placeholder="reps" value="${s.reps}">
+            <input style="max-width:140px" placeholder="weight" value="${s.weight}">
+            <button class="small" data-del>Delete</button>
+          </div>
+        `);
+        line.querySelector("[data-del]").onclick = () => { sets.splice(idx,1); if(!sets.length) sets.push({reps:"",weight:""}); renderSets(); };
+        setsDiv.appendChild(line);
+      });
+    }
+
+    block.querySelector("[data-add]").onclick = () => { sets.push({reps:"",weight:""}); renderSets(); };
+    block.querySelector("[data-save]").onclick = () => {
+      const rows = setsDiv.querySelectorAll(".row");
+      const newSets = [];
+      rows.forEach(r=>{
+        const inputs = r.querySelectorAll("input");
+        newSets.push({ reps: inputs[0].value, weight: inputs[1].value });
+      });
+      state.workoutLogs[logKey][client.id][ex] = newSets;
+      client.daily[t].workoutDone = true;
+      client.daily[t].workoutMins = 45;
+      save(state);
+      renderSessionPRs();
+      alert("Saved workout sets (demo).");
+    };
+    block.querySelector("[data-history]").onclick = () => {
+      state.ui.selectedExercise = ex;
+      state.ui.view = "history";
+      save(state);
+      render();
+    };
+
+    renderSets();
+    wArea.appendChild(block);
+  });
+
+  // save today (weight/waist/note + compliance)
+  root.querySelector("#saveDailyBtn").onclick = () => {
+    client.daily[t].nutritionCompliancePct = clamp(Number(root.querySelector("#comp").value), 0, 100);
+    client.daily[t].bodyWeightKg = root.querySelector("#bw").value.trim();
+    client.daily[t].waistCm = root.querySelector("#waist").value.trim();
+    client.daily[t].dayNote = root.querySelector("#dayNote").value.trim();
+    save(state);
+    alert("Saved today (demo).");
+  };
+
+  // save check-in
+  root.querySelector("#saveCheckBtn").onclick = () => {
+    client.daily[t].selfReport = {
+      soreness: Number(root.querySelector("#sore").value),
+      mood: Number(root.querySelector("#mood").value),
+      energy: Number(root.querySelector("#ener").value),
+      digestion: Number(root.querySelector("#dig").value)
+    };
+    save(state);
+    alert("Saved check-in (demo).");
+  };
+
+  root.querySelector("#toCoachBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
+  root.querySelector("#toProgressBtn").onclick = () => { state.ui.view = "progress"; save(state); render(); };
+  root.querySelector("#toHistoryBtn").onclick = () => { state.ui.view = "history"; save(state); render(); };
+  root.querySelector("#toMsgBtn").onclick = () => { state.ui.view = "messages"; save(state); render(); };
+}
+
+/** ========= Progress view ========= */
+function viewProgress(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+  ensureClientToday(client);
+
+  const t = todayISO();
+  const last14 = [];
+  for (let i=0;i<14;i++){
+    const d = addDays(t, -i);
+    last14.push({ date:d, ...(client.daily[d] || {}) });
+  }
+
+  const wk = compute7d(client);
+
+  function delta(a,b){
+    if (a===null || a===undefined || b===null || b===undefined) return "—";
+    const diff = a-b;
+    const s = diff>0 ? "+" : "";
+    return `${s}${diff.toFixed(1)}`;
+  }
+  const today = client.daily[t];
+  const sevenAgo = client.daily[addDays(t,-7)] || {};
+
+  root.appendChild(el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <span class="tag">Progress</span>
+          <span class="tag">${client.name}</span>
+          <span class="tag">Today: ${t}</span>
+        </div>
+        <div class="row">
+          <button class="small" id="exportJson">Backup JSON</button>
+          <button class="small" id="exportAllCsv">Export All CSV</button>
+          <label class="row" style="margin:0;gap:6px;">
+            <input id="importFile" type="file" accept=".json" style="width:auto;">
+            <span class="muted">Restore JSON</span>
+          </label>
+          <button class="small" id="toCoach">Coach</button>
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toHistory">History</button>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Weekly snapshot</h2>
+      <div class="kpi">
+        <div class="box"><div class="muted">Avg weight (7d)</div><div><b>${wk.avgWeight ? wk.avgWeight.toFixed(1) : "—"}</b> kg</div></div>
+        <div class="box"><div class="muted">Avg waist (7d)</div><div><b>${wk.avgWaist ? wk.avgWaist.toFixed(1) : "—"}</b> cm</div></div>
+        <div class="box"><div class="muted">Weight change (7d)</div><div><b>${delta((today?.bodyWeightKg!==""?Number(today?.bodyWeightKg):null), (sevenAgo?.bodyWeightKg!==""?Number(sevenAgo?.bodyWeightKg):null))}</b> kg</div></div>
+        <div class="box"><div class="muted">Waist change (7d)</div><div><b>${delta((today?.waistCm!==""?Number(today?.waistCm):null), (sevenAgo?.waistCm!==""?Number(sevenAgo?.waistCm):null))}</b> cm</div></div>
+        <div class="box"><div class="muted">Avg nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
+        <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Personal Records (estimated 1RM)</h2>
+      <p class="muted">Calculated from your logged sets (Epley). Click an exercise to open history.</p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Exercise</th>
+              <th>Best set</th>
+              <th>Estimated 1RM</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="prTable"></tbody>
+        </table>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Last 14 days</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Weight</th><th>Waist</th><th>Sleep</th><th>Steps</th><th>Nutrition%</th><th>Workout</th><th>Check-in</th><th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="p14"></tbody>
+        </table>
+      </div>
+
+      <p class="hint">Tip: Use Backup JSON weekly so you never lose progress if browser storage clears.</p>
+    </div>
+  `));
+
+  // PR table
+  const prBody = root.querySelector("#prTable");
+  const prs = computePRsForClient(state, client.id);
+  if (!prs.length){
+    prBody.appendChild(el(`<tr><td colspan="5" class="muted">No PRs yet — log a workout (sets/reps/weight) to populate this.</td></tr>`));
+  } else {
+    prs.slice(0, 40).forEach(pr=>{
+      const tr = el(`
+        <tr style="cursor:pointer;">
+          <td><b>${pr.exercise}</b></td>
+          <td>${pr.bestSet}</td>
+          <td><b>${pr.bestE1rm.toFixed(1)}</b></td>
+          <td class="muted">${pr.date}</td>
+          <td><button class="small" data-open>Open history</button></td>
+        </tr>
+      `);
+      tr.onclick = (ev)=>{
+        if (ev.target && ev.target.closest("button")) return;
+        state.ui.selectedExercise = pr.exercise;
+        state.ui.view = "history";
+        save(state);
+        render();
+      };
+      tr.querySelector("[data-open]").onclick = ()=>{
+        state.ui.selectedExercise = pr.exercise;
+        state.ui.view = "history";
+        save(state);
+        render();
+      };
+      prBody.appendChild(tr);
+    });
+  }
+
+  // last 14
+  const tbody = root.querySelector("#p14");
+  last14.forEach(d=>{
+    tbody.appendChild(el(`
+      <tr>
+        <td><b>${d.date}</b></td>
+        <td>${fmt(d.bodyWeightKg)}</td>
+        <td>${fmt(d.waistCm)}</td>
+        <td>${fmt(d.sleepHrs)}h</td>
+        <td>${fmt(d.steps)}</td>
+        <td>${fmt(d.nutritionCompliancePct)}%</td>
+        <td>${d.workoutDone ? "Done":"No"}</td>
+        <td class="muted">S:${fmt(d.selfReport?.soreness)} M:${fmt(d.selfReport?.mood)} E:${fmt(d.selfReport?.energy)} D:${fmt(d.selfReport?.digestion)}</td>
+        <td class="muted">${(d.dayNote || "—").slice(0,80)}</td>
+      </tr>
+    `));
+  });
+
+  root.querySelector("#exportJson").onclick = () => exportBackupJSON(state);
+  root.querySelector("#exportAllCsv").onclick = () => exportAllCSV(state);
+  root.querySelector("#importFile").onchange = (e) => {
+    const f = e.target.files?.[0];
+    if (f) importBackupJSON(f);
+  };
+  root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
+  root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+  root.querySelector("#toHistory").onclick = () => { state.ui.view="history"; save(state); render(); };
+}
+
+/** ========= History view (exercise history) ========= */
+function viewHistory(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+  ensureClientToday(client);
+
+  const exercises = listExercisesForClient(state, client.id);
+  if (!exercises.length){
+    root.appendChild(el(`
+      <div class="card">
+        <h2>Exercise History</h2>
+        <p class="muted">No logged workouts yet. Log sets/reps/weight in Client view.</p>
+        <div class="row">
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toProgress">Progress</button>
+          <button class="small" id="toCoach">Coach</button>
+        </div>
+      </div>
+    `));
+    root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+    root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(state); render(); };
+    root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
+    return;
+  }
+
+  // pick current selected exercise
+  const selEx = exercises.includes(state.ui.selectedExercise) ? state.ui.selectedExercise : exercises[0];
+  state.ui.selectedExercise = selEx;
+  save(state);
+
+  const history = computeExerciseHistory(state, client.id, selEx);
+  const prs = computePRsForClient(state, client.id);
+  const prMatch = prs.find(p=>p.exercise===selEx);
+
+  const last = history[0];
+  const prev = history[1];
+  const trend = (last && prev) ? (last.bestE1rm - prev.bestE1rm) : null;
+
+  root.appendChild(el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <span class="tag">History</span>
+          <span class="tag">${client.name}</span>
+        </div>
+        <div class="row">
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toProgress">Progress</button>
+          <button class="small" id="toCoach">Coach</button>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <div class="split">
+        <div>
+          <h2>Exercise</h2>
+          <label>Select exercise</label>
+          <select id="exSel">
+            ${exercises.map(x=>`<option value="${x}" ${x===selEx?"selected":""}>${x}</option>`).join("")}
+          </select>
+          <div class="hint">History uses your logged sets to compute “best e1RM per day” (Epley).</div>
+        </div>
+        <div>
+          <h2>Quick stats</h2>
+          <div class="kpi">
+            <div class="box"><div class="muted">PR e1RM</div><div><b>${prMatch ? prMatch.bestE1rm.toFixed(1) : "—"}</b></div></div>
+            <div class="box"><div class="muted">PR set</div><div><b>${prMatch ? prMatch.bestSet : "—"}</b></div></div>
+            <div class="box"><div class="muted">Last session</div><div><b>${last ? last.bestE1rm.toFixed(1) : "—"}</b></div></div>
+            <div class="box"><div class="muted">Trend (vs prior)</div><div><b>${trend===null ? "—" : (trend>=0?"+":"") + trend.toFixed(1)}</b></div></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="hr">
+
+      <h2>Last sessions</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Best set</th>
+              <th>Best e1RM</th>
+              <th>Sets logged</th>
+            </tr>
+          </thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+
+      <p class="hint">Tip: in Client → Workout logging, press <b>History</b> next to an exercise to jump here.</p>
+    </div>
+  `));
+
+  const histBody = root.querySelector("#histBody");
+  if (!history.length){
+    histBody.appendChild(el(`<tr><td colspan="4" class="muted">No history for this exercise yet.</td></tr>`));
+  } else {
+    history.slice(0, 20).forEach(h=>{
+      histBody.appendChild(el(`
+        <tr>
+          <td><b>${h.date}</b></td>
+          <td>${h.bestSet}</td>
+          <td><b>${h.bestE1rm.toFixed(1)}</b></td>
+          <td class="muted">${h.setCount}</td>
+        </tr>
+      `));
+    });
+  }
+
+  root.querySelector("#exSel").onchange = (e)=>{
+    state.ui.selectedExercise = e.target.value;
+    save(state);
+    render();
+  };
+  root.querySelector("#toClient").onclick = () => { state.ui.view="client"; save(state); render(); };
+  root.querySelector("#toProgress").onclick = () => { state.ui.view="progress"; save(state); render(); };
+  root.querySelector("#toCoach").onclick = () => { state.ui.view="coach"; save(state); render(); };
+}
+
+/** ========= Messages view ========= */
+function viewMessages(state){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  const clientId = state.ui.selectedClientId || "c1";
+  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
+
+  const header = el(`
+    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+      <div class="row">
+        <span class="tag">Messages</span>
+        <span class="tag">Thread: Coach ↔ ${client.name}</span>
+      </div>
+      <div class="row">
+        <button class="small" id="backBtn">Back</button>
+      </div>
+    </div>
+  `);
+
+  const card = el(`
+    <div class="card">
+      <div id="msgs" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="row" style="margin-top:10px;">
+        <input id="msgInput" placeholder="Type a message..." />
+        <button class="primary" id="sendBtn">Send</button>
+      </div>
+    </div>
+  `);
+
+  root.appendChild(header);
+  root.appendChild(card);
+
+  function displayNameForSender(id){
+    const u = state.users.find(x=>x.id===id);
+    if (u) return u.name;
+    if (id===client.id) return client.name;
+    if (id==="u1") return "Coach (Demo)";
+    return "User";
+  }
+
+  function renderMsgs(){
+    const box = card.querySelector("#msgs");
+    box.innerHTML = "";
+    state.messages
+      .slice()
+      .sort((a,b)=>a.at.localeCompare(b.at))
+      .filter(m => (m.to===client.id || m.from===client.id))
+      .forEach(m=>{
+        const mine = m.from===state.session.userId;
+        box.appendChild(el(`
+          <div class="card ${mine?'ok':'warn'}" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;">
+            <div class="muted" style="font-size:12px;"><b>${displayNameForSender(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
+            <div>${m.text}</div>
+          </div>
+        `));
+      });
+  }
+  renderMsgs();
+
+  card.querySelector("#sendBtn").onclick = () => {
+    const text = card.querySelector("#msgInput").value.trim();
+    if (!text) return;
+    state.messages.push({ id:"m"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
+    card.querySelector("#msgInput").value = "";
+    save(state);
+    renderMsgs();
+  };
+
+  header.querySelector("#backBtn").onclick = () => { state.ui.view = "coach"; save(state); render(); };
+}
+
+/** ========= Client add/edit modal ========= */
+function openClientModal(state, {mode, clientId}){
+  const existing = mode==="edit" ? state.clients.find(c=>c.id===clientId) : null;
+
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;">
+      <div class="card" style="max-width:720px;width:100%;">
+        <h2>${mode==="add" ? "Add client" : "Edit client"}</h2>
+        <div class="split">
+          <div>
+            <label>Name</label>
+            <input id="name" value="${existing?.name || ""}" placeholder="e.g., Luke Abbey" />
+            <label>Email</label>
+            <input id="email" value="${existing?.email || ""}" placeholder="e.g., luke@example.com" />
+            <label>Notes</label>
+            <textarea id="notes" placeholder="Goals, injuries, key context...">${existing?.profile?.notes || ""}</textarea>
+          </div>
+          <div>
+            <label>Constraints (comma separated)</label>
+            <input id="constraints" value="${(existing?.profile?.constraints || []).join(", ")}" placeholder="e.g., coeliac, dairy_free" />
+            <label>Age</label>
+            <input id="age" type="number" value="${existing?.profile?.age || 30}" />
+            <label>Height (cm)</label>
+            <input id="height" type="number" value="${existing?.profile?.heightCm || 170}" />
+            <label>Weight (kg)</label>
+            <input id="weight" type="number" value="${existing?.profile?.weightKg || 70}" />
+          </div>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="cancel">Cancel</button>
+          <button class="primary" id="save">${mode==="add" ? "Add" : "Save"}</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector("#cancel").onclick = () => overlay.remove();
+  overlay.querySelector("#save").onclick = () => {
+    const name = overlay.querySelector("#name").value.trim();
+    const email = overlay.querySelector("#email").value.trim().toLowerCase();
+    if (!name || !email) return alert("Name + email required.");
+    const notes = overlay.querySelector("#notes").value.trim();
+    const constraints = overlay.querySelector("#constraints").value.split(",").map(s=>s.trim()).filter(Boolean);
+
+    const age = Number(overlay.querySelector("#age").value) || 30;
+    const heightCm = Number(overlay.querySelector("#height").value) || 170;
+    const weightKg = Number(overlay.querySelector("#weight").value) || 70;
+
+    if (mode==="add"){
+      const newId = "c" + (Math.max(0, ...state.clients.map(c=>Number(c.id.slice(1))||0)) + 1);
+      const c = seedClient(newId, name, email, notes, constraints);
+      c.profile.age = age; c.profile.heightCm = heightCm; c.profile.weightKg = weightKg;
+      state.clients.push(c);
+      state.ui.selectedClientId = c.id;
+    } else {
+      existing.name = name;
+      existing.email = email;
+      existing.profile.notes = notes;
+      existing.profile.constraints = constraints;
+      existing.profile.age = age;
+      existing.profile.heightCm = heightCm;
+      existing.profile.weightKg = weightKg;
+    }
+
+    save(state);
+    overlay.remove();
+    render();
+  };
+
+  document.body.appendChild(overlay);
+}
+
+
+
+/** ========= Diet templates + Diet plan editing ========= */
+function uid(){
+  try{ return crypto.randomUUID(); } catch(e){
+    return 'id_' + Math.random().toString(16).slice(2) + '_' + Date.now();
+  }
+}
+function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+function computeMacrosFromMeals(meals){
+  let kcal=0,p=0,c=0,f=0;
+  (meals||[]).forEach(m=>{
+    (m.items||[]).forEach(i=>{
+      kcal += Number(i.kcal)||0;
+      p += Number(i.p)||0;
+      c += Number(i.c)||0;
+      f += Number(i.f)||0;
+    });
+  });
+  return {kcal: Math.round(kcal), p: Math.round(p), c: Math.round(c), f: Math.round(f)};
+}
+function normalizeDietTemplate(tpl){
+  const t = tpl || {};
+  t.id = t.id || uid();
+  t.name = t.name || 'Untitled template';
+  t.notes = t.notes || '';
   t.meals = Array.isArray(t.meals) ? t.meals : [];
-  t.meals.push({ name:"Meal", foods:[] });
-  saveState();
-  render();
+  t.macros = t.macros || computeMacrosFromMeals(t.meals);
+  t.updatedAt = t.updatedAt || Date.now();
+  return t;
 }
 
-function removeMeal(i, mi) {
-  state.templates[i].meals.splice(mi, 1);
-  saveState();
-  render();
+function exportDietTemplates(state){
+  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(state.dietTemplates || [], null, 2));
+}
+function importDietTemplatesFromFile(file, state){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const parsed = JSON.parse(r.result);
+      const arr = Array.isArray(parsed) ? parsed : (parsed?.dietTemplates || parsed?.templates || []);
+      if (!Array.isArray(arr)) throw new Error('Not an array');
+      state.dietTemplates = state.dietTemplates || [];
+      arr.forEach(x=> state.dietTemplates.push(normalizeDietTemplate(x)));
+      save(state);
+      alert(`Imported ${arr.length} template(s).`);
+      render();
+    } catch(e){
+      alert('Could not import. Please upload a JSON array of diet templates.');
+    }
+  };
+  r.readAsText(file);
 }
 
-function renderMeals(i) {
-  const t = state.templates[i];
-  t.meals = Array.isArray(t.meals) ? t.meals : [];
+function openDietTemplateEditor(state, {templateId}={}){
+  state.dietTemplates = state.dietTemplates || [];
+  const isEdit = !!templateId;
+  const existing = isEdit ? state.dietTemplates.find(t=>t.id===templateId) : null;
+  const working = normalizeDietTemplate(deepCopy(existing || { id: uid(), name:'', notes:'', macros:{kcal:'',p:'',c:'',f:''}, meals:[] }));
 
-  const wrap = document.createElement("div");
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999;">
+      <div class="card" style="max-width:980px;width:100%;max-height:85vh;overflow:auto;">
+        <h2>${isEdit ? 'Edit diet template' : 'New diet template'}</h2>
+        <p class="muted">Edit name/macros/notes. Meals are edited as JSON for speed (you can paste from ChatGPT or spreadsheets).</p>
 
-  if (!t.meals.length) {
-    const empty = document.createElement("div");
-    empty.className = "card";
-    empty.innerHTML = `<b>No meals yet.</b><div class="muted" style="margin-top:6px;">Click “Add Meal”.</div>`;
-    wrap.appendChild(empty);
+        <label>Name</label>
+        <input id="dt_name" value="${(working.name||'').replaceAll('"','&quot;')}" />
+
+        <label>Notes</label>
+        <textarea id="dt_notes">${working.notes||''}</textarea>
+
+        <div class="split" style="margin-top:10px;">
+          <div>
+            <h3>Macros</h3>
+            <div class="row">
+              <input id="dt_kcal" style="max-width:140px" placeholder="kcal" value="${working.macros?.kcal ?? ''}" />
+              <input id="dt_p" style="max-width:140px" placeholder="protein" value="${working.macros?.p ?? ''}" />
+              <input id="dt_c" style="max-width:140px" placeholder="carbs" value="${working.macros?.c ?? ''}" />
+              <input id="dt_f" style="max-width:140px" placeholder="fat" value="${working.macros?.f ?? ''}" />
+            </div>
+            <div class="hint">Tip: leave blank and click “Auto-calc from meals” if your meals include kcal/P/C/F.</div>
+            <button class="small" id="dt_autocalc" style="margin-top:8px;">Auto-calc from meals</button>
+          </div>
+          <div>
+            <h3>Meals JSON</h3>
+            <div class="hint">Format: <code>[{slot:"Breakfast", items:[{food:"",kcal:0,p:0,c:0,f:0}]}]</code></div>
+          </div>
+        </div>
+
+        <textarea id="dt_meals" style="min-height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${JSON.stringify(working.meals||[], null, 2)}</textarea>
+
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="dt_cancel">Cancel</button>
+          <button class="primary" id="dt_save">Save</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector('#dt_cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#dt_autocalc').onclick = () => {
+    try{
+      const meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]');
+      const m = computeMacrosFromMeals(meals);
+      overlay.querySelector('#dt_kcal').value = m.kcal;
+      overlay.querySelector('#dt_p').value = m.p;
+      overlay.querySelector('#dt_c').value = m.c;
+      overlay.querySelector('#dt_f').value = m.f;
+    } catch(e){
+      alert('Meals JSON is invalid. Fix JSON first.');
+    }
+  };
+
+  overlay.querySelector('#dt_save').onclick = () => {
+    const name = overlay.querySelector('#dt_name').value.trim();
+    if (!name) return alert('Name is required.');
+
+    let meals = [];
+    try{ meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]'); }
+    catch(e){ return alert('Meals JSON is invalid.'); }
+
+    const tpl = normalizeDietTemplate({
+      id: working.id,
+      name,
+      notes: overlay.querySelector('#dt_notes').value.trim(),
+      macros: {
+        kcal: Number(overlay.querySelector('#dt_kcal').value) || 0,
+        p: Number(overlay.querySelector('#dt_p').value) || 0,
+        c: Number(overlay.querySelector('#dt_c').value) || 0,
+        f: Number(overlay.querySelector('#dt_f').value) || 0,
+      },
+      meals
+    });
+    tpl.updatedAt = Date.now();
+
+    if (isEdit){
+      const idx = state.dietTemplates.findIndex(t=>t.id===templateId);
+      if (idx>=0) state.dietTemplates[idx] = tpl;
+    } else {
+      state.dietTemplates.push(tpl);
+    }
+
+    save(state);
+    overlay.remove();
+    render();
+  };
+
+  document.body.appendChild(overlay);
+}
+
+function openClientDietPlanEditor(state, clientId){
+  const client = state.clients.find(c=>c.id===clientId);
+  if (!client) return;
+
+  const base = client.activeDietPlan
+    ? deepCopy(client.activeDietPlan)
+    : (()=>{
+        const tpl = state.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
+        if (tpl) return { planId: uid(), sourceTemplateId: tpl.id, name: tpl.name, notes: tpl.notes||'', macros: tpl.macros||computeMacrosFromMeals(tpl.meals), meals: deepCopy(tpl.meals||[]), assignedAt: Date.now(), assignedBy:'coach' };
+        return { planId: uid(), sourceTemplateId: null, name: 'Custom plan', notes:'', macros: deepCopy(client.macroTargets?.training||{kcal:0,p:0,c:0,f:0}), meals: [], assignedAt: Date.now(), assignedBy:'coach' };
+      })();
+
+  const overlay = el(`
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999;">
+      <div class="card" style="max-width:980px;width:100%;max-height:85vh;overflow:auto;">
+        <h2>Edit active diet plan (${client.name})</h2>
+        <p class="muted">This edits the client’s plan only (does not change the template library).</p>
+
+        <label>Plan name</label>
+        <input id="cp_name" value="${(base.name||'').replaceAll('"','&quot;')}" />
+
+        <label>Notes</label>
+        <textarea id="cp_notes">${base.notes||''}</textarea>
+
+        <h3 style="margin-top:10px;">Macros</h3>
+        <div class="row">
+          <input id="cp_kcal" style="max-width:140px" placeholder="kcal" value="${base.macros?.kcal ?? ''}" />
+          <input id="cp_p" style="max-width:140px" placeholder="protein" value="${base.macros?.p ?? ''}" />
+          <input id="cp_c" style="max-width:140px" placeholder="carbs" value="${base.macros?.c ?? ''}" />
+          <input id="cp_f" style="max-width:140px" placeholder="fat" value="${base.macros?.f ?? ''}" />
+        </div>
+
+        <h3 style="margin-top:10px;">Meals JSON</h3>
+        <textarea id="cp_meals" style="min-height:220px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${JSON.stringify(base.meals||[], null, 2)}</textarea>
+
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button id="cp_cancel">Cancel</button>
+          <button class="primary" id="cp_save">Save plan</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  overlay.querySelector('#cp_cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#cp_save').onclick = () => {
+    const name = overlay.querySelector('#cp_name').value.trim();
+    if (!name) return alert('Plan name is required.');
+
+    let meals = [];
+    try{ meals = JSON.parse(overlay.querySelector('#cp_meals').value || '[]'); }
+    catch(e){ return alert('Meals JSON is invalid.'); }
+
+    client.activeDietPlan = {
+      planId: base.planId || uid(),
+      sourceTemplateId: base.sourceTemplateId || null,
+      name,
+      notes: overlay.querySelector('#cp_notes').value.trim(),
+      macros: {
+        kcal: Number(overlay.querySelector('#cp_kcal').value) || 0,
+        p: Number(overlay.querySelector('#cp_p').value) || 0,
+        c: Number(overlay.querySelector('#cp_c').value) || 0,
+        f: Number(overlay.querySelector('#cp_f').value) || 0,
+      },
+      meals,
+      assignedAt: base.assignedAt || Date.now(),
+      assignedBy: 'coach',
+      updatedAt: Date.now(),
+    };
+
+    client.dietPlanHistory = client.dietPlanHistory || [];
+    client.dietPlanHistory.push({
+      planId: client.activeDietPlan.planId,
+      name: client.activeDietPlan.name,
+      at: Date.now(),
+      note: 'Coach edited active plan'
+    });
+
+    // keep macroTargets in sync for existing UI
+    client.macroTargets = client.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
+    client.macroTargets.training = deepCopy(client.activeDietPlan.macros);
+
+    save(state);
+    overlay.remove();
+    alert('Saved client diet plan.');
+    render();
+  };
+
+  document.body.appendChild(overlay);
+}
+
+
+function viewDiet(state){
+  const root = document.createElement("div");
+
+  // Ensure required state
+  state.dietTemplates = Array.isArray(state.dietTemplates) ? state.dietTemplates : [];
+  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
+  state.ui = state.ui || {};
+  state.ui.dietMode = state.ui.dietMode || "list"; // list | edit
+  if (typeof state.ui.editDietTemplateId === "undefined") state.ui.editDietTemplateId = null;
+
+  const getTplById = (id)=> state.dietTemplates.find(t=>t.id===id) || null;
+  const newId = ()=> "dt_" + Math.random().toString(16).slice(2,10);
+
+  const round1 = (n)=> Math.round((Number(n)||0)*10)/10;
+  const num = (v)=> Number.isFinite(Number(v)) ? Number(v) : 0;
+  const esc = (s)=> String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+  const escAttr = (s)=> esc(s).replace(/"/g,"&quot;");
+
+  function tplTotals(tpl){
+    const meals = Array.isArray(tpl.meals) ? tpl.meals : [];
+    let kcal=0,p=0,c=0,f=0;
+    meals.forEach(m=>{
+      (m.items||[]).forEach(it=>{
+        kcal += num(it.kcal); p += num(it.p); c += num(it.c); f += num(it.f);
+      });
+    });
+    return {kcal:round1(kcal), p:round1(p), c:round1(c), f:round1(f)};
+  }
+
+  function setMode(mode, editId=null){
+    state.ui.dietMode = mode;
+    state.ui.editDietTemplateId = editId;
+    save(state);
+    render();
+  }
+
+  function renderList(){
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `
+      <div class="card" style="margin-bottom:16px;">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div>
+            <div class="hint">Diet</div>
+            <h2 style="margin:4px 0 0 0;">Diet Templates</h2>
+            <div class="hint" style="margin-top:6px;">Edit templates with the meal builder (no JSON).</div>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="small" id="dtNew">➕ New template</button>
+          </div>
+        </div>
+      </div>
+      <div id="dtList"></div>
+    `;
+    wrap.querySelector("#dtNew").onclick = ()=>{
+      const tpl = { id:newId(), name:"New Diet Template", tags:[], meals:[] };
+      state.dietTemplates.unshift(tpl);
+      save(state);
+      setMode("edit", tpl.id);
+    };
+
+    const list = wrap.querySelector("#dtList");
+    if (!state.dietTemplates.length){
+      const empty = document.createElement("div");
+      empty.className = "card";
+      empty.innerHTML = `<b>No diet templates yet.</b><div class="hint" style="margin-top:6px;">Click “New template”.</div>`;
+      list.appendChild(empty);
+      return wrap;
+    }
+
+    state.dietTemplates.forEach(tpl=>{
+      const totals = tplTotals(tpl);
+      const mealCount = (tpl.meals||[]).length;
+      const itemCount = (tpl.meals||[]).reduce((a,m)=>a+((m.items||[]).length),0);
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+          <div>
+            <b>${esc(tpl.name||"Untitled")}</b>
+            <div class="hint" style="margin-top:4px;">Meals: ${mealCount} • Items: ${itemCount}</div>
+            <div class="hint" style="margin-top:2px;">Total: ${totals.kcal} kcal • P ${totals.p} / C ${totals.c} / F ${totals.f}</div>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="small" data-edit="${escAttr(tpl.id)}">Edit</button>
+            <button class="small" data-del="${escAttr(tpl.id)}">Delete</button>
+          </div>
+        </div>
+      `;
+      card.querySelector(`[data-edit="${tpl.id}"]`).onclick = ()=> setMode("edit", tpl.id);
+      card.querySelector(`[data-del="${tpl.id}"]`).onclick = ()=>{
+        if (!confirm(`Delete template "${tpl.name}"?`)) return;
+        state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
+        save(state);
+        render();
+      };
+      list.appendChild(card);
+    });
+
     return wrap;
   }
 
-  t.meals.forEach((m, mi) => {
-    m.foods = Array.isArray(m.foods) ? m.foods : [];
+  function renderEditor(tpl){
+    const wrap = document.createElement("div");
+    const totals = tplTotals(tpl);
 
-    const box = document.createElement("div");
-    box.className = "meal";
-
-    box.innerHTML = `
-      <div class="row" style="justify-content:space-between;">
-        <div class="row" style="align-items:center;">
-          <div class="muted">Meal name</div>
-          <input class="w-food" value="${escapeAttr(m.name)}" data-mealname>
+    wrap.innerHTML = `
+      <div class="card" style="margin-bottom:16px;">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div>
+            <div class="hint">Diet</div>
+            <h2 style="margin:4px 0 0 0;">Edit Template</h2>
+            <div class="hint" style="margin-top:6px;">Changes save automatically.</div>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="small" id="dtBack">← Templates</button>
+          </div>
         </div>
-        <div class="row">
-          <button data-addfood>➕ Food</button>
-          <button data-delmeal>Remove meal</button>
+
+        <div style="margin-top:12px;">
+          <div class="muted">Template name</div>
+          <input id="dtName" value="${escAttr(tpl.name||"")}" style="width:min(560px, 92vw); margin-top:6px;">
+        </div>
+
+        <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;">
+          <button class="small" id="dtAddMeal">➕ Add meal</button>
+          <button class="small" id="dtAuto">⚡ Auto-calc totals</button>
+          <button class="small" id="dtAddCustom">⭐ Add custom food</button>
+        </div>
+
+        <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="muted" style="min-width:140px;">Template totals</div>
+          <span class="muted">kcal</span><input style="width:90px;" type="number" value="${totals.kcal}" readonly>
+          <span class="muted">P</span><input style="width:90px;" type="number" value="${totals.p}" readonly>
+          <span class="muted">C</span><input style="width:90px;" type="number" value="${totals.c}" readonly>
+          <span class="muted">F</span><input style="width:90px;" type="number" value="${totals.f}" readonly>
         </div>
       </div>
 
-      <div class="hdr">
-        <div class="w-food">Food item</div>
-        <div class="w-num">kcal</div>
-        <div class="w-num">Protein</div>
-        <div class="w-num">Carbs</div>
-        <div class="w-num">Fats</div>
-      </div>
-
-      <div id="foods"></div>
-
-      <div class="row" style="margin-top:10px;">
-        <div class="muted">Meal totals:</div>
-        <div class="muted">kcal</div><b id="mk">${mealTotals(m).kcal}</b>
-        <div class="muted">P</div><b id="mp">${mealTotals(m).p}</b>
-        <div class="muted">C</div><b id="mc">${mealTotals(m).c}</b>
-        <div class="muted">F</div><b id="mf">${mealTotals(m).f}</b>
-      </div>
+      <div id="dtMeals"></div>
     `;
 
-    box.querySelector("[data-mealname]").oninput = (e) => {
-      state.templates[i].meals[mi].name = e.target.value;
-      saveState();
+    wrap.querySelector("#dtBack").onclick = ()=> setMode("list", null);
+
+    const nameEl = wrap.querySelector("#dtName");
+    nameEl.oninput = ()=>{
+      tpl.name = nameEl.value;
+      save(state);
     };
 
-    box.querySelector("[data-addfood]").onclick = () => addFood(i, mi);
-    box.querySelector("[data-delmeal]").onclick = () => removeMeal(i, mi);
+    wrap.querySelector("#dtAddMeal").onclick = ()=>{
+      tpl.meals = Array.isArray(tpl.meals) ? tpl.meals : [];
+      tpl.meals.push({ slot:"Meal " + (tpl.meals.length+1), items:[] });
+      save(state);
+      render();
+    };
 
-    const foodsRoot = box.querySelector("#foods");
-    m.foods.forEach((f, fi) => {
-      const row = document.createElement("div");
-      row.className = "food";
-      row.innerHTML = `
-        <input class="w-food" placeholder="Food" value="${escapeAttr(f.name)}" data-k="name">
-        <input class="w-num" placeholder="kcal" type="number" value="${num(f.kcal)}" data-k="kcal">
-        <input class="w-num" placeholder="P" type="number" value="${num(f.p)}" data-k="p">
-        <input class="w-num" placeholder="C" type="number" value="${num(f.c)}" data-k="c">
-        <input class="w-num" placeholder="F" type="number" value="${num(f.f)}" data-k="f">
-        <button data-del>✕</button>
+    wrap.querySelector("#dtAuto").onclick = ()=>{
+      // totals are derived from meals; just re-render to reflect
+      save(state);
+      render();
+    };
+
+    wrap.querySelector("#dtAddCustom").onclick = ()=>{
+      const name = prompt("Food name (e.g. My Granola 50g):");
+      if (name === null) return;
+      const kcal = prompt("Calories (kcal):", "0"); if (kcal === null) return;
+      const p = prompt("Protein grams:", "0"); if (p === null) return;
+      const c = prompt("Carbs grams:", "0"); if (c === null) return;
+      const f = prompt("Fats grams:", "0"); if (f === null) return;
+      const food = { name:String(name).trim(), kcal:num(kcal), p:num(p), c:num(c), f:num(f) };
+      if (!food.name) return;
+      state.customFoods.unshift(food);
+      // de-dupe by name (case-insensitive)
+      const seen = new Set();
+      state.customFoods = state.customFoods.filter(x=>{
+        const k = String(x.name||"").toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+      });
+      save(state);
+      render();
+    };
+
+    const mealsRoot = wrap.querySelector("#dtMeals");
+    mealsRoot.appendChild(renderMeals(tpl));
+    return wrap;
+  }
+
+  function renderMeals(tpl){
+    const wrap = document.createElement("div");
+    tpl.meals = Array.isArray(tpl.meals) ? tpl.meals : [];
+
+    if (!tpl.meals.length){
+      const empty = document.createElement("div");
+      empty.className = "card";
+      empty.innerHTML = `<b>No meals yet.</b><div class="hint" style="margin-top:6px;">Click “Add meal”.</div>`;
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    tpl.meals.forEach((meal, mi)=>{
+      meal.items = Array.isArray(meal.items) ? meal.items : [];
+
+      const mealCard = document.createElement("div");
+      mealCard.className = "card";
+      const mt = tplTotals({meals:[meal]});
+
+      // Custom foods dropdown
+      const options = state.customFoods.map((f, idx)=>`<option value="${idx}">${esc(f.name)} (${num(f.kcal)} kcal)</option>`).join("");
+
+      mealCard.innerHTML = `
+        <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+            <div class="muted">Meal</div>
+            <input data-slot style="width:min(340px, 70vw);" value="${escAttr(meal.slot||"Meal")}">
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="small" data-add>➕ Food</button>
+            <button class="small" data-delmeal>Remove meal</button>
+          </div>
+        </div>
+
+        <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+          <div class="muted">Quick add:</div>
+          <select data-custom style="min-width:260px;max-width:90vw;">
+            <option value="">Select custom food…</option>
+            ${options}
+          </select>
+          <button class="small" data-customadd>Add</button>
+        </div>
+
+        <div style="margin-top:12px;font-size:12px;color:#555;">
+          <div class="row" style="gap:6px;flex-wrap:wrap;">
+            <div style="width:240px;">Food item</div>
+            <div style="width:90px;">kcal</div>
+            <div style="width:90px;">Protein</div>
+            <div style="width:90px;">Carbs</div>
+            <div style="width:90px;">Fats</div>
+          </div>
+        </div>
+
+        <div data-items style="margin-top:8px;"></div>
+
+        <div class="row" style="margin-top:12px;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div class="muted">Meal totals:</div>
+          <div class="muted">kcal</div><b>${mt.kcal}</b>
+          <div class="muted">P</div><b>${mt.p}</b>
+          <div class="muted">C</div><b>${mt.c}</b>
+          <div class="muted">F</div><b>${mt.f}</b>
+        </div>
       `;
 
-      row.querySelectorAll("input").forEach(inp => {
-        inp.oninput = () => {
-          const k = inp.getAttribute("data-k");
-          updateFood(i, mi, fi, k, inp.value);
-        };
-      });
+      // Wire slot name
+      mealCard.querySelector("[data-slot]").oninput = (e)=>{
+        meal.slot = e.target.value;
+        save(state);
+      };
 
-      row.querySelector("[data-del]").onclick = () => {
-        state.templates[i].meals[mi].foods.splice(fi, 1);
-        saveState();
+      // Add blank food
+      mealCard.querySelector("[data-add]").onclick = ()=>{
+        meal.items.push({food:"", kcal:0,p:0,c:0,f:0});
+        save(state);
         render();
       };
 
-      foodsRoot.appendChild(row);
+      // Remove meal
+      mealCard.querySelector("[data-delmeal]").onclick = ()=>{
+        if (!confirm("Remove this meal?")) return;
+        tpl.meals.splice(mi,1);
+        save(state);
+        render();
+      };
+
+      // Custom quick add
+      mealCard.querySelector("[data-customadd]").onclick = ()=>{
+        const sel = mealCard.querySelector("[data-custom]");
+        const idx = Number(sel.value);
+        if (!Number.isFinite(idx)) return;
+        const cf = state.customFoods[idx];
+        if (!cf) return;
+        meal.items.push({food:cf.name, kcal:num(cf.kcal), p:num(cf.p), c:num(cf.c), f:num(cf.f)});
+        save(state);
+        render();
+      };
+
+      const itemsRoot = mealCard.querySelector("[data-items]");
+      if (!meal.items.length){
+        const empty = document.createElement("div");
+        empty.className = "hint";
+        empty.style.marginTop = "8px";
+        empty.textContent = "No foods yet. Click “Food”.";
+        itemsRoot.appendChild(empty);
+      } else {
+        meal.items.forEach((it, fi)=>{
+          const row = document.createElement("div");
+          row.className = "row";
+          row.style.gap = "6px";
+          row.style.flexWrap = "wrap";
+          row.style.alignItems = "center";
+          row.style.marginTop = "6px";
+          row.innerHTML = `
+            <input data-k="food" style="width:240px;max-width:90vw;" placeholder="Food" value="${escAttr(it.food||"")}">
+            <input data-k="kcal" style="width:90px;" type="number" value="${num(it.kcal)}">
+            <input data-k="p" style="width:90px;" type="number" value="${num(it.p)}">
+            <input data-k="c" style="width:90px;" type="number" value="${num(it.c)}">
+            <input data-k="f" style="width:90px;" type="number" value="${num(it.f)}">
+            <button class="small" data-del>✕</button>
+          `;
+          row.querySelectorAll("input").forEach(inp=>{
+            inp.oninput = ()=>{
+              const k = inp.getAttribute("data-k");
+              if (k==="food") it.food = inp.value;
+              else {
+                it[k] = Number(inp.value);
+                if (!Number.isFinite(it[k])) it[k]=0;
+              }
+              save(state);
+            };
+          });
+          row.querySelector("[data-del]").onclick = ()=>{
+            meal.items.splice(fi,1);
+            save(state);
+            render();
+          };
+          itemsRoot.appendChild(row);
+        });
+      }
+
+      wrap.appendChild(mealCard);
     });
 
-    wrap.appendChild(box);
-  });
+    return wrap;
+  }
 
-  return wrap;
+  if (state.ui.dietMode === "edit" && state.ui.editDietTemplateId){
+    const tpl = getTplById(state.ui.editDietTemplateId);
+    if (!tpl) {
+      // fallback
+      state.ui.dietMode = "list";
+      state.ui.editDietTemplateId = null;
+      save(state);
+      return renderList();
+    }
+    root.appendChild(renderEditor(tpl));
+    return root;
+  }
+
+  root.appendChild(renderList());
+  return root;
 }
 
-function addFood(i, mi) {
-  const m = state.templates[i].meals[mi];
-  m.foods = Array.isArray(m.foods) ? m.foods : [];
-  m.foods.push({ name:"", kcal:0, p:0, c:0, f:0 });
-  saveState();
+function render(){
+  setEnvPill();
+  const state = migrateState(load());
+
+  state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
+
+  // selected client sanity
+  if (state.clients?.length && (!state.ui.selectedClientId || !state.clients.find(c=>c.id===state.ui.selectedClientId))){
+    state.ui.selectedClientId = state.clients[0].id;
+    save(state);
+  }
+
+  // ensure today's daily row exists
+  (state.clients || []).forEach(ensureClientToday);
+
+  setHeaderSession(state);
+  if (state.session) wireTopNav(state);
+
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+
+  if (!state.session){
+    if (state.ui.view==="landing") return viewLanding(state);
+    if (state.ui.view==="pricing") return viewPricing(state);
+    state.ui.view="login"; save(state);
+    return viewLogin(state);
+  }
+
+  const user = state.users.find(u=>u.id===state.session.userId);
+
+  if (state.ui.view==="landing") return viewLanding(state);
+  if (state.ui.view==="pricing") return viewPricing(state);
+  if (state.ui.view==="messages") return viewMessages(state);
+  if (state.ui.view==="progress") return viewProgress(state);
+  if (state.ui.view==="history") return viewHistory(state);
+  if (state.ui.view==="diet") return (user.role==="coach" ? viewDiet(state) : viewClient(state));
+
+  if (user.role==="coach"){
+    if (state.ui.view==="client") return viewClient(state);
+    state.ui.view="coach"; save(state);
+    return viewCoach(state);
+  }
+
+  // client role: lock to their clientId
+  state.ui.selectedClientId = user.clientId || "c1";
+  state.ui.view = "client";
+  save(state);
+  return viewClient(state);
+}
+
+// logout
+document.getElementById("logoutBtn").onclick = () => {
+  const state = load();
+
+  state.session = null;
+  state.ui.view = "landing";
+  save(state);
+  render();
+};
+
+render();
+
+/** ========= Genetics Editor ========= */
+function openGeneticsEditor(state, clientId){
+  state.ui = state.ui || {};
+  state.ui.geneticsEditingClientId = clientId;
+  save(state);
   render();
 }
 
-function updateFood(i, mi, fi, k, v) {
-  const food = state.templates[i].meals[mi].foods[fi];
-  if (k === "name") {
-    food.name = v;
-  } else {
-    food[k] = Number(v);
-    if (!Number.isFinite(food[k])) food[k] = 0;
-  }
-  saveState();
-  // live totals feel better if we recalc immediately
-  autoCalc(i);
-  saveState();
-}
-
-/* ------------------ TOTALS ------------------ */
-function mealTotals(meal) {
-  const foods = Array.isArray(meal.foods) ? meal.foods : [];
-  let kcal=0,p=0,c=0,f=0;
-  foods.forEach(x=>{
-    kcal += Number(x.kcal)||0;
-    p += Number(x.p)||0;
-    c += Number(x.c)||0;
-    f += Number(x.f)||0;
-  });
-  return { kcal: round(kcal), p: round(p), c: round(c), f: round(f) };
-}
-
-function autoCalc(i) {
-  const t = state.templates[i];
-  t.meals = Array.isArray(t.meals) ? t.meals : [];
-  let kcal=0,p=0,c=0,f=0;
-
-  t.meals.forEach(m=>{
-    const mt = mealTotals(m);
-    kcal += mt.kcal; p += mt.p; c += mt.c; f += mt.f;
-  });
-
-  t.kcal = round(kcal);
-  t.p = round(p);
-  t.c = round(c);
-  t.f = round(f);
-}
-
-/* ------------------ HELPERS ------------------ */
-function round(n){ return Math.round((Number(n)||0) * 10) / 10; }
-function num(v){ return Number.isFinite(Number(v)) ? Number(v) : 0; }
-function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
-function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
-
-/* ------------------ START ------------------ */
-render();
 </script>
 </body>
 </html>
