@@ -341,9 +341,16 @@ function setEnvPill(){
   const host = location.host || "";
   document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
 }
+let APP_STATE = null;
+
 function load() {
   const raw = localStorage.getItem(LS_KEY);
-  if (raw) return (JSON.parse(raw) || {});
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {}
+  }
   const seed = seedData();
   localStorage.setItem(LS_KEY, JSON.stringify(seed));
   return seed;
@@ -397,8 +404,12 @@ function migrateState(state){
 return state;
 }
 
-function save(s){
-  const safe = (s && typeof s === "object") ? s : {};
+function save(next){
+  // Always persist the latest known good state.
+  if (next && typeof next === "object") APP_STATE = next;
+  const safe = (APP_STATE && typeof APP_STATE === "object") ? APP_STATE : {};
+  localStorage.setItem(LS_KEY, JSON.stringify(safe));
+};
   localStorage.setItem(LS_KEY, JSON.stringify(safe));
 }
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
@@ -3548,6 +3559,7 @@ function viewDiet(state){
 function render(){
   setEnvPill();
   const state = migrateState(load() || {});
+APP_STATE = state;
 state.ui = state.ui || {};
 
   state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
