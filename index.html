@@ -400,9 +400,10 @@ function computeProgramWarnings(state, client){
     add(`Protein marked High but target is low for bodyweight (aim ~${Math.round(minHighProtein)}g/day).`, "macros");
   }
 
-  const sessionsPerWeek = countScheduledSessions(state);
+  const sched = state?.weeklySchedule || {};
+  const sessionsPerWeek = Object.values(sched).filter(x=>x && x!=="rest").length;
   if (gp.recoverySpeed === "Slow" && sessionsPerWeek>=5){
-    add("Slow recovery but training frequency is high (consider reducing volume or adding deloads).", "genetics");
+    add("Slow recovery but training frequency is high (consider adding a rest day or lowering volume).", "schedule");
   }
 
   const risk = (gp.injuryRisk || []).map(x=>String(x).toLowerCase());
@@ -420,122 +421,6 @@ function computeProgramWarnings(state, client){
 
   return warns;
 }
-
-function countScheduledSessions(state){
-  const s = state?.weeklySchedule || {};
-  return Object.values(s).filter(v=>v && v!=="rest").length;
-}
-
-function applyAutoMacrosFromGenetics(state, client){
-  const g = client?.genetics || {};
-  const gn = g.nutrition || {};
-  const bw = Number(client?.profile?.weightKg);
-  const t = client?.macroTargets?.training || {};
-  const kcal = Number(t.kcal)||0;
-  let p = Math.round(Number(t.p)||0);
-  let c = Math.round(Number(t.c)||0);
-  let f = Math.round(Number(t.f)||0);
-
-  if (!kcal || kcal<=0) return { ok:false, msg:"Set kcal targets first." };
-
-  const clampInt = (x, lo, hi)=> Math.max(lo, Math.min(hi, Math.round(x)));
-
-  // Keep protein stable unless High protein requirement
-  if (gn.proteinRequirement === "High" && isFinite(bw) && bw>0){
-    const minP = Math.round(bw*1.8);
-    if (p < minP) p = minP;
-  }
-
-  // Macros adjustments based on tolerance
-  if (gn.carbTolerance === "Low"){
-    // reduce carbs ~15% (min -50g, but not below 80g unless already)
-    const targetC = clampInt(Math.min(c-50, c*0.85), 80, c);
-    c = targetC;
-  }
-  if (gn.fatTolerance === "Low"){
-    // reduce fats ~15% (min -15g, but not below 40g unless already)
-    const targetF = clampInt(Math.min(f-15, f*0.85), 40, f);
-    f = targetF;
-  }
-
-  // Rebalance remaining calories primarily into the opposite macro
-  // Compute remaining after protein
-  let rem = kcal - (p*4);
-  if (rem < 0) rem = 0;
-
-  // If carb low, push remaining into fats; if fat low, push into carbs; else keep as-is but reconcile
-  const carbLow = gn.carbTolerance === "Low";
-  const fatLow = gn.fatTolerance === "Low";
-
-  if (carbLow && !fatLow){
-    // compute fats from remaining after carbs
-    const remAfterC = rem - (c*4);
-    f = clampInt(remAfterC/9, 35, 200);
-  } else if (fatLow && !carbLow){
-    const remAfterF = rem - (f*9);
-    c = clampInt(remAfterF/4, 80, 600);
-  } else {
-    // reconcile both to match kcal roughly by adjusting carbs last
-    const remAfterF = rem - (f*9);
-    c = clampInt(remAfterF/4, 50, 700);
-  }
-
-  // Final sanity: ensure totals not wildly off
-  client.macroTargets = client.macroTargets || {};
-  client.macroTargets.training = { kcal: Math.round(kcal), p, c, f };
-  save(state);
-  return { ok:true, msg:`Updated training targets to ${kcal} kcal / P${p} C${c} F${f}.` };
-}
-
-function applyAutoRecoveryAdjustment(state){
-  // For slow recovery: reduce frequency by inserting a rest day (Wed first)
-  state.weeklySchedule = state.weeklySchedule || {};
-  const s = state.weeklySchedule;
-  const sessions = Object.values(s).filter(v=>v && v!=="rest").length;
-  if (sessions <= 4) return { ok:false, msg:"Schedule already low frequency." };
-  if (s.wed !== "rest"){
-    s.wed = "rest";
-    save(state);
-    return { ok:true, msg:"Set Wednesday to Rest to support recovery." };
-  }
-  // if Wed already rest, set Sat to rest
-  if (s.sat !== "rest"){
-    s.sat = "rest";
-    save(state);
-    return { ok:true, msg:"Set Saturday to Rest to support recovery." };
-  }
-  return { ok:false, msg:"Rest days already applied." };
-}
-
-function handleWarningAction(state, client, action, warnId){
-  if (action === "genetics"){
-    openGeneticsEditor(state, client.id);
-    return;
-  }
-  if (action === "macros"){
-    const res = applyAutoMacrosFromGenetics(state, client);
-    alert(res.msg);
-    render();
-    return;
-  }
-  if (action === "plan"){
-    // try recovery adjustment if slow recovery warning present
-    const txt = (computeProgramWarnings(state, client).find(w=>w.id===warnId)?.text||"").toLowerCase();
-    if (txt.includes("slow recovery")){
-      const res = applyAutoRecoveryAdjustment(state);
-      alert(res.msg);
-      render();
-      return;
-    }
-    // otherwise scroll to weekly schedule
-    state.ui = state.ui || {};
-    state.ui.scrollTo = "weeklySchedule";
-    save(state);
-    render();
-    return;
-  }
-}
-
 function hashString(str){
   let h = 5381;
   for (let i=0;i<str.length;i++){
@@ -631,11 +516,11 @@ function warningsListHTML(state, client){
 
   const line = (w) => {
     const isResolved = resolved.has(w.id);
-    const label = w.action==="macros" ? "Adjust targets" : w.action==="plan" ? "Review plan" : "Edit genetics";
+    const label = w.action==="macros" ? "Adjust targets" : w.action==="plan" ? "Review plan" : w.action==="schedule" ? "Adjust schedule" : "Edit genetics";
     return `<div class="muted" style="display:flex;gap:8px;align-items:flex-start;opacity:${isResolved?0.55:1};">
       <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
         <input type="checkbox" data-warncheck="${w.id}" ${isResolved?"checked":""} style="margin-top:3px;">
-        <span><a href="#" data-warnline="${w.action}" style="text-decoration:none;" data-warnid="${w.id}">${w.text}</a> <span class="hint">(${label})</span></span>
+        <span><a href="#" data-warnline="${w.action}" data-warnid="${w.id}" style="text-decoration:underline;">${w.text}</a> <span class="hint">(${label})</span></span>
       </label>
     </div>`;
   };
@@ -1191,6 +1076,305 @@ function renderGeneticsModal(state, root){
   };
 }
 
+
+function roundTo(n, step){
+  step = step || 1;
+  return Math.round(n/step)*step;
+}
+
+function buildAdjustmentProposal(state, client, action){
+  const proposal = { type: action, title: "", details: "", before: {}, after: {}, apply: null };
+
+  const targets = client?.macroTargets?.training || {};
+  const kcal = Number(targets.kcal)||0;
+  const P = Number(targets.p)||0;
+  const C = Number(targets.c)||0;
+  const F = Number(targets.f)||0;
+
+  const bw = Number(client?.profile?.weightKg);
+  const g = client?.genetics || {};
+  const gp = g.performance || {};
+  const gn = g.nutrition || {};
+
+  const kcalFrom = (p,c,f)=> (p*4)+(c*4)+(f*9);
+  const clamp = (v, lo, hi)=> Math.max(lo, Math.min(hi, v));
+
+  proposal.before = { kcal: kcal, p: P, c: C, f: F };
+
+  if (action === "macros"){
+    // Priority: low fat, low carb, high protein (first matching)
+    if (gn.fatTolerance === "Low"){
+      proposal.title = "Adjust macros for low fat tolerance";
+      const newF = clamp(roundTo(F*0.75, 5), 40, 80);
+      const deltaKcal = (F - newF)*9;
+      const newC = clamp(roundTo(C + (deltaKcal/4), 5), 80, 450);
+      proposal.after = { kcal: kcal, p: P, c: newC, f: newF };
+      proposal.details = "Reduce fats and shift calories into carbs while keeping kcal stable.";
+    } else if (gn.carbTolerance === "Low"){
+      proposal.title = "Adjust macros for low carb tolerance";
+      const newC = clamp(roundTo(C*0.75, 5), 120, 280);
+      const deltaKcal = (C - newC)*4;
+      const newF = clamp(roundTo(F + (deltaKcal/9), 5), 40, 110);
+      proposal.after = { kcal: kcal, p: P, c: newC, f: newF };
+      proposal.details = "Reduce carbs and shift calories into fats while keeping kcal stable.";
+    } else if (gn.proteinRequirement === "High" && isFinite(bw) && bw>0){
+      proposal.title = "Adjust macros for high protein requirement";
+      const minP = roundTo(bw*1.8, 5);
+      const newP = clamp(Math.max(P, minP), 120, 260);
+      const deltaKcal = (newP - P)*4;
+      // reduce carbs first, then fats if needed
+      let newC = C;
+      let newF = F;
+      if (deltaKcal > 0){
+        const canDropC = Math.max(0, C - 120);
+        const dropC = Math.min(canDropC, deltaKcal/4);
+        newC = roundTo(C - dropC, 5);
+        const rem = deltaKcal - dropC*4;
+        if (rem > 0){
+          const canDropF = Math.max(0, F - 40);
+          const dropF = Math.min(canDropF, rem/9);
+          newF = roundTo(F - dropF, 5);
+        }
+      }
+      proposal.after = { kcal: kcal, p: newP, c: newC, f: newF };
+      proposal.details = "Increase protein toward ~1.8 g/kg and rebalance carbs/fats to keep kcal stable.";
+    } else {
+      proposal.title = "No macro adjustment suggested";
+      proposal.details = "No matching genetics-triggered macro rule was found.";
+      proposal.after = { kcal: kcal, p: P, c: C, f: F };
+    }
+
+    proposal.apply = () => {
+      client.macroTargets = client.macroTargets || {};
+      client.macroTargets.training = client.macroTargets.training || {};
+      client.macroTargets.training.kcal = proposal.after.kcal;
+      client.macroTargets.training.p = proposal.after.p;
+      client.macroTargets.training.c = proposal.after.c;
+      client.macroTargets.training.f = proposal.after.f;
+    };
+    return proposal;
+  }
+
+  if (action === "schedule"){
+    proposal.title = "Adjust weekly schedule for recovery";
+    const sched = Object.assign({}, state.weeklySchedule||{});
+    const before = Object.assign({}, sched);
+
+    // pick a day to convert to rest (Wed preferred)
+    const order = ["wed","sat","sun","tue","thu","fri","mon"];
+    let changedDay = null;
+    for (const d of order){
+      if (sched[d] && sched[d] !== "rest"){
+        sched[d] = "rest";
+        changedDay = d;
+        break;
+      }
+    }
+    proposal.before = before;
+    proposal.after = sched;
+    proposal.details = changedDay ? `Set ${changedDay.toUpperCase()} as a rest day to support slow recovery.` : "No suitable day found to convert to rest.";
+    proposal.apply = () => {
+      state.weeklySchedule = sched;
+    };
+    return proposal;
+  }
+
+  if (action === "plan"){
+    proposal.title = "Review plan";
+    proposal.details = "This warning is informational. Consider exercise swaps or volume adjustments.";
+    proposal.after = proposal.before;
+    proposal.apply = () => {};
+    return proposal;
+  }
+
+  // genetics action -> open editor
+  proposal.title = "Edit genetics";
+  proposal.details = "Open genetics editor to update traits.";
+  proposal.apply = () => {};
+  return proposal;
+}
+
+function openAdjustmentModal(state, clientId, action){
+  state.ui = state.ui || {};
+  state.ui.adjustmentModal = { clientId, action };
+  save(state);
+  render();
+}
+
+function renderAdjustmentModal(state){
+  const modal = state?.ui?.adjustmentModal;
+  if (!modal) return;
+
+  const client = state.clients.find(c=>c.id===modal.clientId);
+  if (!client){ state.ui.adjustmentModal=null; save(state); return; }
+
+  const proposal = buildAdjustmentProposal(state, client, modal.action);
+
+  const overlay = document.createElement("div");
+  overlay.style.position="fixed";
+  overlay.style.inset="0";
+  overlay.style.background="rgba(0,0,0,0.45)";
+  overlay.style.zIndex="9999";
+  overlay.style.display="flex";
+  overlay.style.alignItems="center";
+  overlay.style.justifyContent="center";
+  overlay.style.padding="16px";
+
+  const card = document.createElement("div");
+  card.className="card";
+  card.style.maxWidth="720px";
+  card.style.width="100%";
+  card.style.borderRadius="18px";
+  card.style.maxHeight="85vh";
+  card.style.overflow="auto";
+
+  const close = ()=>{
+    state.ui.adjustmentModal = null;
+    save(state);
+    overlay.remove();
+  };
+
+  const renderMacroRows = (obj)=>{
+    if (!obj) return "";
+    const keys = ["kcal","p","c","f"];
+    return keys.map(k=>`<div class="row" style="justify-content:space-between;"><span class="hint">${k.toUpperCase()}</span><b>${esc(obj[k])}</b></div>`).join("");
+  };
+
+  const renderSchedule = (sched)=>{
+    if (!sched) return "";
+    const days=[["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
+    return days.map(([k,l])=>{
+      const v = sched[k] || "rest";
+      const name = v==="rest" ? "Rest" : (getTemplateById(state, v)?.name || v);
+      return `<div class="row" style="justify-content:space-between;"><span class="hint">${l}</span><b>${esc(name)}</b></div>`;
+    }).join("");
+  };
+
+  const isSchedule = proposal.type==="schedule";
+  const left = isSchedule ? renderSchedule(proposal.before) : renderMacroRows(proposal.before);
+  const right = isSchedule ? renderSchedule(proposal.after) : renderMacroRows(proposal.after);
+
+  card.innerHTML = `
+    <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
+      <div>
+        <div class="hint">Proposed change for</div>
+        <h2 style="margin:4px 0 0 0;">${esc(client.name || "Client")}</h2>
+        <div class="muted" style="margin-top:6px;"><b>${esc(proposal.title)}</b></div>
+        <div class="hint" style="margin-top:6px;">${esc(proposal.details)}</div>
+      </div>
+      <button class="small" id="adjClose">✕</button>
+    </div>
+
+    <hr class="hr">
+
+    <div class="grid2">
+      <div>
+        <div class="hint">Before</div>
+        <div class="card" style="border-radius:14px;margin-top:6px;">${left}</div>
+      </div>
+      <div>
+        <div class="hint">After</div>
+        <div class="card" style="border-radius:14px;margin-top:6px;">${right}</div>
+      </div>
+    </div>
+
+    <hr class="hr">
+
+    <div class="row" style="justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+      <button class="small" id="adjCancel">Cancel</button>
+      <button class="small" id="adjApply">Apply</button>
+    </div>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener("click", (e)=>{ if (e.target===overlay) close(); });
+  card.querySelector("#adjClose").onclick = (e)=>{ e.preventDefault?.(); close(); };
+  card.querySelector("#adjCancel").onclick = (e)=>{ e.preventDefault?.(); close(); };
+  card.querySelector("#adjApply").onclick = (e)=>{
+    e.preventDefault?.();
+    try { proposal.apply && proposal.apply(); } catch(err){ console.error(err); }
+    // Mark relevant warning resolved if it still exists
+    const warns = computeProgramWarnings(state, client);
+    const w = warns.find(x=>x.action===modal.action);
+    if (w){
+      client.resolvedWarnings = client.resolvedWarnings || [];
+      if (!client.resolvedWarnings.includes(w.id)) client.resolvedWarnings.push(w.id);
+    }
+    save(state);
+    close();
+    render();
+  };
+}
+
+
+function bindProgramWarnings(state, root, selected){
+  const gw = root.querySelector("#geneticsWarnings");
+  if (!gw || !selected) return;
+
+  // clicks on warning lines
+  gw.querySelectorAll("[data-warnline]").forEach(a=>{
+    a.onclick = (ev)=>{
+      ev.preventDefault?.();
+      ev.stopPropagation();
+      const action = a.getAttribute("data-warnline");
+      if (action === "genetics"){
+        openGeneticsEditor(state, selected.id);
+        return;
+      }
+      if (action === "plan"){
+        // for now, jump to schedule as the closest editable plan surface
+        state.ui.scrollTo = "weeklySchedule";
+        save(state);
+        render();
+        return;
+      }
+      openAdjustmentModal(state, selected.id, action);
+    };
+  });
+
+  // checkbox resolve/unresolve
+  gw.querySelectorAll("[data-warncheck]").forEach(ch=>{
+    ch.onchange = ()=>{
+      const id = ch.getAttribute("data-warncheck");
+      selected.resolvedWarnings = selected.resolvedWarnings || [];
+      const set = new Set(selected.resolvedWarnings);
+      if (ch.checked) set.add(id); else set.delete(id);
+      selected.resolvedWarnings = Array.from(set);
+      save(state);
+      render();
+    };
+  });
+
+  const resolveAll = gw.querySelector("#resolveAllWarnings");
+  if (resolveAll) resolveAll.onclick = (ev)=>{
+    ev.preventDefault?.();
+    const all = computeProgramWarnings(state, selected);
+    selected.resolvedWarnings = selected.resolvedWarnings || [];
+    const set = new Set(selected.resolvedWarnings);
+    all.forEach(w=>set.add(w.id));
+    selected.resolvedWarnings = Array.from(set);
+    save(state);
+    render();
+  };
+
+  const clearResolved = gw.querySelector("#clearResolvedWarnings");
+  if (clearResolved) clearResolved.onclick = (ev)=>{
+    ev.preventDefault?.();
+    selected.resolvedWarnings = [];
+    save(state);
+    render();
+  };
+
+  const toggle = gw.querySelector("#toggleResolvedWarnings");
+  if (toggle) toggle.onchange = ()=>{
+    state.ui.showResolvedWarnings = !!toggle.checked;
+    save(state);
+    render();
+  };
+}
+
 function viewCoach(state){
   const root = document.getElementById("app");
   root.innerHTML = "";
@@ -1625,63 +1809,6 @@ function viewCoach(state){
     save(state);
     render();
   };
-  // ---- genetics warnings interactivity ----
-  const resolveAllBtn = root.querySelector("#resolveAllWarnings");
-  if (resolveAllBtn && selected) {
-    resolveAllBtn.onclick = (e) => {
-      e.preventDefault?.();
-      const all = computeProgramWarnings(state, selected);
-      selected.resolvedWarnings = selected.resolvedWarnings || [];
-      const set = new Set(selected.resolvedWarnings);
-      all.forEach(w=>set.add(w.id));
-      selected.resolvedWarnings = Array.from(set);
-      save(state);
-      render();
-    };
-  }
-  const clearResolvedBtn = root.querySelector("#clearResolvedWarnings");
-  if (clearResolvedBtn && selected) {
-    clearResolvedBtn.onclick = (e) => {
-      e.preventDefault?.();
-      selected.resolvedWarnings = [];
-      save(state);
-      render();
-    };
-  }
-  const showResolved = root.querySelector("#showResolvedWarnings");
-  if (showResolved) {
-    showResolved.onchange = () => {
-      state.ui = state.ui || {};
-      state.ui.showResolvedWarnings = !!showResolved.checked;
-      save(state);
-      render();
-    };
-  }
-
-  root.querySelectorAll("[data-warncheck]").forEach(chk=>{
-    chk.onchange = () => {
-      if (!selected) return;
-      const id = chk.getAttribute("data-warncheck");
-      selected.resolvedWarnings = selected.resolvedWarnings || [];
-      const set = new Set(selected.resolvedWarnings);
-      if (chk.checked) set.add(id); else set.delete(id);
-      selected.resolvedWarnings = Array.from(set);
-      save(state);
-      render();
-    };
-  });
-
-  root.querySelectorAll("[data-warnline]").forEach(a=>{
-    a.onclick = (ev) => {
-      ev.preventDefault?.();
-      if (!selected) return;
-      const action = a.getAttribute("data-warnline");
-      const wid = a.getAttribute("data-warnid");
-      handleWarningAction(state, selected, action, wid);
-    };
-  });
-  // -----------------------------------------
-
   // optional scroll target (used by Today table warning badge)
   if (state.ui && state.ui.scrollTo === "geneticsWarnings") {
     // clear first so repeated renders don't keep jumping
@@ -1705,6 +1832,11 @@ function viewCoach(state){
 
   // genetics form modal
   renderGeneticsModal(state, root);
+  // genetics → program warnings interactions
+  bindProgramWarnings(state, root, selected);
+  // adjustment preview modal
+  renderAdjustmentModal(state);
+
 }
 
 /** ========= Client view ========= */
