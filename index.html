@@ -85,6 +85,29 @@
 </main>
 
 <script>
+
+// ---- guard: ensure helpers exist even if older cached code paths reference them ----
+if (typeof window.isoDate !== "function") {
+  window.isoDate = function(d){
+    const pad = (n)=> String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  };
+}
+if (typeof window.last7CompletionCount !== "function") {
+  window.last7CompletionCount = function(client){
+    const cs = (client && client.completedSessions) ? client.completedSessions : {};
+    let n = 0;
+    const d = new Date();
+    for (let i=0;i<7;i++){
+      const dd = new Date(d); dd.setDate(d.getDate()-i);
+      const key = window.isoDate(dd);
+      if (cs[key]) n++;
+    }
+    return n;
+  };
+}
+// ------------------------------------------------------------------------------
+
 /** ========= Basics ========= */
 const LS_KEY = "coachfit_demo_pitch_v6_genetics"; // changed -> reset recommended
 const todayISO = () => new Date().toISOString().slice(0,10);
