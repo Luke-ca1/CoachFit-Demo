@@ -51,6 +51,23 @@
   
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+
+
+/* === DietV2 styles === */
+body { font-family: system-ui; background:#f6f7fb; padding:20px; }
+  .card { background:#fff; padding:16px; border-radius:12px; margin-bottom:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  input, button, select { padding:6px 8px; }
+  button { cursor:pointer; }
+  h2, h3 { margin:6px 0; }
+  .meal { border:1px solid #ddd; padding:10px; border-radius:10px; margin-top:10px; background:#fff; }
+  .food { display:flex; gap:6px; margin-top:6px; align-items:center; flex-wrap:wrap; }
+  .hdr { display:flex; gap:6px; margin-top:10px; font-size:12px; color:#555; flex-wrap:wrap; }
+  .hdr div { padding:2px 4px; }
+  .w-food { width:240px; max-width:70vw; }
+  .w-num { width:90px; }
+  .muted { color:#666; font-size:12px; }
+/* === End DietV2 styles === */
 </style>
 </head>
 <body>
@@ -2713,113 +2730,25 @@ function openClientDietPlanEditor(state, clientId){
         kcal: Number(overlay.querySelector('#cp_kcal').value) || 0,
         p: Number(overlay.querySelector('#cp_p').value) || 0,
         c: Number(overlay.querySelector('#cp_c').value) || 0,
-        f: Number(overlay.querySelector('#cp_f').value) || 0,
-      },
-      meals,
-      assignedAt: base.assignedAt || Date.now(),
-      assignedBy: 'coach',
-      updatedAt: Date.now(),
-    };
-
-    client.dietPlanHistory = client.dietPlanHistory || [];
-    client.dietPlanHistory.push({
-      planId: client.activeDietPlan.planId,
-      name: client.activeDietPlan.name,
-      at: Date.now(),
-      note: 'Coach edited active plan'
-    });
-
-    // keep macroTargets in sync for existing UI
-    client.macroTargets = client.macroTargets || {training:{kcal:0,p:0,c:0,f:0}, rest:{kcal:0,p:0,c:0,f:0}};
-    client.macroTargets.training = deepCopy(client.activeDietPlan.macros);
-
-    save(state);
-    overlay.remove();
-    alert('Saved client diet plan.');
-    render();
-  };
-
-  document.body.appendChild(overlay);
-}
-
-function viewDiet(state){
-  const root = document.getElementById('app');
-  root.innerHTML = '';
-
-  state.dietTemplates = (state.dietTemplates || []).map(normalizeDietTemplate);
-  save(state);
-
-  const wrap = el(`
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
+       function viewDiet(state){
+  const root = document.getElementById("root");
+  root.innerHTML = `
+    <div class="container">
+      <div class="headerRow">
         <div>
-          <h1>Diet templates</h1>
-          <p class="muted">Create/edit templates, then assign them to clients. Import/export lets you “load” template packs.</p>
-        </div>
-        <div class="row">
-          <label class="row" style="margin:0;gap:6px;">
-            <input id="dt_import" type="file" accept=".json" style="width:auto;" />
-            <span class="muted">Import</span>
-          </label>
-          <button class="small" id="dt_export">Export</button>
-          <button class="primary" id="dt_new">New template</button>
-          <button class="small" id="dt_back">Back to coach</button>
+          <h1>Diet</h1>
+          <div class="muted">Create/edit diet templates, then assign them to clients. Meals are built with manual macro entry (no JSON).</div>
         </div>
       </div>
-
-      <hr class="hr" />
-      <div id="dt_list"></div>
-
-      <div class="hint">Tip: Export a “template pack” once, then import it on any new device/browser.</div>
+      <div id="dietv2_mount"></div>
     </div>
-  `);
-  root.appendChild(wrap);
-
-  const list = wrap.querySelector('#dt_list');
-  function paint(){
-    list.innerHTML = '';
-    if (!state.dietTemplates.length){
-      list.appendChild(el('<div class="card warn" style="border-radius:12px;"><b>No plans yet</b><div class="muted">Click “New template” to create one.</div></div>'));
-      return;
-    }
-
-    state.dietTemplates
-      .slice()
-      .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0))
-      .forEach(tpl=>{
-        const row = el(`
-          <div class="card" style="border-radius:12px;margin-bottom:10px;">
-            <div class="row" style="justify-content:space-between;align-items:flex-start;">
-              <div>
-                <b>${tpl.name}</b>
-                <div class="muted">${tpl.notes ? tpl.notes.slice(0,120) : '—'}</div>
-                <div class="row" style="margin-top:6px;">
-                  <span class="tag">${tpl.macros?.kcal ?? 0} kcal</span>
-                  <span class="tag">P ${tpl.macros?.p ?? 0}</span>
-                  <span class="tag">C ${tpl.macros?.c ?? 0}</span>
-                  <span class="tag">F ${tpl.macros?.f ?? 0}</span>
-                  <span class="tag">Meals: ${(tpl.meals||[]).length}</span>
-                </div>
-              </div>
-              <div class="row">
-                <button class="small" data-edit>Edit</button>
-                <button class="small" data-dup>Duplicate</button>
-                <button class="small danger" data-del>Delete</button>
-              </div>
-            </div>
-          </div>
-        `);
-        row.querySelector('[data-edit]').onclick = ()=> openDietTemplateEditor(state, {templateId: tpl.id});
-        row.querySelector('[data-dup]').onclick = ()=>{
-          const copy = deepCopy(tpl);
-          copy.id = uid();
-          copy.name = (copy.name||'Template') + ' (copy)';
-          copy.updatedAt = Date.now();
-          state.dietTemplates.push(copy);
-          save(state);
-          paint();
-        };
-        row.querySelector('[data-del]').onclick = ()=>{
+  `;
+  if (window.DietV2 && typeof window.DietV2.mount === "function") {
+    window.DietV2.mount(document.getElementById("dietv2_mount"));
+  } else {
+    document.getElementById("dietv2_mount").innerHTML = `<div class="card"><h2>Diet module missing</h2><p>DietV2 failed to load.</p></div>`;
+  }
+}]').onclick = ()=>{
           if (!confirm('Delete this template?')) return;
           state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
           // also detach from clients
@@ -2911,6 +2840,366 @@ function openGeneticsEditor(state, clientId){
   save(state);
   render();
 }
+
+
+
+
+/* === DietV2 module (manual meal builder + food library) === */
+(function(){
+  let APP_ROOT = null;
+  /* ------------------ STATE ------------------ */
+const KEY = "coachfit_diet_state_v2";
+
+function loadState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (!raw || typeof raw !== "object") throw 0;
+    if (!Array.isArray(raw.templates)) raw.templates = [];
+    return raw;
+  } catch {
+    const seed = { templates: [] };
+    localStorage.setItem(KEY, JSON.stringify(seed));
+    return seed;
+  }
+}
+
+function saveState() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+/* ------------------ SIMPLE ROUTER ------------------ */
+let view = { mode: "list", index: null }; // mode: list | edit
+
+function render() {
+  const root = APP_ROOT;
+  root.innerHTML = "";
+
+  if (view.mode === "list") {
+    root.appendChild(renderList());
+  } else {
+    root.appendChild(renderEditor(view.index));
+  }
+}
+
+/* ------------------ LIST VIEW ------------------ */
+function renderList() {
+  const wrap = document.createElement("div");
+
+  wrap.innerHTML = `
+    <h2>Diet Templates</h2>
+    <div class="card">
+      <button id="btnNew">➕ New Template</button>
+      <div class="muted" style="margin-top:8px;">Templates are saved in your browser (localStorage).</div>
+    </div>
+    <div id="templates"></div>
+  `;
+
+  wrap.querySelector("#btnNew").onclick = () => newTemplate();
+
+  const list = wrap.querySelector("#templates");
+  if (!state.templates.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<b>No templates yet.</b><div class="muted" style="margin-top:6px;">Click “New Template”.</div>`;
+    list.appendChild(empty);
+    return wrap;
+  }
+
+  state.templates.forEach((t, idx) => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const mealCount = (t.meals || []).length;
+    const foodCount = (t.meals || []).reduce((acc, m) => acc + ((m.foods || []).length), 0);
+
+    div.innerHTML = `
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <b>${escapeHtml(t.name || "Untitled Diet")}</b><br>
+          <span class="muted">
+            Meals: ${mealCount} • Items: ${foodCount}
+          </span><br>
+          <span class="muted">
+            Total: ${num(t.kcal)} kcal • P ${num(t.p)} / C ${num(t.c)} / F ${num(t.f)}
+          </span>
+        </div>
+        <div class="row">
+          <button data-edit> Edit </button>
+          <button data-del> Delete </button>
+        </div>
+      </div>
+    `;
+
+    div.querySelector("[data-edit]").onclick = () => { view = { mode:"edit", index: idx }; render(); };
+    div.querySelector("[data-del]").onclick = () => deleteTemplate(idx);
+
+    list.appendChild(div);
+  });
+
+  return wrap;
+}
+
+/* ------------------ TEMPLATE CRUD ------------------ */
+function newTemplate() {
+  state.templates.push({
+    name: "New Diet",
+    meals: [],
+    kcal: 0, p: 0, c: 0, f: 0
+  });
+  saveState();
+  view = { mode:"edit", index: state.templates.length - 1 };
+  render();
+}
+
+function deleteTemplate(i) {
+  if (!confirm("Delete this template?")) return;
+  state.templates.splice(i, 1);
+  saveState();
+  view = { mode:"list", index:null };
+  render();
+}
+
+/* ------------------ EDITOR VIEW ------------------ */
+function renderEditor(i) {
+  const t = state.templates[i];
+  const wrap = document.createElement("div");
+
+  wrap.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2>Edit Diet Template</h2>
+        <div class="muted">Edits save automatically.</div>
+      </div>
+      <div class="row">
+        <button id="btnBack">← Back</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Template name</div>
+      <input id="name" value="${escapeAttr(t.name)}" style="width:min(520px, 92vw); margin-top:6px;">
+      <div class="row" style="margin-top:10px;">
+        <button id="btnAddMeal">➕ Add Meal</button>
+        <button id="btnAuto">⚡ Auto-calc totals</button>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <div class="muted" style="min-width:160px;">Template totals</div>
+        <div class="muted">kcal</div><input id="totK" class="w-num" type="number" value="${num(t.kcal)}" readonly>
+        <div class="muted">P</div><input id="totP" class="w-num" type="number" value="${num(t.p)}" readonly>
+        <div class="muted">C</div><input id="totC" class="w-num" type="number" value="${num(t.c)}" readonly>
+        <div class="muted">F</div><input id="totF" class="w-num" type="number" value="${num(t.f)}" readonly>
+      </div>
+    </div>
+
+    <div id="meals"></div>
+  `;
+
+  wrap.querySelector("#btnBack").onclick = () => { view = { mode:"list", index:null }; render(); };
+
+  const nameEl = wrap.querySelector("#name");
+  nameEl.oninput = () => {
+    state.templates[i].name = nameEl.value;
+    saveState();
+  };
+
+  wrap.querySelector("#btnAddMeal").onclick = () => addMeal(i);
+  wrap.querySelector("#btnAuto").onclick = () => { autoCalc(i); render(); };
+
+  const mealsRoot = wrap.querySelector("#meals");
+  mealsRoot.appendChild(renderMeals(i));
+
+  return wrap;
+}
+
+/* ------------------ MEALS ------------------ */
+function addMeal(i) {
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+  t.meals.push({ name:"Meal", foods:[] });
+  saveState();
+  render();
+}
+
+function removeMeal(i, mi) {
+  state.templates[i].meals.splice(mi, 1);
+  saveState();
+  render();
+}
+
+function renderMeals(i) {
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+
+  const wrap = document.createElement("div");
+
+  if (!t.meals.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<b>No meals yet.</b><div class="muted" style="margin-top:6px;">Click “Add Meal”.</div>`;
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  t.meals.forEach((m, mi) => {
+    m.foods = Array.isArray(m.foods) ? m.foods : [];
+
+    const box = document.createElement("div");
+    box.className = "meal";
+
+    box.innerHTML = `
+      <div class="row" style="justify-content:space-between;">
+        <div class="row" style="align-items:center;">
+          <div class="muted">Meal name</div>
+          <input class="w-food" value="${escapeAttr(m.name)}" data-mealname>
+        </div>
+        <div class="row">
+          <button data-addfood>➕ Food</button>
+          <button data-delmeal>Remove meal</button>
+        </div>
+      </div>
+
+      <div class="hdr">
+        <div class="w-food">Food item</div>
+        <div class="w-num">kcal</div>
+        <div class="w-num">Protein</div>
+        <div class="w-num">Carbs</div>
+        <div class="w-num">Fats</div>
+      </div>
+
+      <div id="foods"></div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="muted">Meal totals:</div>
+        <div class="muted">kcal</div><b id="mk">${mealTotals(m).kcal}</b>
+        <div class="muted">P</div><b id="mp">${mealTotals(m).p}</b>
+        <div class="muted">C</div><b id="mc">${mealTotals(m).c}</b>
+        <div class="muted">F</div><b id="mf">${mealTotals(m).f}</b>
+      </div>
+    `;
+
+    box.querySelector("[data-mealname]").oninput = (e) => {
+      state.templates[i].meals[mi].name = e.target.value;
+      saveState();
+    };
+
+    box.querySelector("[data-addfood]").onclick = () => addFood(i, mi);
+    box.querySelector("[data-delmeal]").onclick = () => removeMeal(i, mi);
+
+    const foodsRoot = box.querySelector("#foods");
+    m.foods.forEach((f, fi) => {
+      const row = document.createElement("div");
+      row.className = "food";
+      row.innerHTML = `
+        <input class="w-food" placeholder="Food" value="${escapeAttr(f.name)}" data-k="name">
+        <input class="w-num" placeholder="kcal" type="number" value="${num(f.kcal)}" data-k="kcal">
+        <input class="w-num" placeholder="P" type="number" value="${num(f.p)}" data-k="p">
+        <input class="w-num" placeholder="C" type="number" value="${num(f.c)}" data-k="c">
+        <input class="w-num" placeholder="F" type="number" value="${num(f.f)}" data-k="f">
+        <button data-del>✕</button>
+      `;
+
+      row.querySelectorAll("input").forEach(inp => {
+        inp.oninput = () => {
+          const k = inp.getAttribute("data-k");
+          updateFood(i, mi, fi, k, inp.value);
+        };
+      });
+
+      row.querySelector("[data-del]").onclick = () => {
+        state.templates[i].meals[mi].foods.splice(fi, 1);
+        saveState();
+        render();
+      };
+
+      foodsRoot.appendChild(row);
+    });
+
+    wrap.appendChild(box);
+  });
+
+  return wrap;
+}
+
+function addFood(i, mi) {
+  const m = state.templates[i].meals[mi];
+  m.foods = Array.isArray(m.foods) ? m.foods : [];
+  m.foods.push({ name:"", kcal:0, p:0, c:0, f:0 });
+  saveState();
+  render();
+}
+
+function updateFood(i, mi, fi, k, v) {
+  const food = state.templates[i].meals[mi].foods[fi];
+  if (k === "name") {
+    food.name = v;
+  } else {
+    food[k] = Number(v);
+    if (!Number.isFinite(food[k])) food[k] = 0;
+  }
+  saveState();
+  // live totals feel better if we recalc immediately
+  autoCalc(i);
+  saveState();
+}
+
+/* ------------------ TOTALS ------------------ */
+function mealTotals(meal) {
+  const foods = Array.isArray(meal.foods) ? meal.foods : [];
+  let kcal=0,p=0,c=0,f=0;
+  foods.forEach(x=>{
+    kcal += Number(x.kcal)||0;
+    p += Number(x.p)||0;
+    c += Number(x.c)||0;
+    f += Number(x.f)||0;
+  });
+  return { kcal: round(kcal), p: round(p), c: round(c), f: round(f) };
+}
+
+function autoCalc(i) {
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+  let kcal=0,p=0,c=0,f=0;
+
+  t.meals.forEach(m=>{
+    const mt = mealTotals(m);
+    kcal += mt.kcal; p += mt.p; c += mt.c; f += mt.f;
+  });
+
+  t.kcal = round(kcal);
+  t.p = round(p);
+  t.c = round(c);
+  t.f = round(f);
+}
+
+/* ------------------ HELPERS ------------------ */
+function round(n){ return Math.round((Number(n)||0) * 10) / 10; }
+function num(v){ return Number.isFinite(Number(v)) ? Number(v) : 0; }
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+
+/* ------------------ START ------------------ */
+
+
+  function mount(container){
+    if(!container) return;
+    APP_ROOT = container;
+    // ensure app root is clean
+    APP_ROOT.innerHTML = '<div id="app"></div>';
+    // re-point root to inner #app by temporarily swapping APP_ROOT
+    APP_ROOT = APP_ROOT.querySelector('#app');
+    try {
+      render();
+    } catch(e) {
+      console.error('DietV2 render failed', e);
+      APP_ROOT.innerHTML = '<div class="card"><h2>Diet module error</h2><p>Open console for details.</p></div>';
+    }
+  }
+
+  window.DietV2 = { mount };
+})();
 
 </script>
 </body>
