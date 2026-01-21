@@ -350,6 +350,8 @@ function load() {
 }
 
 function migrateState(state){
+  if (!state || typeof state !== "object") state = {};
+
   // Ensure workout templates exist even for older localStorage saves
   if (!state.workoutTemplates || !Array.isArray(state.workoutTemplates) || state.workoutTemplates.length < 6) {
     state.workoutTemplates = [
@@ -388,6 +390,8 @@ function migrateState(state){
     });
   }
   if (!Array.isArray(dietEditorState.customFoods)) dietEditorState.customFoods = [];
+  if (!Array.isArray(state.customFoods)) state.customFoods = [];
+
 return state;
 }
 
