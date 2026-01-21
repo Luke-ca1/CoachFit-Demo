@@ -10,24 +10,22 @@
   input, button, select { padding:6px 8px; }
   button { cursor:pointer; }
   h2, h3 { margin:6px 0; }
-  .meal { border:1px solid #ddd; padding:10px; border-radius:10px; margin-top:10px; }
-  .food { display:flex; gap:6px; margin-top:6px; }
+  .meal { border:1px solid #ddd; padding:10px; border-radius:10px; margin-top:10px; background:#fff; }
+  .food { display:flex; gap:6px; margin-top:6px; align-items:center; flex-wrap:wrap; }
+  .hdr { display:flex; gap:6px; margin-top:10px; font-size:12px; color:#555; flex-wrap:wrap; }
+  .hdr div { padding:2px 4px; }
+  .w-food { width:240px; max-width:70vw; }
+  .w-num { width:90px; }
+  .muted { color:#666; font-size:12px; }
 </style>
 </head>
 
 <body>
-
-<h2>Diet Templates</h2>
-
-<div class="card">
-  <button onclick="newTemplate()">➕ New Template</button>
-</div>
-
-<div id="templates"></div>
+<div id="app"></div>
 
 <script>
 /* ------------------ STATE ------------------ */
-const KEY = "coachfit_diet_state";
+const KEY = "coachfit_diet_state_v2";
 
 function loadState() {
   try {
@@ -42,28 +40,82 @@ function loadState() {
   }
 }
 
-function saveState(state) {
+function saveState() {
   localStorage.setItem(KEY, JSON.stringify(state));
 }
 
 let state = loadState();
 
-/* ------------------ UI ------------------ */
+/* ------------------ SIMPLE ROUTER ------------------ */
+let view = { mode: "list", index: null }; // mode: list | edit
+
 function render() {
-  const root = document.getElementById("templates");
+  const root = document.getElementById("app");
   root.innerHTML = "";
+
+  if (view.mode === "list") {
+    root.appendChild(renderList());
+  } else {
+    root.appendChild(renderEditor(view.index));
+  }
+}
+
+/* ------------------ LIST VIEW ------------------ */
+function renderList() {
+  const wrap = document.createElement("div");
+
+  wrap.innerHTML = `
+    <h2>Diet Templates</h2>
+    <div class="card">
+      <button id="btnNew">➕ New Template</button>
+      <div class="muted" style="margin-top:8px;">Templates are saved in your browser (localStorage).</div>
+    </div>
+    <div id="templates"></div>
+  `;
+
+  wrap.querySelector("#btnNew").onclick = () => newTemplate();
+
+  const list = wrap.querySelector("#templates");
+  if (!state.templates.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<b>No templates yet.</b><div class="muted" style="margin-top:6px;">Click “New Template”.</div>`;
+    list.appendChild(empty);
+    return wrap;
+  }
 
   state.templates.forEach((t, idx) => {
     const div = document.createElement("div");
     div.className = "card";
+
+    const mealCount = (t.meals || []).length;
+    const foodCount = (t.meals || []).reduce((acc, m) => acc + ((m.foods || []).length), 0);
+
     div.innerHTML = `
-      <b>${t.name}</b><br>
-      kcal: ${t.kcal} | P ${t.p} / C ${t.c} / F ${t.f}<br>
-      <button onclick="editTemplate(${idx})">Edit</button>
-      <button onclick="deleteTemplate(${idx})">Delete</button>
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <b>${escapeHtml(t.name || "Untitled Diet")}</b><br>
+          <span class="muted">
+            Meals: ${mealCount} • Items: ${foodCount}
+          </span><br>
+          <span class="muted">
+            Total: ${num(t.kcal)} kcal • P ${num(t.p)} / C ${num(t.c)} / F ${num(t.f)}
+          </span>
+        </div>
+        <div class="row">
+          <button data-edit> Edit </button>
+          <button data-del> Delete </button>
+        </div>
+      </div>
     `;
-    root.appendChild(div);
+
+    div.querySelector("[data-edit]").onclick = () => { view = { mode:"edit", index: idx }; render(); };
+    div.querySelector("[data-del]").onclick = () => deleteTemplate(idx);
+
+    list.appendChild(div);
   });
+
+  return wrap;
 }
 
 /* ------------------ TEMPLATE CRUD ------------------ */
@@ -73,108 +125,239 @@ function newTemplate() {
     meals: [],
     kcal: 0, p: 0, c: 0, f: 0
   });
-  saveState(state);
+  saveState();
+  view = { mode:"edit", index: state.templates.length - 1 };
   render();
-  editTemplate(state.templates.length - 1);
 }
 
 function deleteTemplate(i) {
-  state.templates.splice(i,1);
-  saveState(state);
+  if (!confirm("Delete this template?")) return;
+  state.templates.splice(i, 1);
+  saveState();
+  view = { mode:"list", index:null };
   render();
 }
 
-/* ------------------ EDITOR ------------------ */
-function editTemplate(i) {
+/* ------------------ EDITOR VIEW ------------------ */
+function renderEditor(i) {
   const t = state.templates[i];
-  document.body.innerHTML = `
-    <h2>Edit Diet Template</h2>
+  const wrap = document.createElement("div");
+
+  wrap.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2>Edit Diet Template</h2>
+        <div class="muted">Edits save automatically.</div>
+      </div>
+      <div class="row">
+        <button id="btnBack">← Back</button>
+      </div>
+    </div>
 
     <div class="card">
-      Name: <input id="name" value="${t.name}">
-      <button onclick="addMeal(${i})">➕ Add Meal</button>
-      <button onclick="autoCalc(${i})">⚡ Auto-Calc</button>
-      <button onclick="saveAndExit(${i})">💾 Save</button>
+      <div class="muted">Template name</div>
+      <input id="name" value="${escapeAttr(t.name)}" style="width:min(520px, 92vw); margin-top:6px;">
+      <div class="row" style="margin-top:10px;">
+        <button id="btnAddMeal">➕ Add Meal</button>
+        <button id="btnAuto">⚡ Auto-calc totals</button>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <div class="muted" style="min-width:160px;">Template totals</div>
+        <div class="muted">kcal</div><input id="totK" class="w-num" type="number" value="${num(t.kcal)}" readonly>
+        <div class="muted">P</div><input id="totP" class="w-num" type="number" value="${num(t.p)}" readonly>
+        <div class="muted">C</div><input id="totC" class="w-num" type="number" value="${num(t.c)}" readonly>
+        <div class="muted">F</div><input id="totF" class="w-num" type="number" value="${num(t.f)}" readonly>
+      </div>
     </div>
 
     <div id="meals"></div>
   `;
-  renderMeals(i);
-}
 
-function saveAndExit(i) {
-  state.templates[i].name = document.getElementById("name").value;
-  saveState(state);
-  location.reload();
+  wrap.querySelector("#btnBack").onclick = () => { view = { mode:"list", index:null }; render(); };
+
+  const nameEl = wrap.querySelector("#name");
+  nameEl.oninput = () => {
+    state.templates[i].name = nameEl.value;
+    saveState();
+  };
+
+  wrap.querySelector("#btnAddMeal").onclick = () => addMeal(i);
+  wrap.querySelector("#btnAuto").onclick = () => { autoCalc(i); render(); };
+
+  const mealsRoot = wrap.querySelector("#meals");
+  mealsRoot.appendChild(renderMeals(i));
+
+  return wrap;
 }
 
 /* ------------------ MEALS ------------------ */
 function addMeal(i) {
-  state.templates[i].meals.push({ name:"Meal", foods:[] });
-  saveState(state);
-  renderMeals(i);
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+  t.meals.push({ name:"Meal", foods:[] });
+  saveState();
+  render();
+}
+
+function removeMeal(i, mi) {
+  state.templates[i].meals.splice(mi, 1);
+  saveState();
+  render();
 }
 
 function renderMeals(i) {
-  const root = document.getElementById("meals");
-  root.innerHTML = "";
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
 
-  state.templates[i].meals.forEach((m, mi) => {
-    const div = document.createElement("div");
-    div.className = "meal";
-    div.innerHTML = `
-      Meal: <input value="${m.name}" onchange="renameMeal(${i},${mi},this.value)">
-      <button onclick="addFood(${i},${mi})">➕ Food</button>
-      <div id="foods-${mi}"></div>
+  const wrap = document.createElement("div");
+
+  if (!t.meals.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<b>No meals yet.</b><div class="muted" style="margin-top:6px;">Click “Add Meal”.</div>`;
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  t.meals.forEach((m, mi) => {
+    m.foods = Array.isArray(m.foods) ? m.foods : [];
+
+    const box = document.createElement("div");
+    box.className = "meal";
+
+    box.innerHTML = `
+      <div class="row" style="justify-content:space-between;">
+        <div class="row" style="align-items:center;">
+          <div class="muted">Meal name</div>
+          <input class="w-food" value="${escapeAttr(m.name)}" data-mealname>
+        </div>
+        <div class="row">
+          <button data-addfood>➕ Food</button>
+          <button data-delmeal>Remove meal</button>
+        </div>
+      </div>
+
+      <div class="hdr">
+        <div class="w-food">Food item</div>
+        <div class="w-num">kcal</div>
+        <div class="w-num">Protein</div>
+        <div class="w-num">Carbs</div>
+        <div class="w-num">Fats</div>
+      </div>
+
+      <div id="foods"></div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="muted">Meal totals:</div>
+        <div class="muted">kcal</div><b id="mk">${mealTotals(m).kcal}</b>
+        <div class="muted">P</div><b id="mp">${mealTotals(m).p}</b>
+        <div class="muted">C</div><b id="mc">${mealTotals(m).c}</b>
+        <div class="muted">F</div><b id="mf">${mealTotals(m).f}</b>
+      </div>
     `;
-    root.appendChild(div);
 
-    const foods = div.querySelector(`#foods-${mi}`);
+    box.querySelector("[data-mealname]").oninput = (e) => {
+      state.templates[i].meals[mi].name = e.target.value;
+      saveState();
+    };
+
+    box.querySelector("[data-addfood]").onclick = () => addFood(i, mi);
+    box.querySelector("[data-delmeal]").onclick = () => removeMeal(i, mi);
+
+    const foodsRoot = box.querySelector("#foods");
     m.foods.forEach((f, fi) => {
       const row = document.createElement("div");
       row.className = "food";
       row.innerHTML = `
-        <input placeholder="Food" value="${f.name}" onchange="upd(${i},${mi},${fi},'name',this.value)">
-        <input placeholder="kcal" type="number" value="${f.kcal}" onchange="upd(${i},${mi},${fi},'kcal',this.value)">
-        <input placeholder="P" type="number" value="${f.p}" onchange="upd(${i},${mi},${fi},'p',this.value)">
-        <input placeholder="C" type="number" value="${f.c}" onchange="upd(${i},${mi},${fi},'c',this.value)">
-        <input placeholder="F" type="number" value="${f.f}" onchange="upd(${i},${mi},${fi},'f',this.value)">
+        <input class="w-food" placeholder="Food" value="${escapeAttr(f.name)}" data-k="name">
+        <input class="w-num" placeholder="kcal" type="number" value="${num(f.kcal)}" data-k="kcal">
+        <input class="w-num" placeholder="P" type="number" value="${num(f.p)}" data-k="p">
+        <input class="w-num" placeholder="C" type="number" value="${num(f.c)}" data-k="c">
+        <input class="w-num" placeholder="F" type="number" value="${num(f.f)}" data-k="f">
+        <button data-del>✕</button>
       `;
-      foods.appendChild(row);
-    });
-  });
-}
 
-function renameMeal(i, mi, v) {
-  state.templates[i].meals[mi].name = v;
-  saveState(state);
+      row.querySelectorAll("input").forEach(inp => {
+        inp.oninput = () => {
+          const k = inp.getAttribute("data-k");
+          updateFood(i, mi, fi, k, inp.value);
+        };
+      });
+
+      row.querySelector("[data-del]").onclick = () => {
+        state.templates[i].meals[mi].foods.splice(fi, 1);
+        saveState();
+        render();
+      };
+
+      foodsRoot.appendChild(row);
+    });
+
+    wrap.appendChild(box);
+  });
+
+  return wrap;
 }
 
 function addFood(i, mi) {
-  state.templates[i].meals[mi].foods.push({name:"",kcal:0,p:0,c:0,f:0});
-  saveState(state);
-  renderMeals(i);
+  const m = state.templates[i].meals[mi];
+  m.foods = Array.isArray(m.foods) ? m.foods : [];
+  m.foods.push({ name:"", kcal:0, p:0, c:0, f:0 });
+  saveState();
+  render();
 }
 
-function upd(i,mi,fi,k,v) {
-  state.templates[i].meals[mi].foods[fi][k] = Number(v)||v;
-  saveState(state);
+function updateFood(i, mi, fi, k, v) {
+  const food = state.templates[i].meals[mi].foods[fi];
+  if (k === "name") {
+    food.name = v;
+  } else {
+    food[k] = Number(v);
+    if (!Number.isFinite(food[k])) food[k] = 0;
+  }
+  saveState();
+  // live totals feel better if we recalc immediately
+  autoCalc(i);
+  saveState();
 }
 
-/* ------------------ AUTO CALC ------------------ */
-function autoCalc(i) {
+/* ------------------ TOTALS ------------------ */
+function mealTotals(meal) {
+  const foods = Array.isArray(meal.foods) ? meal.foods : [];
   let kcal=0,p=0,c=0,f=0;
-  state.templates[i].meals.forEach(m=>{
-    m.foods.forEach(x=>{
-      kcal+=x.kcal||0;
-      p+=x.p||0; c+=x.c||0; f+=x.f||0;
-    });
+  foods.forEach(x=>{
+    kcal += Number(x.kcal)||0;
+    p += Number(x.p)||0;
+    c += Number(x.c)||0;
+    f += Number(x.f)||0;
   });
-  Object.assign(state.templates[i],{kcal,p,c,f});
-  saveState(state);
-  alert("Totals updated");
+  return { kcal: round(kcal), p: round(p), c: round(c), f: round(f) };
 }
 
+function autoCalc(i) {
+  const t = state.templates[i];
+  t.meals = Array.isArray(t.meals) ? t.meals : [];
+  let kcal=0,p=0,c=0,f=0;
+
+  t.meals.forEach(m=>{
+    const mt = mealTotals(m);
+    kcal += mt.kcal; p += mt.p; c += mt.c; f += mt.f;
+  });
+
+  t.kcal = round(kcal);
+  t.p = round(p);
+  t.c = round(c);
+  t.f = round(f);
+}
+
+/* ------------------ HELPERS ------------------ */
+function round(n){ return Math.round((Number(n)||0) * 10) / 10; }
+function num(v){ return Number.isFinite(Number(v)) ? Number(v) : 0; }
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+
+/* ------------------ START ------------------ */
 render();
 </script>
 </body>
