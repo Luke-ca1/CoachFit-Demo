@@ -156,7 +156,7 @@ function findFoodByName(name){
 
 function getFoodLibrary(dietEditorState){
   const base = Array.isArray(FOOD_LIBRARY) ? FOOD_LIBRARY : [];
-  const custom = Array.isArray(dietEditorState?.customFoods) ? state.customFoods : [];
+  const custom = Array.isArray(dietEditorState?.customFoods) ? dietEditorState.customFoods : [];
   // Custom foods override base if same name
   const map = new Map();
   base.forEach(f=> map.set(String(f.name).toLowerCase(), f));
@@ -164,7 +164,7 @@ function getFoodLibrary(dietEditorState){
   return Array.from(map.values());
 }
 function addCustomFood(dietEditorState, food){
-  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
+  dietEditorState.customFoods = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
   const key = String(food?.name||"").trim();
   if (!key) return false;
   const clean = {
@@ -176,14 +176,14 @@ function addCustomFood(dietEditorState, food){
     f: Number(food.f)||0
   };
   // remove existing with same name (case-insensitive)
-  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
-  state.customFoods.unshift(clean);
+  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
+  dietEditorState.customFoods.unshift(clean);
   return true;
 }
 function removeCustomFood(dietEditorState, name){
-  if (!Array.isArray(state.customFoods)) return;
+  if (!Array.isArray(dietEditorState.customFoods)) return;
   const key = String(name||"").toLowerCase();
-  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
+  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
 }
 
 
@@ -192,7 +192,7 @@ function removeCustomFood(dietEditorState, name){
   function renderCustomFoodsList(){
     const mount = overlay.querySelector('#customFoodsList');
     if (!mount) return;
-    const custom = Array.isArray(state.customFoods) ? state.customFoods : [];
+    const custom = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
     if (!custom.length){
       mount.innerHTML = '<div class="hint">No custom foods yet.</div>';
       return;
@@ -396,7 +396,7 @@ function migrateState(state){
       c.completedSessions = c.completedSessions || {};
     });
   }
-    if (!Array.isArray(state.customFoods)) state.customFoods = [];
+    if (!Array.isArray(dietEditorState.customFoods)) dietEditorState.customFoods = [];
   state.ui = state.ui && typeof state.ui === "object" ? state.ui : {};
   state.ui = (state.ui && typeof state.ui === "object") ? state.ui : {};
 
@@ -1797,7 +1797,7 @@ function viewCoach(state){
 
       <label style="margin-top:14px;">Assign diet template (optional)</label>
       <select id="tplSel">
-        ${state.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
+        ${dietEditorState.dietTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
       </select>
       <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
 
@@ -2086,7 +2086,7 @@ function viewCoach(state){
   root.querySelector("#assignTplBtn").onclick = () => {
     const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
     const templateId = root.querySelector("#tplSel").value;
-    const tpl = (state.dietTemplates||[]).find(t=>t.id===templateId);
+    const tpl = (dietEditorState.dietTemplates||[]).find(t=>t.id===templateId);
     sel.assignedTemplateId = templateId;
 
     // copy template into client active plan (so later template edits don't retroactively change clients)
@@ -2251,7 +2251,7 @@ function viewClient(state){
     </div>
   `);
 
-  const activePlan = client.activeDietPlan || (state.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
+  const activePlan = client.activeDietPlan || (dietEditorState.dietTemplates||[]).find(x=>x.id===client.assignedTemplateId);
   const targets = (activePlan && activePlan.macros) ? activePlan.macros : client.macroTargets.training;
 
   const left = el(`
@@ -2978,7 +2978,7 @@ function normalizeDietTemplate(tpl){
 }
 
 function exportDietTemplates(state){
-  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(state.dietTemplates || [], null, 2));
+  downloadText(`diet-templates-${todayISO()}.json`, JSON.stringify(dietEditorState.dietTemplates || [], null, 2));
 }
 function importDietTemplatesFromFile(file, state){
   const r = new FileReader();
@@ -2988,7 +2988,7 @@ function importDietTemplatesFromFile(file, state){
       const arr = Array.isArray(parsed) ? parsed : (parsed?.dietTemplates || parsed?.templates || []);
       if (!Array.isArray(arr)) throw new Error('Not an array');
       state.dietTemplates = state.dietTemplates || [];
-      arr.forEach(x=> state.dietTemplates.push(normalizeDietTemplate(x)));
+      arr.forEach(x=> dietEditorState.dietTemplates.push(normalizeDietTemplate(x)));
       save(dietEditorState);
       alert(`Imported ${arr.length} template(s).`);
       render();
@@ -3000,9 +3000,10 @@ function importDietTemplatesFromFile(file, state){
 }
 
 function openDietTemplateEditor(state, {templateId}={}){
+  dietEditorState = state; // set global ref for helpers
   state.dietTemplates = state.dietTemplates || [];
   const isEdit = !!templateId;
-  const existing = isEdit ? state.dietTemplates.find(t=>t.id===templateId) : null;
+  const existing = isEdit ? dietEditorState.dietTemplates.find(t=>t.id===templateId) : null;
   working = normalizeDietTemplate(deepCopy(existing || { id: uid(), name:'', notes:'', macros:{kcal:'',p:'',c:'',f:''}, meals:[] }));
 
   overlay = el(`
@@ -3354,10 +3355,10 @@ function openDietTemplateEditor(state, {templateId}={}){
     tpl.updatedAt = Date.now();
 
     if (isEdit){
-      const idx = state.dietTemplates.findIndex(t=>t.id===templateId);
-      if (idx>=0) state.dietTemplates[idx] = tpl;
+      const idx = dietEditorState.dietTemplates.findIndex(t=>t.id===templateId);
+      if (idx>=0) dietEditorState.dietTemplates[idx] = tpl;
     } else {
-      state.dietTemplates.push(tpl);
+      dietEditorState.dietTemplates.push(tpl);
     }
 
     save(dietEditorState);
@@ -3375,7 +3376,7 @@ function openClientDietPlanEditor(state, clientId){
   const base = client.activeDietPlan
     ? deepCopy(client.activeDietPlan)
     : (()=>{
-        const tpl = state.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
+        const tpl = dietEditorState.dietTemplates?.find(t=>t.id===client.assignedTemplateId);
         if (tpl) return { planId: uid(), sourceTemplateId: tpl.id, name: tpl.name, notes: tpl.notes||'', macros: tpl.macros||computeMacrosFromMeals(tpl.meals), meals: deepCopy(tpl.meals||[]), assignedAt: Date.now(), assignedBy:'coach' };
         return { planId: uid(), sourceTemplateId: null, name: 'Custom plan', notes:'', macros: deepCopy(client.macroTargets?.training||{kcal:0,p:0,c:0,f:0}), meals: [], assignedAt: Date.now(), assignedBy:'coach' };
       })();
@@ -3462,7 +3463,7 @@ function viewDiet(state){
   const root = document.getElementById('app');
   root.innerHTML = '';
 
-  state.dietTemplates = (state.dietTemplates || []).map(normalizeDietTemplate);
+  dietEditorState.dietTemplates = (dietEditorState.dietTemplates || []).map(normalizeDietTemplate);
   save(dietEditorState);
 
   const wrap = el(`
@@ -3494,12 +3495,12 @@ function viewDiet(state){
   const list = wrap.querySelector('#dt_list');
   function paint(){
     list.innerHTML = '';
-    if (!state.dietTemplates.length){
+    if (!dietEditorState.dietTemplates.length){
       list.appendChild(el('<div class="card warn" style="border-radius:12px;"><b>No plans yet</b><div class="muted">Click “New template” to create one.</div></div>'));
       return;
     }
 
-    state.dietTemplates
+    dietEditorState.dietTemplates
       .slice()
       .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0))
       .forEach(tpl=>{
@@ -3531,13 +3532,13 @@ function viewDiet(state){
           copy.id = uid();
           copy.name = (copy.name||'Template') + ' (copy)';
           copy.updatedAt = Date.now();
-          state.dietTemplates.push(copy);
+          dietEditorState.dietTemplates.push(copy);
           save(dietEditorState);
           paint();
         };
         row.querySelector('[data-del]').onclick = ()=>{
           if (!confirm('Delete this template?')) return;
-          state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
+          dietEditorState.dietTemplates = dietEditorState.dietTemplates.filter(x=>x.id!==tpl.id);
           // also detach from clients
           (state.clients||[]).forEach(c=>{ if (c.assignedTemplateId===tpl.id) c.assignedTemplateId=''; });
           save(dietEditorState);
