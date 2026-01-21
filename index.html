@@ -188,6 +188,27 @@ function migrateState(state){
     });
   }
   if (!Array.isArray(state.customFoods)) state.customFoods = [];
+  // Diet templates (new Diet tab)
+  if (!Array.isArray(state.dietTemplates)) state.dietTemplates = [];
+  state.dietTemplates = state.dietTemplates.map(t => ({
+    id: t.id || ("dt_" + Math.random().toString(16).slice(2)),
+    name: t.name || "Untitled template",
+    notes: (t.notes ?? ""),
+    targets: t.targets || { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    meals: Array.isArray(t.meals) ? t.meals.map(meal => ({
+      name: meal.name || "Meal",
+      items: Array.isArray(meal.items) ? meal.items.map(it => ({
+        name: it.name || "Item",
+        qty: (it.qty ?? 1),
+        unit: it.unit || "",
+        kcal: +it.kcal || 0,
+        protein: +it.protein || 0,
+        carbs: +it.carbs || 0,
+        fat: +it.fat || 0,
+        notes: (it.notes ?? "")
+      })) : []
+    })) : []
+  }));
   state.ui = state.ui || {};
   state.ui.dietMode = state.ui.dietMode || "list";
   if (!state.ui.editDietTemplateId) state.ui.editDietTemplateId = null;
@@ -2721,359 +2742,106 @@ function openClientDietPlanEditor(state, clientId){
   document.body.appendChild(overlay);
 }
 
-
 function viewDiet(state){
-  const root = document.createElement("div");
+  const root = document.getElementById('app');
+  root.innerHTML = '';
 
-  // Ensure required state
-  state.dietTemplates = Array.isArray(state.dietTemplates) ? state.dietTemplates : [];
-  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
-  state.ui = state.ui || {};
-  state.ui.dietMode = state.ui.dietMode || "list"; // list | edit
-  if (typeof state.ui.editDietTemplateId === "undefined") state.ui.editDietTemplateId = null;
+  state.dietTemplates = (state.dietTemplates || []).map(normalizeDietTemplate);
+  save(state);
 
-  const getTplById = (id)=> state.dietTemplates.find(t=>t.id===id) || null;
-  const newId = ()=> "dt_" + Math.random().toString(16).slice(2,10);
-
-  const round1 = (n)=> Math.round((Number(n)||0)*10)/10;
-  const num = (v)=> Number.isFinite(Number(v)) ? Number(v) : 0;
-  const esc = (s)=> String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
-  const escAttr = (s)=> esc(s).replace(/"/g,"&quot;");
-
-  function tplTotals(tpl){
-    const meals = Array.isArray(tpl.meals) ? tpl.meals : [];
-    let kcal=0,p=0,c=0,f=0;
-    meals.forEach(m=>{
-      (m.items||[]).forEach(it=>{
-        kcal += num(it.kcal); p += num(it.p); c += num(it.c); f += num(it.f);
-      });
-    });
-    return {kcal:round1(kcal), p:round1(p), c:round1(c), f:round1(f)};
-  }
-
-  function setMode(mode, editId=null){
-    state.ui.dietMode = mode;
-    state.ui.editDietTemplateId = editId;
-    save(state);
-    render();
-  }
-
-  function renderList(){
-    const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <div class="card" style="margin-bottom:16px;">
-        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div>
-            <div class="hint">Diet</div>
-            <h2 style="margin:4px 0 0 0;">Diet Templates</h2>
-            <div class="hint" style="margin-top:6px;">Edit templates with the meal builder (no JSON).</div>
-          </div>
-          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            <button class="small" id="dtNew">➕ New template</button>
-          </div>
+  const wrap = el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h1>Diet templates</h1>
+          <p class="muted">Create/edit templates, then assign them to clients. Import/export lets you “load” template packs.</p>
+        </div>
+        <div class="row">
+          <label class="row" style="margin:0;gap:6px;">
+            <input id="dt_import" type="file" accept=".json" style="width:auto;" />
+            <span class="muted">Import</span>
+          </label>
+          <button class="small" id="dt_export">Export</button>
+          <button class="primary" id="dt_new">New template</button>
+          <button class="small" id="dt_back">Back to coach</button>
         </div>
       </div>
-      <div id="dtList"></div>
-    `;
-    wrap.querySelector("#dtNew").onclick = ()=>{
-      const tpl = { id:newId(), name:"New Diet Template", tags:[], meals:[] };
-      state.dietTemplates.unshift(tpl);
-      save(state);
-      setMode("edit", tpl.id);
-    };
 
-    const list = wrap.querySelector("#dtList");
+      <hr class="hr" />
+      <div id="dt_list"></div>
+
+      <div class="hint">Tip: Export a “template pack” once, then import it on any new device/browser.</div>
+    </div>
+  `);
+  root.appendChild(wrap);
+
+  const list = wrap.querySelector('#dt_list');
+  function paint(){
+    list.innerHTML = '';
     if (!state.dietTemplates.length){
-      const empty = document.createElement("div");
-      empty.className = "card";
-      empty.innerHTML = `<b>No diet templates yet.</b><div class="hint" style="margin-top:6px;">Click “New template”.</div>`;
-      list.appendChild(empty);
-      return wrap;
+      list.appendChild(el('<div class="card warn" style="border-radius:12px;"><b>No plans yet</b><div class="muted">Click “New template” to create one.</div></div>'));
+      return;
     }
 
-    state.dietTemplates.forEach(tpl=>{
-      const totals = tplTotals(tpl);
-      const mealCount = (tpl.meals||[]).length;
-      const itemCount = (tpl.meals||[]).reduce((a,m)=>a+((m.items||[]).length),0);
-
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
-          <div>
-            <b>${esc(tpl.name||"Untitled")}</b>
-            <div class="hint" style="margin-top:4px;">Meals: ${mealCount} • Items: ${itemCount}</div>
-            <div class="hint" style="margin-top:2px;">Total: ${totals.kcal} kcal • P ${totals.p} / C ${totals.c} / F ${totals.f}</div>
+    state.dietTemplates
+      .slice()
+      .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0))
+      .forEach(tpl=>{
+        const row = el(`
+          <div class="card" style="border-radius:12px;margin-bottom:10px;">
+            <div class="row" style="justify-content:space-between;align-items:flex-start;">
+              <div>
+                <b>${tpl.name}</b>
+                <div class="muted">${tpl.notes ? tpl.notes.slice(0,120) : '—'}</div>
+                <div class="row" style="margin-top:6px;">
+                  <span class="tag">${tpl.macros?.kcal ?? 0} kcal</span>
+                  <span class="tag">P ${tpl.macros?.p ?? 0}</span>
+                  <span class="tag">C ${tpl.macros?.c ?? 0}</span>
+                  <span class="tag">F ${tpl.macros?.f ?? 0}</span>
+                  <span class="tag">Meals: ${(tpl.meals||[]).length}</span>
+                </div>
+              </div>
+              <div class="row">
+                <button class="small" data-edit>Edit</button>
+                <button class="small" data-dup>Duplicate</button>
+                <button class="small danger" data-del>Delete</button>
+              </div>
+            </div>
           </div>
-          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            <button class="small" data-edit="${escAttr(tpl.id)}">Edit</button>
-            <button class="small" data-del="${escAttr(tpl.id)}">Delete</button>
-          </div>
-        </div>
-      `;
-      card.querySelector(`[data-edit="${tpl.id}"]`).onclick = ()=> setMode("edit", tpl.id);
-      card.querySelector(`[data-del="${tpl.id}"]`).onclick = ()=>{
-        if (!confirm(`Delete template "${tpl.name}"?`)) return;
-        state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
-        save(state);
-        render();
-      };
-      list.appendChild(card);
-    });
-
-    return wrap;
-  }
-
-  function renderEditor(tpl){
-    const wrap = document.createElement("div");
-    const totals = tplTotals(tpl);
-
-    wrap.innerHTML = `
-      <div class="card" style="margin-bottom:16px;">
-        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div>
-            <div class="hint">Diet</div>
-            <h2 style="margin:4px 0 0 0;">Edit Template</h2>
-            <div class="hint" style="margin-top:6px;">Changes save automatically.</div>
-          </div>
-          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            <button class="small" id="dtBack">← Templates</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px;">
-          <div class="muted">Template name</div>
-          <input id="dtName" value="${escAttr(tpl.name||"")}" style="width:min(560px, 92vw); margin-top:6px;">
-        </div>
-
-        <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;">
-          <button class="small" id="dtAddMeal">➕ Add meal</button>
-          <button class="small" id="dtAuto">⚡ Auto-calc totals</button>
-          <button class="small" id="dtAddCustom">⭐ Add custom food</button>
-        </div>
-
-        <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;align-items:center;">
-          <div class="muted" style="min-width:140px;">Template totals</div>
-          <span class="muted">kcal</span><input style="width:90px;" type="number" value="${totals.kcal}" readonly>
-          <span class="muted">P</span><input style="width:90px;" type="number" value="${totals.p}" readonly>
-          <span class="muted">C</span><input style="width:90px;" type="number" value="${totals.c}" readonly>
-          <span class="muted">F</span><input style="width:90px;" type="number" value="${totals.f}" readonly>
-        </div>
-      </div>
-
-      <div id="dtMeals"></div>
-    `;
-
-    wrap.querySelector("#dtBack").onclick = ()=> setMode("list", null);
-
-    const nameEl = wrap.querySelector("#dtName");
-    nameEl.oninput = ()=>{
-      tpl.name = nameEl.value;
-      save(state);
-    };
-
-    wrap.querySelector("#dtAddMeal").onclick = ()=>{
-      tpl.meals = Array.isArray(tpl.meals) ? tpl.meals : [];
-      tpl.meals.push({ slot:"Meal " + (tpl.meals.length+1), items:[] });
-      save(state);
-      render();
-    };
-
-    wrap.querySelector("#dtAuto").onclick = ()=>{
-      // totals are derived from meals; just re-render to reflect
-      save(state);
-      render();
-    };
-
-    wrap.querySelector("#dtAddCustom").onclick = ()=>{
-      const name = prompt("Food name (e.g. My Granola 50g):");
-      if (name === null) return;
-      const kcal = prompt("Calories (kcal):", "0"); if (kcal === null) return;
-      const p = prompt("Protein grams:", "0"); if (p === null) return;
-      const c = prompt("Carbs grams:", "0"); if (c === null) return;
-      const f = prompt("Fats grams:", "0"); if (f === null) return;
-      const food = { name:String(name).trim(), kcal:num(kcal), p:num(p), c:num(c), f:num(f) };
-      if (!food.name) return;
-      state.customFoods.unshift(food);
-      // de-dupe by name (case-insensitive)
-      const seen = new Set();
-      state.customFoods = state.customFoods.filter(x=>{
-        const k = String(x.name||"").toLowerCase();
-        if (seen.has(k)) return false;
-        seen.add(k); return true;
+        `);
+        row.querySelector('[data-edit]').onclick = ()=> openDietTemplateEditor(state, {templateId: tpl.id});
+        row.querySelector('[data-dup]').onclick = ()=>{
+          const copy = deepCopy(tpl);
+          copy.id = uid();
+          copy.name = (copy.name||'Template') + ' (copy)';
+          copy.updatedAt = Date.now();
+          state.dietTemplates.push(copy);
+          save(state);
+          paint();
+        };
+        row.querySelector('[data-del]').onclick = ()=>{
+          if (!confirm('Delete this template?')) return;
+          state.dietTemplates = state.dietTemplates.filter(x=>x.id!==tpl.id);
+          // also detach from clients
+          (state.clients||[]).forEach(c=>{ if (c.assignedTemplateId===tpl.id) c.assignedTemplateId=''; });
+          save(state);
+          paint();
+        };
+        list.appendChild(row);
       });
-      save(state);
-      render();
-    };
-
-    const mealsRoot = wrap.querySelector("#dtMeals");
-    mealsRoot.appendChild(renderMeals(tpl));
-    return wrap;
   }
+  paint();
 
-  function renderMeals(tpl){
-    const wrap = document.createElement("div");
-    tpl.meals = Array.isArray(tpl.meals) ? tpl.meals : [];
-
-    if (!tpl.meals.length){
-      const empty = document.createElement("div");
-      empty.className = "card";
-      empty.innerHTML = `<b>No meals yet.</b><div class="hint" style="margin-top:6px;">Click “Add meal”.</div>`;
-      wrap.appendChild(empty);
-      return wrap;
-    }
-
-    tpl.meals.forEach((meal, mi)=>{
-      meal.items = Array.isArray(meal.items) ? meal.items : [];
-
-      const mealCard = document.createElement("div");
-      mealCard.className = "card";
-      const mt = tplTotals({meals:[meal]});
-
-      // Custom foods dropdown
-      const options = state.customFoods.map((f, idx)=>`<option value="${idx}">${esc(f.name)} (${num(f.kcal)} kcal)</option>`).join("");
-
-      mealCard.innerHTML = `
-        <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
-          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
-            <div class="muted">Meal</div>
-            <input data-slot style="width:min(340px, 70vw);" value="${escAttr(meal.slot||"Meal")}">
-          </div>
-          <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-            <button class="small" data-add>➕ Food</button>
-            <button class="small" data-delmeal>Remove meal</button>
-          </div>
-        </div>
-
-        <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-          <div class="muted">Quick add:</div>
-          <select data-custom style="min-width:260px;max-width:90vw;">
-            <option value="">Select custom food…</option>
-            ${options}
-          </select>
-          <button class="small" data-customadd>Add</button>
-        </div>
-
-        <div style="margin-top:12px;font-size:12px;color:#555;">
-          <div class="row" style="gap:6px;flex-wrap:wrap;">
-            <div style="width:240px;">Food item</div>
-            <div style="width:90px;">kcal</div>
-            <div style="width:90px;">Protein</div>
-            <div style="width:90px;">Carbs</div>
-            <div style="width:90px;">Fats</div>
-          </div>
-        </div>
-
-        <div data-items style="margin-top:8px;"></div>
-
-        <div class="row" style="margin-top:12px;gap:10px;flex-wrap:wrap;align-items:center;">
-          <div class="muted">Meal totals:</div>
-          <div class="muted">kcal</div><b>${mt.kcal}</b>
-          <div class="muted">P</div><b>${mt.p}</b>
-          <div class="muted">C</div><b>${mt.c}</b>
-          <div class="muted">F</div><b>${mt.f}</b>
-        </div>
-      `;
-
-      // Wire slot name
-      mealCard.querySelector("[data-slot]").oninput = (e)=>{
-        meal.slot = e.target.value;
-        save(state);
-      };
-
-      // Add blank food
-      mealCard.querySelector("[data-add]").onclick = ()=>{
-        meal.items.push({food:"", kcal:0,p:0,c:0,f:0});
-        save(state);
-        render();
-      };
-
-      // Remove meal
-      mealCard.querySelector("[data-delmeal]").onclick = ()=>{
-        if (!confirm("Remove this meal?")) return;
-        tpl.meals.splice(mi,1);
-        save(state);
-        render();
-      };
-
-      // Custom quick add
-      mealCard.querySelector("[data-customadd]").onclick = ()=>{
-        const sel = mealCard.querySelector("[data-custom]");
-        const idx = Number(sel.value);
-        if (!Number.isFinite(idx)) return;
-        const cf = state.customFoods[idx];
-        if (!cf) return;
-        meal.items.push({food:cf.name, kcal:num(cf.kcal), p:num(cf.p), c:num(cf.c), f:num(cf.f)});
-        save(state);
-        render();
-      };
-
-      const itemsRoot = mealCard.querySelector("[data-items]");
-      if (!meal.items.length){
-        const empty = document.createElement("div");
-        empty.className = "hint";
-        empty.style.marginTop = "8px";
-        empty.textContent = "No foods yet. Click “Food”.";
-        itemsRoot.appendChild(empty);
-      } else {
-        meal.items.forEach((it, fi)=>{
-          const row = document.createElement("div");
-          row.className = "row";
-          row.style.gap = "6px";
-          row.style.flexWrap = "wrap";
-          row.style.alignItems = "center";
-          row.style.marginTop = "6px";
-          row.innerHTML = `
-            <input data-k="food" style="width:240px;max-width:90vw;" placeholder="Food" value="${escAttr(it.food||"")}">
-            <input data-k="kcal" style="width:90px;" type="number" value="${num(it.kcal)}">
-            <input data-k="p" style="width:90px;" type="number" value="${num(it.p)}">
-            <input data-k="c" style="width:90px;" type="number" value="${num(it.c)}">
-            <input data-k="f" style="width:90px;" type="number" value="${num(it.f)}">
-            <button class="small" data-del>✕</button>
-          `;
-          row.querySelectorAll("input").forEach(inp=>{
-            inp.oninput = ()=>{
-              const k = inp.getAttribute("data-k");
-              if (k==="food") it.food = inp.value;
-              else {
-                it[k] = Number(inp.value);
-                if (!Number.isFinite(it[k])) it[k]=0;
-              }
-              save(state);
-            };
-          });
-          row.querySelector("[data-del]").onclick = ()=>{
-            meal.items.splice(fi,1);
-            save(state);
-            render();
-          };
-          itemsRoot.appendChild(row);
-        });
-      }
-
-      wrap.appendChild(mealCard);
-    });
-
-    return wrap;
-  }
-
-  if (state.ui.dietMode === "edit" && state.ui.editDietTemplateId){
-    const tpl = getTplById(state.ui.editDietTemplateId);
-    if (!tpl) {
-      // fallback
-      state.ui.dietMode = "list";
-      state.ui.editDietTemplateId = null;
-      save(state);
-      return renderList();
-    }
-    root.appendChild(renderEditor(tpl));
-    return root;
-  }
-
-  root.appendChild(renderList());
-  return root;
+  wrap.querySelector('#dt_new').onclick = ()=> openDietTemplateEditor(state);
+  wrap.querySelector('#dt_export').onclick = ()=> exportDietTemplates(state);
+  wrap.querySelector('#dt_back').onclick = ()=> { state.ui.view='coach'; save(state); render(); };
+  wrap.querySelector('#dt_import').onchange = (e)=>{
+    const f = e.target.files?.[0];
+    if (f) importDietTemplatesFromFile(f, state);
+  };
 }
 
+/** ========= Router ========= */
 function render(){
   setEnvPill();
   const state = migrateState(load());
@@ -3135,6 +2903,7 @@ document.getElementById("logoutBtn").onclick = () => {
 };
 
 render();
+
 /** ========= Genetics Editor ========= */
 function openGeneticsEditor(state, clientId){
   state.ui = state.ui || {};
