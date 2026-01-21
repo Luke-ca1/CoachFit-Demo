@@ -156,7 +156,7 @@ function findFoodByName(name){
 
 function getFoodLibrary(dietEditorState){
   const base = Array.isArray(FOOD_LIBRARY) ? FOOD_LIBRARY : [];
-  const custom = Array.isArray(dietEditorState?.customFoods) ? dietEditorState.customFoods : [];
+  const custom = Array.isArray(dietEditorState?.customFoods) ? state.customFoods : [];
   // Custom foods override base if same name
   const map = new Map();
   base.forEach(f=> map.set(String(f.name).toLowerCase(), f));
@@ -164,7 +164,7 @@ function getFoodLibrary(dietEditorState){
   return Array.from(map.values());
 }
 function addCustomFood(dietEditorState, food){
-  dietEditorState.customFoods = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
+  state.customFoods = Array.isArray(state.customFoods) ? state.customFoods : [];
   const key = String(food?.name||"").trim();
   if (!key) return false;
   const clean = {
@@ -176,14 +176,14 @@ function addCustomFood(dietEditorState, food){
     f: Number(food.f)||0
   };
   // remove existing with same name (case-insensitive)
-  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
-  dietEditorState.customFoods.unshift(clean);
+  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key.toLowerCase());
+  state.customFoods.unshift(clean);
   return true;
 }
 function removeCustomFood(dietEditorState, name){
-  if (!Array.isArray(dietEditorState.customFoods)) return;
+  if (!Array.isArray(state.customFoods)) return;
   const key = String(name||"").toLowerCase();
-  dietEditorState.customFoods = dietEditorState.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
+  state.customFoods = state.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
 }
 
 
@@ -192,7 +192,7 @@ function removeCustomFood(dietEditorState, name){
   function renderCustomFoodsList(){
     const mount = overlay.querySelector('#customFoodsList');
     if (!mount) return;
-    const custom = Array.isArray(dietEditorState.customFoods) ? dietEditorState.customFoods : [];
+    const custom = Array.isArray(state.customFoods) ? state.customFoods : [];
     if (!custom.length){
       mount.innerHTML = '<div class="hint">No custom foods yet.</div>';
       return;
@@ -389,8 +389,7 @@ function migrateState(state){
       c.completedSessions = c.completedSessions || {};
     });
   }
-  if (!Array.isArray(dietEditorState.customFoods)) dietEditorState.customFoods = [];
-  if (!Array.isArray(state.customFoods)) state.customFoods = [];
+    if (!Array.isArray(state.customFoods)) state.customFoods = [];
   state.ui = state.ui && typeof state.ui === "object" ? state.ui : {};
 
 return state;
