@@ -409,9 +409,8 @@ function save(next){
   if (next && typeof next === "object") APP_STATE = next;
   const safe = (APP_STATE && typeof APP_STATE === "object") ? APP_STATE : {};
   localStorage.setItem(LS_KEY, JSON.stringify(safe));
-};
-  localStorage.setItem(LS_KEY, JSON.stringify(safe));
 }
+
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
 /** ========= Seed ========= */
