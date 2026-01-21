@@ -90,7 +90,7 @@
 // Diet template editor globals (used by helper functions)
 let overlay = null;
 let working = null;
-let state.__dietEditorState_DO_NOT_USE__ = null;
+window.__dietEditorState_DO_NOT_USE__ = null;
 // ---- guard: ensure helpers exist even if older cached code paths reference them ----
 if (typeof window.isoDate !== "function") {
   window.isoDate = function(d){
