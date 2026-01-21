@@ -343,14 +343,14 @@ function setEnvPill(){
 }
 function load() {
   const raw = localStorage.getItem(LS_KEY);
-  if (raw) return JSON.parse(raw);
+  if (raw) return (JSON.parse(raw) || {});
   const seed = seedData();
   localStorage.setItem(LS_KEY, JSON.stringify(seed));
   return seed;
 }
 
 function migrateState(state){
-  if (!state || typeof state !== "object") state = {};
+  state = (state && typeof state === "object") ? state : {};
 
   // Ensure workout templates exist even for older localStorage saves
   if (!state.workoutTemplates || !Array.isArray(state.workoutTemplates) || state.workoutTemplates.length < 6) {
@@ -391,6 +391,7 @@ function migrateState(state){
   }
   if (!Array.isArray(dietEditorState.customFoods)) dietEditorState.customFoods = [];
   if (!Array.isArray(state.customFoods)) state.customFoods = [];
+  state.ui = state.ui && typeof state.ui === "object" ? state.ui : {};
 
 return state;
 }
@@ -3542,7 +3543,7 @@ function viewDiet(state){
 /** ========= Router ========= */
 function render(){
   setEnvPill();
-  const state = migrateState(load());
+  const state = migrateState(load() || {});
 
   state.ui = state.ui || { view:"landing", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false}, selectedExercise:"Bench Press" };
 
