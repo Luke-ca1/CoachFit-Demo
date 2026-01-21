@@ -90,7 +90,7 @@
 // Diet template editor globals (used by helper functions)
 let overlay = null;
 let working = null;
-window.__dietEditorState_DO_NOT_USE__ = null;
+window.__dietEditorState_DO_NOT_USE__ = { customFoods: [] };
 // ---- guard: ensure helpers exist even if older cached code paths reference them ----
 if (typeof window.isoDate !== "function") {
   window.isoDate = function(d){
@@ -154,7 +154,8 @@ function findFoodByName(name){
   return FOOD_LIBRARY.find(f => f.name.toLowerCase() === key) || null;
 }
 
-function getFoodLibrary(state.__dietEditorState_DO_NOT_USE__){
+function getFoodLibrary(state){
+  state.__dietEditorState_DO_NOT_USE__ = state.__dietEditorState_DO_NOT_USE__ || { customFoods: [] };
   const base = Array.isArray(FOOD_LIBRARY) ? FOOD_LIBRARY : [];
   const custom = Array.isArray(state.__dietEditorState_DO_NOT_USE__?.customFoods) ? state.__dietEditorState_DO_NOT_USE__.customFoods : [];
   // Custom foods override base if same name
@@ -163,7 +164,8 @@ function getFoodLibrary(state.__dietEditorState_DO_NOT_USE__){
   custom.forEach(f=> map.set(String(f.name).toLowerCase(), f));
   return Array.from(map.values());
 }
-function addCustomFood(state.__dietEditorState_DO_NOT_USE__, food){
+function addCustomFood(state, food){
+  state.__dietEditorState_DO_NOT_USE__ = state.__dietEditorState_DO_NOT_USE__ || { customFoods: [] };
   state.__dietEditorState_DO_NOT_USE__.customFoods = Array.isArray(state.__dietEditorState_DO_NOT_USE__.customFoods) ? state.__dietEditorState_DO_NOT_USE__.customFoods : [];
   const key = String(food?.name||"").trim();
   if (!key) return false;
@@ -180,7 +182,8 @@ function addCustomFood(state.__dietEditorState_DO_NOT_USE__, food){
   state.__dietEditorState_DO_NOT_USE__.customFoods.unshift(clean);
   return true;
 }
-function removeCustomFood(state.__dietEditorState_DO_NOT_USE__, name){
+function removeCustomFood(state, name){
+  state.__dietEditorState_DO_NOT_USE__ = state.__dietEditorState_DO_NOT_USE__ || { customFoods: [] };
   if (!Array.isArray(state.__dietEditorState_DO_NOT_USE__.customFoods)) return;
   const key = String(name||"").toLowerCase();
   state.__dietEditorState_DO_NOT_USE__.customFoods = state.__dietEditorState_DO_NOT_USE__.customFoods.filter(x=>String(x.name).toLowerCase() !== key);
@@ -1533,7 +1536,8 @@ function renderAdjustmentModal(state){
   };
 }
 
-function openCustomFoodModal(state.__dietEditorState_DO_NOT_USE__, existing){
+function openCustomFoodModal(state, existing){
+  state.__dietEditorState_DO_NOT_USE__ = state.__dietEditorState_DO_NOT_USE__ || { customFoods: [] };
   state.ui = state.ui || {};
   const ex = existing || {};
   state.ui.customFoodModal = {name: ex.name||"", category: ex.category||"Other", kcal: ex.kcal||0, p: ex.p||0, c: ex.c||0, f: ex.f||0, originalName: ex.name||""};
