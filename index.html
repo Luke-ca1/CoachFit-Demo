@@ -263,8 +263,8 @@ function removeCustomFood(state, name){
     const sel = overlay.querySelector('#foodMealTarget');
     if (!sel) return;
     const meals = working.meals || [];
-    const opts = meals.map((m,i)=>{
-      const label = (m.slot && m.slot.trim()) ? m.slot.trim() : ("Meal " + (i+1));
+    const opts = meals.map((state.ui.customFoodModal,i)=>{
+      const label = (state.ui.customFoodModal && state.ui.customFoodModal.slot && state.ui.customFoodModal && state.ui.customFoodModal.slot.trim()) ? state.ui.customFoodModal && state.ui.customFoodModal.slot.trim() : ("Meal " + (i+1));
       return `<option value="${i}">Add to: ${esc(label)}</option>`;
     }).join("");
     sel.innerHTML = opts || '<option value="0">Add to: first meal</option>';
@@ -1514,8 +1514,8 @@ function openCustomFoodModal(state, existing){
 }
 
 function renderCustomFoodModal(state){
-  const m = state?.ui?.customFoodModal;
-  if (!m) return;
+  const state.ui.customFoodModal = state?.ui?.customFoodModal;
+  if (!state.ui.customFoodModal) return;
 
   const overlay = document.createElement("div");
   overlay.style.position="fixed";
@@ -1538,7 +1538,7 @@ function renderCustomFoodModal(state){
     <div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start;">
       <div>
         <div class="hint">Food library</div>
-        <h2 style="margin:4px 0 0 0;">${(m.originalName && String(m.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</h2>
+        <h2 style="margin:4px 0 0 0;">${(state.ui.customFoodModal && state.ui.customFoodModal.originalName && String(state.ui.customFoodModal && state.ui.customFoodModal.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</h2>
       </div>
       <button class="small" id="cfClose">✕</button>
     </div>
@@ -1546,29 +1546,29 @@ function renderCustomFoodModal(state){
     <hr class="hr">
 
     <div class="muted">Food name</div>
-    <input id="cfName" placeholder="e.g. My Granola (50g)" value="${esc(m.name||"")}" style="width:100%;margin-top:6px;">
+    <input id="cfName" placeholder="e.g. My Granola (50g)" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.name||"")}" style="width:100%;margin-top:6px;">
 
     <div class="muted" style="margin-top:12px;">Category</div>
     <select id="cfCat" style="width:100%;margin-top:6px;">
-      ${cats.map(v=>`<option value="${v}" ${String(m.category||"Other")===v?"selected":""}>${v}</option>`).join("")}
+      ${cats.map(v=>`<option value="${v}" ${String(state.ui.customFoodModal && state.ui.customFoodModal.category||"Other")===v?"selected":""}>${v}</option>`).join("")}
     </select>
 
     <div class="grid2" style="margin-top:12px;">
       <div>
         <div class="muted">Calories (kcal)</div>
-        <input id="cfKcal" type="number" step="1" value="${esc(m.kcal)}" style="width:100%;margin-top:6px;">
+        <input id="cfKcal" type="number" step="1" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.kcal)}" style="width:100%;margin-top:6px;">
       </div>
       <div>
         <div class="muted">Protein (g)</div>
-        <input id="cfP" type="number" step="0.1" value="${esc(m.p)}" style="width:100%;margin-top:6px;">
+        <input id="cfP" type="number" step="0.1" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.p)}" style="width:100%;margin-top:6px;">
       </div>
       <div>
         <div class="muted">Carbs (g)</div>
-        <input id="cfC" type="number" step="0.1" value="${esc(m.c)}" style="width:100%;margin-top:6px;">
+        <input id="cfC" type="number" step="0.1" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.c)}" style="width:100%;margin-top:6px;">
       </div>
       <div>
         <div class="muted">Fat (g)</div>
-        <input id="cfF" type="number" step="0.1" value="${esc(m.f)}" style="width:100%;margin-top:6px;">
+        <input id="cfF" type="number" step="0.1" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.f)}" style="width:100%;margin-top:6px;">
       </div>
     </div>
 
@@ -1605,9 +1605,9 @@ function renderCustomFoodModal(state){
       c: Number(card.querySelector("#cfC").value)||0,
       f: Number(card.querySelector("#cfF").value)||0,
     };
-    if (m.originalName && String(m.originalName).trim() && String(m.originalName).toLowerCase() !== String(food.name).toLowerCase()) {
+    if (state.ui.customFoodModal && state.ui.customFoodModal.originalName && String(state.ui.customFoodModal && state.ui.customFoodModal.originalName).trim() && String(state.ui.customFoodModal && state.ui.customFoodModal.originalName).toLowerCase() !== String(food.name).toLowerCase()) {
       // rename: remove old entry first
-      removeCustomFood(state, m.originalName);
+      removeCustomFood(state, state.ui.customFoodModal && state.ui.customFoodModal.originalName);
     }
     addCustomFood(state, food);
     save(state);
@@ -1929,7 +1929,7 @@ function viewCoach(state){
         <td>${fmt(day.rhr)}</td>
         <td>${fmt(day.stressAvg)}</td>
         <td>${fmt(day.steps)}</td>
-        <td>${day.workoutDone ? "Done" : "Not done"} <div class="muted">${day.workoutMins?day.workoutMins+"m":""}</div></td>
+        <td>${day.workoutDone ? "Done" : "Not done"} <div class="muted">${day.workoutMins?day.workoutMins+"state.ui.customFoodModal":""}</div></td>
         <td>${fmt(day.nutritionCompliancePct)}%</td>
         <td>${fmt(day.bodyWeightKg)}</td>
         <td>${fmt(day.waistCm)}</td>
@@ -2349,13 +2349,13 @@ function viewClient(state){
   if (!activePlan){
     tplArea.appendChild(el(`<div class="card warn" style="border-radius:12px;"><b>No diet plan</b><div class="muted">You can still follow macro targets.</div></div>`));
   } else {
-    (activePlan.meals||[]).forEach(m=>{
+    (activePlan.meals||[]).forEach(state.ui.customFoodModal=>{
       let kcal=0,p=0,c=0,f=0;
-      m.items.forEach(i=>{kcal+=i.kcal;p+=i.p;c+=i.c;f+=i.f;});
+      state.ui.customFoodModal && state.ui.customFoodModal.items.forEach(i=>{kcal+=i.kcal;p+=i.p;c+=i.c;f+=i.f;});
       tplArea.appendChild(el(`
         <div class="card" style="border-radius:12px;margin:10px 0;">
-          <b>${m.slot}</b>
-          <div class="muted">${m.items.map(i=>`${i.food} (${i.kcal}kcal)`).join(" • ")}</div>
+          <b>${state.ui.customFoodModal && state.ui.customFoodModal.slot}</b>
+          <div class="muted">${state.ui.customFoodModal && state.ui.customFoodModal.items.map(i=>`${i.food} (${i.kcal}kcal)`).join(" • ")}</div>
           <div class="row" style="margin-top:6px;">
             <span class="tag">${kcal} kcal</span>
             <span class="tag">P ${p}</span>
@@ -2821,13 +2821,13 @@ function viewMessages(state){
     state.messages
       .slice()
       .sort((a,b)=>a.at.localeCompare(b.at))
-      .filter(m => (m.to===client.id || m.from===client.id))
-      .forEach(m=>{
-        const mine = m.from===state.session.userId;
+      .filter(state.ui.customFoodModal => (state.ui.customFoodModal && state.ui.customFoodModal.to===client.id || state.ui.customFoodModal && state.ui.customFoodModal.from===client.id))
+      .forEach(state.ui.customFoodModal=>{
+        const mine = state.ui.customFoodModal && state.ui.customFoodModal.from===state.session.userId;
         box.appendChild(el(`
           <div class="card ${mine?'ok':'warn'}" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;">
-            <div class="muted" style="font-size:12px;"><b>${displayNameForSender(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
-            <div>${m.text}</div>
+            <div class="muted" style="font-size:12px;"><b>${displayNameForSender(state.ui.customFoodModal && state.ui.customFoodModal.from)}</b> • ${new Date(state.ui.customFoodModal && state.ui.customFoodModal.at).toLocaleString()}</div>
+            <div>${state.ui.customFoodModal && state.ui.customFoodModal.text}</div>
           </div>
         `));
       });
@@ -2837,7 +2837,7 @@ function viewMessages(state){
   card.querySelector("#sendBtn").onclick = () => {
     const text = card.querySelector("#msgInput").value.trim();
     if (!text) return;
-    state.messages.push({ id:"m"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
+    state.messages.push({ id:"state.ui.customFoodModal"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
     card.querySelector("#msgInput").value = "";
     save(state);
     renderMsgs();
@@ -2929,8 +2929,8 @@ function uid(){
 function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
 function computeMacrosFromMeals(meals){
   let kcal=0,p=0,c=0,f=0;
-  (meals||[]).forEach(m=>{
-    (m.items||[]).forEach(i=>{
+  (meals||[]).forEach(state.ui.customFoodModal=>{
+    (state.ui.customFoodModal && state.ui.customFoodModal.items||[]).forEach(i=>{
       kcal += Number(i.kcal)||0;
       p += Number(i.p)||0;
       c += Number(i.c)||0;
@@ -2973,6 +2973,7 @@ function importDietTemplatesFromFile(file, state){
 }
 
 function openDietTemplateEditor(state, {templateId}={}){
+  state.ui = state.ui || {};
   state.dietTemplates = state.dietTemplates || [];
   const isEdit = !!templateId;
   const existing = isEdit ? state.dietTemplates.find(t=>t.id===templateId) : null;
@@ -3012,7 +3013,7 @@ function openDietTemplateEditor(state, {templateId}={}){
   <b>🍎 Food library</b>
   <div class="hint" style="margin-top:6px;">Search once and click to add an item into a meal.</div>
   <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-    <button class="small" id="addCustomFoodBtn">+ ${(m.originalName && String(m.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</button>
+    <button class="small" id="addCustomFoodBtn">+ ${(state.ui.customFoodModal && state.ui.customFoodModal.originalName && String(state.ui.customFoodModal && state.ui.customFoodModal.originalName).trim()) ? 'Edit custom food' : 'Add custom food'}</button>
     <input id="foodSearch" placeholder="Search foods (e.g. chicken, rice, yogurt)" style="min-width:240px;flex:1;">
     <select id="foodCat" style="max-width:200px;">
       <option value="All">All categories</option>
@@ -3069,12 +3070,12 @@ function openDietTemplateEditor(state, {templateId}={}){
     const mount = overlay.querySelector('#dt_meals_ui');
     if (!mount) return;
 
-    const safeMeals = (meals||[]).map(m=>({ slot: m.slot || '', items: (m.items||[]).map(it=>({
+    const safeMeals = (meals||[]).map(state.ui.customFoodModal=>({ slot: state.ui.customFoodModal && state.ui.customFoodModal.slot || '', items: (state.ui.customFoodModal && state.ui.customFoodModal.items||[]).map(it=>({
       food: it.food||'', kcal: sanitizeNum(it.kcal), p: sanitizeNum(it.p), c: sanitizeNum(it.c), f: sanitizeNum(it.f)
     })) }));
 
-    mount.innerHTML = safeMeals.map((m, mi)=>{
-      const items = m.items || [];
+    mount.innerHTML = safeMeals.map((state.ui.customFoodModal, mi)=>{
+      const items = state.ui.customFoodModal && state.ui.customFoodModal.items || [];
       const rows = items.map((it, ii)=>`
         <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">
           <input list="foodLibList" data-mi="${mi}" data-ii="${ii}" data-k="food" placeholder="Food item (type to search)" value="${esc(it.food)}" style="min-width:220px;flex:1;">
@@ -3093,7 +3094,7 @@ function openDietTemplateEditor(state, {templateId}={}){
           <div class="row" style="justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
             <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;flex:1;">
               <b style="min-width:90px;">Meal slot</b>
-              <input data-mi="${mi}" data-k="slot" placeholder="e.g. Breakfast" value="${esc(m.slot)}" style="min-width:220px;flex:1;">
+              <input data-mi="${mi}" data-k="slot" placeholder="e.g. Breakfast" value="${esc(state.ui.customFoodModal && state.ui.customFoodModal.slot)}" style="min-width:220px;flex:1;">
             </div>
             <div class="row" style="gap:8px;flex-wrap:wrap;">
               <button class="small" data-add-item="${mi}">+ Add item</button>
@@ -3221,9 +3222,9 @@ function openDietTemplateEditor(state, {templateId}={}){
   }
 
   function readMealsFromUI(){
-    const meals = (working.meals||[]).map(m=>{
-      const slot = (m.slot||'').trim();
-      const items = (m.items||[]).map(it=>({
+    const meals = (working.meals||[]).map(state.ui.customFoodModal=>{
+      const slot = (state.ui.customFoodModal && state.ui.customFoodModal.slot||'').trim();
+      const items = (state.ui.customFoodModal && state.ui.customFoodModal.items||[]).map(it=>({
         food: (it.food||'').trim(),
         kcal: sanitizeNum(it.kcal),
         p: sanitizeNum(it.p),
@@ -3231,7 +3232,7 @@ function openDietTemplateEditor(state, {templateId}={}){
         f: sanitizeNum(it.f),
       })).filter(it=>it.food || it.kcal || it.p || it.c || it.f);
       return { slot: slot || 'Meal', items };
-    }).filter(m=>m.items.length || (m.slot && m.slot.trim()));
+    }).filter(state.ui.customFoodModal=>state.ui.customFoodModal && state.ui.customFoodModal.items.length || (state.ui.customFoodModal && state.ui.customFoodModal.slot && state.ui.customFoodModal && state.ui.customFoodModal.slot.trim()));
     return meals;
   }
   // ----------------------------------------------
@@ -3291,11 +3292,11 @@ function openDietTemplateEditor(state, {templateId}={}){
   overlay.querySelector('#dt_autocalc').onclick = () => {
     try{
       const meals = JSON.parse(overlay.querySelector('#dt_meals').value || '[]');
-      const m = computeMacrosFromMeals(meals);
-      overlay.querySelector('#dt_kcal').value = m.kcal;
-      overlay.querySelector('#dt_p').value = m.p;
-      overlay.querySelector('#dt_c').value = m.c;
-      overlay.querySelector('#dt_f').value = m.f;
+      const state.ui.customFoodModal = computeMacrosFromMeals(meals);
+      overlay.querySelector('#dt_kcal').value = state.ui.customFoodModal && state.ui.customFoodModal.kcal;
+      overlay.querySelector('#dt_p').value = state.ui.customFoodModal && state.ui.customFoodModal.p;
+      overlay.querySelector('#dt_c').value = state.ui.customFoodModal && state.ui.customFoodModal.c;
+      overlay.querySelector('#dt_f').value = state.ui.customFoodModal && state.ui.customFoodModal.f;
     } catch(e){
       alert('Meals JSON is invalid. Fix JSON first.');
     }
