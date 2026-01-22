@@ -3192,6 +3192,11 @@ function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
     try{ render(); }catch(e){ console.error(e); }
   }
   window.DietV2 = { mount };
+
+  // Auto-mount if the Diet tab rendered before this script loaded
+  try {
+    if (document.getElementById('dietv2_app')) mount();
+  } catch (e) {}
 })();
 </script>
 </body>
