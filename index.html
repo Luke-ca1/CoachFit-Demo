@@ -2895,10 +2895,10 @@ function renderList() {
   wrap.innerHTML = `
     <h2>Diet Templates</h2>
     <div class="card">
-      <button id="btnNew">➕ New Template</button>
+      <button id="dietv2_btnNew">➕ New Template</button>
       <div class="muted" style="margin-top:8px;">Templates are saved in your browser (localStorage).</div>
     </div>
-    <div id="templates"></div>
+    <div id="dietv2_templates"></div>
   `;
 
   wrap.querySelector("#dietv2_btnNew").onclick = () => newTemplate();
@@ -2978,16 +2978,16 @@ function renderEditor(i) {
         <div class="muted">Edits save automatically.</div>
       </div>
       <div class="row">
-        <button id="btnBack">← Back</button>
+        <button id="dietv2_btnBack">← Back</button>
       </div>
     </div>
 
     <div class="card">
       <div class="muted">Template name</div>
-      <input id="name" value="${escapeAttr(t.name)}" style="width:min(520px, 92vw); margin-top:6px;">
+      <input id="dietv2_name" value="${escapeAttr(t.name)}" style="width:min(520px, 92vw); margin-top:6px;">
       <div class="row" style="margin-top:10px;">
-        <button id="btnAddMeal">➕ Add Meal</button>
-        <button id="btnAuto">⚡ Auto-calc totals</button>
+        <button id="dietv2_btnAddMeal">➕ Add Meal</button>
+        <button id="dietv2_btnAuto">⚡ Auto-calc totals</button>
       </div>
 
       <div class="row" style="margin-top:12px;">
@@ -2999,7 +2999,7 @@ function renderEditor(i) {
       </div>
     </div>
 
-    <div id="meals"></div>
+    <div id="dietv2_meals"></div>
   `;
 
   wrap.querySelector("#dietv2_btnBack").onclick = () => { view = { mode:"list", index:null }; render(); };
@@ -3074,7 +3074,7 @@ function renderMeals(i) {
         <div class="w-num">Fats</div>
       </div>
 
-      <div id="foods"></div>
+      <div id="dietv2_foods"></div>
 
       <div class="row" style="margin-top:10px;">
         <div class="muted">Meal totals:</div>
