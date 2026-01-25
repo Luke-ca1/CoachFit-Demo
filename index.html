@@ -1,142 +1,651 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CoachFit Demo – Diet Builder (Add Meals + Meal Totals)</title>
-<style>
-:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111}
-body{margin:0}
-header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
-.bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.brand{font-weight:900}
-.pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
-main{max-width:1100px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,textarea,button{padding:8px;border-radius:10px;border:1px solid #d9dbe3;font-size:14px}
-button{cursor:pointer;background:#fff}
-button.primary{background:#111;color:#fff;border-color:#111}
-button.danger{background:#fff0f0;border-color:#ffc2c2}
-table{border-collapse:collapse;width:100%}
-th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px;vertical-align:top}
-th{font-size:12px;color:#555;background:#fafbff}
-.muted{color:#666;font-size:13px}
-.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px;background:#fff;display:inline-block}
-hr{border:none;border-top:1px solid #eef0f6;margin:12px 0}
-.actionsRow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
-.mealTotalsInline{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.small{font-size:12px;padding:6px 10px;border-radius:10px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CoachFit Demo (Merged: Diet Builder + Client Calorie Tracker)</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111;line-height:1.35}
+    body{margin:0}
+    header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
+    .bar{max-width:1120px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{font-weight:900;letter-spacing:.2px}
+    .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
+    main{max-width:1120px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){.grid{grid-template-columns:360px 1fr}}
+    .split{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:980px){.split{grid-template-columns:1fr 1fr}}
+    .card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    h1,h2,h3{margin:0 0 10px 0}
+    h1{font-size:22px}
+    h2{font-size:18px}
+    h3{font-size:14px;color:#333}
+    label{display:block;font-size:12px;color:#444;margin-top:8px}
+    input,select,textarea{width:100%;padding:9px 10px;border:1px solid #d9dbe3;border-radius:10px;background:#fff;font-size:14px}
+    textarea{min-height:72px}
+    button{padding:10px 12px;border:1px solid #d9dbe3;border-radius:12px;background:#fff;cursor:pointer}
+    button.primary{background:#111;color:#fff;border-color:#111}
+    button.small{padding:6px 10px;border-radius:10px;font-size:12px}
+    button.danger{background:#fff0f0;border-color:#ffc2c2}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .muted{color:#666;font-size:13px}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .nav a{font-size:13px;color:#111;text-decoration:none;padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff}
+    .nav a.active{background:#111;color:#fff;border-color:#111}
+    .tablewrap{overflow:auto;border:1px solid #e6e8ef;border-radius:12px}
+    table{border-collapse:collapse;width:100%;min-width:980px;background:#fff}
+    th,td{padding:10px;border-bottom:1px solid #eef0f6;text-align:left;font-size:13px;vertical-align:top}
+    th{font-size:12px;color:#555;background:#fafbff;position:sticky;top:0}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap}
+    .kpi .box{border:1px solid #e6e8ef;border-radius:12px;padding:10px;background:#fafbff}
+    .tag{display:inline-block;font-size:11px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fff;margin:2px 4px 0 0}
+    .tag.attn{background:#fff8e6;border-color:#ffe2a3}
+    .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
+    /* Diet builder bits */
+    .actionsRow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .mealTotalsInline{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  </style>
 </head>
 <body>
 <header>
   <div class="bar">
     <div class="row">
       <div class="brand">CoachFit</div>
-      <span class="pill">diet builder</span>
-      <span class="pill">add meals</span>
+      <span class="pill">functional demo</span>
+      <span class="pill" id="envPill">local</span>
     </div>
+
+    <div class="nav" id="topNav" style="display:none;">
+      <a href="#" data-nav="coach">Coach</a>
+      <a href="#" data-nav="client">Client</a>
+      <a href="#" data-nav="diet">Diet</a>
+      <a href="#" data-nav="progress">Progress</a>
+      <a href="#" data-nav="history">History</a>
+      <a href="#" data-nav="messages">Messages</a>
+    </div>
+
     <div class="row">
-      <span class="muted" id="who"></span>
-      <button id="reset" class="small danger">Reset</button>
+      <span class="muted" id="whoami"></span>
+      <button class="small" id="logoutBtn" style="display:none;">Log out</button>
     </div>
   </div>
 </header>
 
-<main id="app"></main>
+<main><div id="app"></div></main>
 
 <script>
 /**
- * Diet Builder (single-file demo)
- * - Custom foods per meal
- * - Meal totals shown BELOW food items (next to Add food)
- * - Ability to add more meals (custom name) + remove meals
- * - Grand total remains
+ * CoachFit merged demo:
+ * - Diet page = full Diet Builder (add meals, add foods, meal totals + grand total)
+ * - Calorie tracker ONLY on:
+ *   1) Client Summary page (today) input Burned/Consumed + Delta
+ *   2) Coach Summary (Today table) view Burned/Consumed + Delta
+ * - LocalStorage only (no backend)
  */
 
-const LS="coachfit_diet_builder_meals_v2";
-const today=()=>new Date().toISOString().slice(0,10);
+const LS_KEY = "coachfit_demo_merged_v1";
+const todayISO = () => new Date().toISOString().slice(0,10);
+const addDays = (iso, delta) => { const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10); };
+const rand = (a,b)=>Math.round(a+Math.random()*(b-a));
+const fmt = (v)=> (v===null||v===undefined||v==="" ? "—" : v);
+
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
+function setEnvPill(){
+  const host = location.host || "";
+  document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
+}
 
 function load(){
-  const r=localStorage.getItem(LS);
-  if(r) return JSON.parse(r);
-  const s=seed(); localStorage.setItem(LS,JSON.stringify(s)); return s;
+  const raw = localStorage.getItem(LS_KEY);
+  if (raw) return JSON.parse(raw);
+  const s = seedData();
+  localStorage.setItem(LS_KEY, JSON.stringify(s));
+  return s;
 }
-function save(s){localStorage.setItem(LS,JSON.stringify(s));}
+function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
-function seed(){
-  return{
-    session:{role:"coach"},
-    diet:{
-      meals:[
-        {name:"Breakfast",foods:[]},
-        {name:"Lunch",foods:[]},
-        {name:"Dinner",foods:[]},
-        {name:"Snack",foods:[]}
-      ]
-    }
+function seedDaily(){
+  const t = todayISO();
+  const daily = {};
+  for (let i=0;i<28;i++){
+    const date = addDays(t, -i);
+    daily[date] = {
+      steps: rand(6500, 12000),
+      sleepHrs: rand(6,8),
+      rhr: rand(50,64),
+      stressAvg: rand(18,42),
+      bodyBatteryStart: rand(70,96),
+      bodyBatteryEnd: rand(15,58),
+      activeCals: rand(250,900),
+      workoutDone: i%2===0,
+      workoutMins: i%2===0 ? 45 : 0,
+      nutritionCompliancePct: i%3===0 ? 90 : 75,
+      selfReport:{ soreness: rand(2,6), mood: rand(6,9), energy: rand(6,9), digestion: rand(3,8) },
+      // Calorie tracker fields (today entry on Client page)
+      caloriesBurned: "",
+      caloriesConsumed: ""
+    };
+  }
+  return daily;
+}
+
+function seedDietBuilder(){
+  return {
+    meals: [
+      {name:"Breakfast", foods:[]},
+      {name:"Lunch", foods:[]},
+      {name:"Dinner", foods:[]},
+      {name:"Snack", foods:[]}
+    ]
   };
 }
 
-function n(v){
-  const x = Number(v);
-  return isFinite(x) ? x : 0;
+function seedData(){
+  const clients = [
+    { id:"c1", name:"Luke (Client)", email:"client@demo.com", role:"client", coachId:"u1",
+      profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints:["coeliac"], notes:"Back/knee/hip history; coeliac; gut dysbiosis" },
+      macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
+      daily: seedDaily(),
+      dietBuilder: seedDietBuilder()
+    }
+  ];
+  const users = [
+    { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
+    { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" },
+  ];
+  const workoutPlan = [
+    { day:"Mon", name:"Upper A", exercises:["Bench Press","Row","Incline DB","Lateral Raise"] },
+    { day:"Tue", name:"Lower A", exercises:["Squat","RDL","Split Squat","Calf Raise"] },
+    { day:"Wed", name:"Upper B", exercises:["OHP","Pull-up","Cable Fly","Curl"] },
+    { day:"Thu", name:"Lower B", exercises:["Deadlift","Leg Press","Ham Curl","Core"] },
+    { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
+  ];
+  const workoutLogs = {}; // date -> {exercise -> sets[]}
+  const messages = [
+    { id:"m1", from:"u1", to:"c1", at:new Date().toISOString(), text:"Welcome! Log today’s workout + calorie totals." }
+  ];
+  return { users, clients, workoutPlan, workoutLogs, messages, session:null, ui:{ view:"coach", selectedClientId:"c1" } };
 }
-function calcMeal(meal){
-  let kcal=0,p=0,c=0,f=0;
-  (meal.foods||[]).forEach(x=>{
-    kcal += n(x.kcal);
-    p    += n(x.p);
-    c    += n(x.c);
-    f    += n(x.f);
+
+/** ====== Utilities ====== */
+function getSessionUser(state){ return state.users.find(u=>u.id===state.session?.userId); }
+function getSelectedClient(state){
+  const id = state.ui?.selectedClientId || state.clients[0]?.id;
+  return state.clients.find(c=>c.id===id) || state.clients[0];
+}
+function ensureToday(client){
+  const t=todayISO();
+  client.daily = client.daily || {};
+  if (!client.daily[t]) client.daily[t] = {};
+  const d=client.daily[t];
+  if (d.steps===undefined) d.steps = rand(6500,11000);
+  if (d.sleepHrs===undefined) d.sleepHrs = rand(6,8);
+  if (d.rhr===undefined) d.rhr = rand(52,62);
+  if (d.stressAvg===undefined) d.stressAvg = rand(20,40);
+  if (d.bodyBatteryStart===undefined) d.bodyBatteryStart = rand(70,95);
+  if (d.bodyBatteryEnd===undefined) d.bodyBatteryEnd = rand(20,55);
+  if (d.activeCals===undefined) d.activeCals = rand(250,900);
+  if (d.workoutDone===undefined) d.workoutDone = false;
+  if (d.workoutMins===undefined) d.workoutMins = 0;
+  if (d.nutritionCompliancePct===undefined) d.nutritionCompliancePct = 75;
+  if (!d.selfReport) d.selfReport = { soreness:4,mood:7,energy:7,digestion:6 };
+  if (d.caloriesBurned===undefined) d.caloriesBurned = "";
+  if (d.caloriesConsumed===undefined) d.caloriesConsumed = "";
+  client.dietBuilder = client.dietBuilder || seedDietBuilder();
+}
+function calorieDelta(day){
+  const b = day?.caloriesBurned;
+  const c = day?.caloriesConsumed;
+  if (b!=="" && c!=="" && isFinite(Number(b)) && isFinite(Number(c))) return Number(c)-Number(b);
+  return null;
+}
+function flagRow(day){
+  const flags=[];
+  if (!day) return flags;
+  if (Number(day.sleepHrs) <= 6) flags.push("Low sleep");
+  if (Number(day.stressAvg) >= 38) flags.push("High stress");
+  if (Number(day.steps) <= 7000) flags.push("Low steps");
+  if (!day.workoutDone) flags.push("Missed workout");
+  if (Number(day.nutritionCompliancePct) < 70) flags.push("Low nutrition");
+  return flags;
+}
+function esc(s){ return String(s??"").replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function n(v){ const x=Number(v); return isFinite(x)?x:0; }
+
+/** ====== Header/Nav ====== */
+function setHeaderSession(state){
+  const who = document.getElementById("whoami");
+  const btn = document.getElementById("logoutBtn");
+  const nav = document.getElementById("topNav");
+  if (!state.session){
+    who.textContent=""; btn.style.display="none"; nav.style.display="none"; return;
+  }
+  const u = getSessionUser(state);
+  who.textContent = `${u.name} • ${u.role}`;
+  btn.style.display="";
+  nav.style.display="flex";
+}
+function wireTopNav(state){
+  const nav=document.getElementById("topNav");
+  nav.querySelectorAll("a[data-nav]").forEach(a=>{
+    a.onclick=(e)=>{ e.preventDefault(); state.ui.view=a.dataset.nav; save(state); render(); };
+    a.classList.toggle("active", a.dataset.nav===state.ui.view);
   });
-  return {kcal,p,c,f};
-}
-function esc(s){
-  return String(s??"").replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
 
-function render(){
-  const s=load();
-  document.getElementById("who").textContent = `Role: ${s.session.role} • ${today()}`;
+/** ====== Views ====== */
+function viewLogin(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  root.appendChild(el(`
+    <div class="grid">
+      <div class="card">
+        <h1>Login (demo)</h1>
+        <div class="row">
+          <span class="tag">coach@demo.com / demo</span>
+          <span class="tag">client@demo.com / demo</span>
+        </div>
+        <label>Email</label>
+        <input id="email" placeholder="coach@demo.com" />
+        <label>Password</label>
+        <input id="pass" type="password" placeholder="demo" />
+        <div class="row" style="margin-top:10px;">
+          <button class="primary" id="loginBtn">Login</button>
+          <button id="resetBtn">Reset demo data</button>
+        </div>
+        <p class="muted" style="margin-top:10px;">If you don’t see changes after deploying: hard refresh (Ctrl+F5) or reset demo data.</p>
+      </div>
+      <div class="card">
+        <h2>Included</h2>
+        <div class="row">
+          <span class="tag">Coach summary</span>
+          <span class="tag">Client summary</span>
+          <span class="tag">Calorie tracker (client)</span>
+          <span class="tag">Diet builder (meals/foods)</span>
+          <span class="tag">Workout logging</span>
+          <span class="tag">Messages</span>
+        </div>
+      </div>
+    </div>
+  `));
+  root.querySelector("#loginBtn").onclick=()=>{
+    const email=root.querySelector("#email").value.trim().toLowerCase();
+    const pass=root.querySelector("#pass").value.trim();
+    const user=state.users.find(u=>u.email===email && u.pass===pass);
+    if(!user) return alert("Invalid demo credentials.");
+    state.session={userId:user.id};
+    state.ui = state.ui || {};
+    state.ui.view = user.role==="coach" ? "coach" : "client";
+    if (user.role==="client") state.ui.selectedClientId = user.clientId || "c1";
+    save(state);
+    render();
+  };
+  root.querySelector("#resetBtn").onclick=()=>{ localStorage.removeItem(LS_KEY); location.reload(); };
+}
 
+function viewCoach(state){
   const root=document.getElementById("app");
   root.innerHTML="";
 
-  const dietCard=document.createElement("div");
-  dietCard.className="card";
-  dietCard.innerHTML=`
-    <div class="row" style="justify-content:space-between;align-items:flex-start;">
-      <div>
-        <h2 style="margin:0 0 6px 0;">Diet Builder (custom)</h2>
-        <div class="muted">Add foods manually. Totals update automatically.</div>
-      </div>
-      <div class="row" style="align-items:center;">
-        <input id="newMealName" style="min-width:220px;" placeholder="New meal name (e.g. Pre-workout)" />
-        <button class="primary" id="addMealBtn">+ Add meal</button>
-      </div>
-    </div>
-    <div id="meals" style="margin-top:12px;"></div>
-    <hr>
-    <div class="row" style="justify-content:space-between;align-items:center;">
-      <div>
-        <b>Total (all meals)</b>
-        <div class="muted">Sum of every meal</div>
-      </div>
-      <div class="row" id="grandTotals"></div>
-    </div>
-  `;
-  root.appendChild(dietCard);
+  state.clients.forEach(ensureToday);
+  const client=getSelectedClient(state);
+  const t=todayISO();
+  const day=client.daily[t];
 
-  const mealsDiv=dietCard.querySelector("#meals");
-  const grandTotalsDiv=dietCard.querySelector("#grandTotals");
+  const sidebar = el(`
+    <div class="card">
+      <h2>Coach</h2>
+      <label>Selected client</label>
+      <select id="clientSel">
+        ${state.clients.map(c=>`<option value="${c.id}" ${c.id===client.id?"selected":""}>${c.name}</option>`).join("")}
+      </select>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="small" id="toClient">Open client</button>
+        <button class="small" id="toDiet">Open diet</button>
+        <button class="small" id="toMsg">Messages</button>
+      </div>
+
+      <hr class="hr">
+
+      <h3>Macro targets (training day)</h3>
+      <div class="row">
+        <input id="kcal" style="max-width:110px" value="${client.macroTargets.training.kcal}" />
+        <input id="p" style="max-width:110px" value="${client.macroTargets.training.p}" />
+        <input id="c" style="max-width:110px" value="${client.macroTargets.training.c}" />
+        <input id="f" style="max-width:110px" value="${client.macroTargets.training.f}" />
+      </div>
+      <div class="muted">kcal / P / C / F</div>
+      <button class="primary" id="saveTargets" style="margin-top:10px;">Save targets</button>
+
+      <hr class="hr">
+      <div class="muted"><b>Calorie tracker</b> is entered on the Client page (Burned/Consumed).</div>
+    </div>
+  `);
+
+  const main = el(`
+    <div class="row" style="flex-direction:column;gap:12px;">
+      <div class="card">
+        <h2>Coach summary • Today (${t})</h2>
+        <p class="muted">Includes Burned / Consumed / Delta.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Sleep</th>
+                <th>RHR</th>
+                <th>Stress</th>
+                <th>Steps</th>
+                <th>Burned</th>
+                <th>Consumed</th>
+                <th>Delta</th>
+                <th>Workout</th>
+                <th>Nutrition%</th>
+                <th>Flags</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Selected client • quick view</h2>
+        <div class="kpi">
+          <div class="box"><div class="muted">Sleep</div><div><b>${fmt(day.sleepHrs)}</b> h</div></div>
+          <div class="box"><div class="muted">Steps</div><div><b>${fmt(day.steps)}</b></div></div>
+          <div class="box"><div class="muted">Workout</div><div><b>${day.workoutDone?"Done":"No"}</b></div></div>
+          <div class="box"><div class="muted">Nutrition</div><div><b>${fmt(day.nutritionCompliancePct)}</b>%</div></div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const layout = el(`<div class="grid"></div>`);
+  layout.appendChild(sidebar);
+  layout.appendChild(main);
+  root.appendChild(layout);
+
+  // Fill coach table
+  const tbody=root.querySelector("#tbody");
+  tbody.innerHTML="";
+  state.clients.forEach(c=>{
+    ensureToday(c);
+    const d=c.daily[t];
+    const delta=calorieDelta(d);
+    const flags=flagRow(d);
+    tbody.appendChild(el(`
+      <tr style="cursor:pointer;">
+        <td><b>${c.name}</b><div class="muted">${c.profile.notes||""}</div></td>
+        <td>${fmt(d.sleepHrs)}h</td>
+        <td>${fmt(d.rhr)}</td>
+        <td>${fmt(d.stressAvg)}</td>
+        <td>${fmt(d.steps)}</td>
+        <td>${fmt(d.caloriesBurned)}</td>
+        <td>${fmt(d.caloriesConsumed)}</td>
+        <td><b>${delta===null?"—":(delta>0?"+":"")+delta}</b></td>
+        <td>${d.workoutDone?"Done":"No"}</td>
+        <td>${fmt(d.nutritionCompliancePct)}%</td>
+        <td>${flags.length ? flags.map(f=>`<span class="tag">${f}</span>`).join("") : '<span class="tag">OK</span>'}</td>
+      </tr>
+    `)).onclick=()=>{ state.ui.selectedClientId=c.id; save(state); render(); };
+  });
+
+  // Actions
+  sidebar.querySelector("#clientSel").onchange=(e)=>{ state.ui.selectedClientId=e.target.value; save(state); render(); };
+  sidebar.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
+  sidebar.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
+  sidebar.querySelector("#toMsg").onclick=()=>{ state.ui.view="messages"; save(state); render(); };
+  sidebar.querySelector("#saveTargets").onclick=()=>{
+    client.macroTargets.training = {
+      kcal:Number(sidebar.querySelector("#kcal").value),
+      p:Number(sidebar.querySelector("#p").value),
+      c:Number(sidebar.querySelector("#c").value),
+      f:Number(sidebar.querySelector("#f").value)
+    };
+    save(state);
+    alert("Saved targets.");
+    render();
+  };
+}
+
+function viewClient(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  const client=getSelectedClient(state);
+  ensureToday(client);
+  const t=todayISO();
+  const day=client.daily[t];
+  const targets=client.macroTargets.training;
+  const delta=calorieDelta(day);
+
+  const left = el(`
+    <div class="card">
+      <h2>Client summary • ${client.name}</h2>
+      <div class="row">
+        <span class="tag">${t}</span>
+        <span class="tag">${client.profile.constraints.join(", ") || "no constraints"}</span>
+      </div>
+
+      <hr class="hr">
+
+      <h3>Targets (training day)</h3>
+      <div class="kpi">
+        <div class="box"><div class="muted">Calories</div><div><b>${targets.kcal}</b> kcal</div></div>
+        <div class="box"><div class="muted">Protein</div><div><b>${targets.p}</b> g</div></div>
+        <div class="box"><div class="muted">Carbs</div><div><b>${targets.c}</b> g</div></div>
+        <div class="box"><div class="muted">Fat</div><div><b>${targets.f}</b> g</div></div>
+      </div>
+
+      <hr class="hr">
+
+      <h3>Calorie tracker (today)</h3>
+      <p class="muted">Enter totals. Coach sees them on Coach → Today.</p>
+      <div class="row">
+        <div style="flex:1;min-width:180px;">
+          <label>Calories burned</label>
+          <input id="burned" placeholder="e.g. 2600" value="${day.caloriesBurned ?? ""}" />
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <label>Calories consumed</label>
+          <input id="consumed" placeholder="e.g. 2400" value="${day.caloriesConsumed ?? ""}" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span class="tag">Delta (Consumed − Burned): <b>${delta===null?"—":(delta>0?"+":"")+delta}</b></span>
+      </div>
+      <button class="primary" id="saveCals" style="margin-top:10px;">Save calories</button>
+
+      <hr class="hr">
+
+      <h3>Daily check-in</h3>
+      <label>Nutrition compliance (%)</label>
+      <input id="comp" type="number" min="0" max="100" value="${day.nutritionCompliancePct}" />
+      <div class="row" style="margin-top:8px;">
+        <input id="sore" style="max-width:120px" value="${day.selfReport.soreness}" />
+        <input id="mood" style="max-width:120px" value="${day.selfReport.mood}" />
+        <input id="ener" style="max-width:120px" value="${day.selfReport.energy}" />
+        <input id="dig"  style="max-width:120px" value="${day.selfReport.digestion}" />
+      </div>
+      <div class="muted">Soreness / Mood / Energy / Digestion (1–10)</div>
+      <button id="saveCheck" style="margin-top:10px;">Save check-in</button>
+
+      <hr class="hr">
+      <div class="row">
+        <button id="toDiet">Diet</button>
+        <button id="toProgress">Progress</button>
+        <button id="toMessages">Messages</button>
+      </div>
+    </div>
+  `);
+
+  const right = el(`
+    <div class="card">
+      <h2>Workout logging</h2>
+      <p class="muted">Log sets/reps/weight for today.</p>
+      <div id="wArea"></div>
+    </div>
+  `);
+
+  const layout = el(`<div class="split"></div>`);
+  layout.appendChild(left);
+  layout.appendChild(right);
+  root.appendChild(layout);
+
+  // calorie tracker save
+  left.querySelector("#saveCals").onclick=()=>{
+    day.caloriesBurned = left.querySelector("#burned").value.trim();
+    day.caloriesConsumed = left.querySelector("#consumed").value.trim();
+    save(state);
+    alert("Saved calories.");
+    render();
+  };
+
+  // check-in save
+  left.querySelector("#saveCheck").onclick=()=>{
+    day.nutritionCompliancePct = Math.max(0, Math.min(100, Number(left.querySelector("#comp").value)));
+    day.selfReport = {
+      soreness:Number(left.querySelector("#sore").value),
+      mood:Number(left.querySelector("#mood").value),
+      energy:Number(left.querySelector("#ener").value),
+      digestion:Number(left.querySelector("#dig").value)
+    };
+    save(state);
+    alert("Saved check-in.");
+  };
+
+  // workout logger
+  const wArea = right.querySelector("#wArea");
+  const plan = state.workoutPlan;
+  const dayIdx = (new Date()).getDay(); // 0 Sun - 6 Sat
+  const mapped = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
+  const dow = mapped[dayIdx] || "Mon";
+  const session = plan.find(p=>p.day===dow) || plan[0];
+
+  const logKey = t;
+  state.workoutLogs[logKey] = state.workoutLogs[logKey] || {};
+  wArea.appendChild(el(`<div class="tag">Today: ${session.day} • ${session.name}</div>`));
+
+  session.exercises.forEach(ex=>{
+    const sets = state.workoutLogs[logKey][ex] || [{reps:"",weight:""}];
+    const block = el(`
+      <div class="card" style="border-radius:12px;margin-top:10px;">
+        <b>${ex}</b>
+        <div class="muted">Sets</div>
+        <div class="sets"></div>
+        <div class="row" style="margin-top:8px;">
+          <button class="small" data-add>Add set</button>
+          <button class="small" data-save>Save</button>
+        </div>
+      </div>
+    `);
+    const setsDiv = block.querySelector(".sets");
+
+    function renderSets(){
+      setsDiv.innerHTML="";
+      sets.forEach((s,idx)=>{
+        const line = el(`
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">#${idx+1}</span>
+            <input style="max-width:110px" placeholder="reps" value="${esc(s.reps)}">
+            <input style="max-width:140px" placeholder="weight" value="${esc(s.weight)}">
+            <button class="small">Delete</button>
+          </div>
+        `);
+        line.querySelector("button").onclick=()=>{ sets.splice(idx,1); if(!sets.length) sets.push({reps:"",weight:""}); renderSets(); };
+        setsDiv.appendChild(line);
+      });
+    }
+
+    block.querySelector("[data-add]").onclick=()=>{ sets.push({reps:"",weight:""}); renderSets(); };
+    block.querySelector("[data-save]").onclick=()=>{
+      const rows = setsDiv.querySelectorAll(".row");
+      const newSets=[];
+      rows.forEach(r=>{
+        const inputs=r.querySelectorAll("input");
+        newSets.push({ reps: inputs[0].value, weight: inputs[1].value });
+      });
+      state.workoutLogs[logKey][ex]=newSets;
+      day.workoutDone=true;
+      day.workoutMins=45;
+      save(state);
+      alert("Saved workout.");
+    };
+
+    renderSets();
+    wArea.appendChild(block);
+  });
+
+  // nav
+  left.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
+  left.querySelector("#toProgress").onclick=()=>{ state.ui.view="progress"; save(state); render(); };
+  left.querySelector("#toMessages").onclick=()=>{ state.ui.view="messages"; save(state); render(); };
+}
+
+function viewDiet(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  const client=getSelectedClient(state);
+  ensureToday(client);
+
+  const targets=client.macroTargets.training;
+
+  const wrap = el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;">
+        <div>
+          <h2>Diet Builder • ${client.name}</h2>
+          <div class="muted">Add meals + foods. Totals update automatically.</div>
+          <div class="row" style="margin-top:6px;">
+            <span class="tag">Targets: ${targets.kcal} kcal</span>
+            <span class="tag">P ${targets.p}</span>
+            <span class="tag">C ${targets.c}</span>
+            <span class="tag">F ${targets.f}</span>
+          </div>
+        </div>
+        <div class="row">
+          <input id="newMealName" style="min-width:240px;" placeholder="New meal name (e.g. Pre-workout)" />
+          <button class="primary" id="addMealBtn">+ Add meal</button>
+        </div>
+      </div>
+
+      <div id="meals" style="margin-top:12px;"></div>
+
+      <hr class="hr">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <div>
+          <b>Total (all meals)</b>
+          <div class="muted">Sum of every meal</div>
+        </div>
+        <div class="row" id="grandTotals"></div>
+      </div>
+
+      <hr class="hr">
+      <div class="row">
+        <button id="toClient">Client</button>
+        <button id="toCoach">Coach</button>
+        <button id="toProgress">Progress</button>
+      </div>
+    </div>
+  `);
+  root.appendChild(wrap);
+
+  const mealsDiv = wrap.querySelector("#meals");
+  const grandTotalsDiv = wrap.querySelector("#grandTotals");
+
+  function calcMeal(meal){
+    let kcal=0,p=0,c=0,f=0;
+    (meal.foods||[]).forEach(x=>{ kcal+=n(x.kcal); p+=n(x.p); c+=n(x.c); f+=n(x.f); });
+    return {kcal,p,c,f};
+  }
 
   function recalcAll(){
-    // per-meal totals (now inline below table)
-    s.diet.meals.forEach((meal,mi)=>{
-      const t = calcMeal(meal);
-      const box = document.getElementById(`mealTotals_${mi}`);
+    // meal totals
+    client.dietBuilder.meals.forEach((meal,mi)=>{
+      const t=calcMeal(meal);
+      const box=document.getElementById(`mealTotals_${mi}`);
       if (box){
         box.innerHTML = `
           <span class="tag">${t.kcal} kcal</span>
@@ -146,10 +655,9 @@ function render(){
         `;
       }
     });
-
-    // grand total
+    // grand totals
     let g={kcal:0,p:0,c:0,f:0};
-    s.diet.meals.forEach(m=>{
+    client.dietBuilder.meals.forEach(m=>{
       const t=calcMeal(m);
       g.kcal+=t.kcal; g.p+=t.p; g.c+=t.c; g.f+=t.f;
     });
@@ -159,75 +667,69 @@ function render(){
       <span class="tag">C ${g.c}</span>
       <span class="tag">F ${g.f}</span>
     `;
-    save(s);
+    save(state);
   }
 
   function drawMeals(){
     mealsDiv.innerHTML="";
-
-    s.diet.meals.forEach((meal,mi)=>{
-      const mealCard=document.createElement("div");
-      mealCard.className="card";
-      mealCard.innerHTML=`
-        <div class="row" style="justify-content:space-between;align-items:center;">
-          <div class="row" style="align-items:center;">
-            <input data-mealname style="min-width:220px;font-weight:700;" value="${esc(meal.name)}" />
-            <span class="muted">Meal</span>
+    client.dietBuilder.meals.forEach((meal,mi)=>{
+      const mealCard = el(`
+        <div class="card" style="margin-top:12px;">
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <div class="row" style="align-items:center;">
+              <input data-mealname style="min-width:240px;font-weight:700;" value="${esc(meal.name)}" />
+              <span class="muted">Meal</span>
+            </div>
+            <button class="small danger" data-delmeal>Remove meal</button>
           </div>
-          <button class="small danger" data-delmeal>Remove meal</button>
+
+          <div style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:44%;">Food</th>
+                  <th style="width:14%;">Kcal</th>
+                  <th style="width:14%;">P</th>
+                  <th style="width:14%;">C</th>
+                  <th style="width:14%;">F</th>
+                  <th style="width:1%;"></th>
+                </tr>
+              </thead>
+              <tbody class="foods"></tbody>
+            </table>
+          </div>
+
+          <div class="actionsRow">
+            <button data-add>+ Add food</button>
+            <div class="mealTotalsInline" id="mealTotals_${mi}"></div>
+          </div>
         </div>
+      `);
 
-        <div style="margin-top:10px;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:44%;">Food</th>
-                <th style="width:14%;">Kcal</th>
-                <th style="width:14%;">P</th>
-                <th style="width:14%;">C</th>
-                <th style="width:14%;">F</th>
-                <th style="width:1%;"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+      mealCard.querySelector("[data-mealname]").oninput=(e)=>{ meal.name=e.target.value; save(state); };
 
-        <div class="actionsRow">
-          <button data-add>+ Add food</button>
-          <div class="mealTotalsInline" id="mealTotals_${mi}"></div>
-        </div>
-      `;
-
-      // rename meal
-      mealCard.querySelector("[data-mealname]").oninput = (e)=>{
-        meal.name = e.target.value;
-        save(s);
-      };
-
-      // remove meal
-      mealCard.querySelector("[data-delmeal]").onclick = ()=>{
+      mealCard.querySelector("[data-delmeal]").onclick=()=>{
         if (!confirm(`Remove meal "${meal.name}"?`)) return;
-        s.diet.meals.splice(mi,1);
-        save(s);
+        client.dietBuilder.meals.splice(mi,1);
+        save(state);
         render();
       };
 
-      const tbody = mealCard.querySelector("tbody");
-
+      const tbody = mealCard.querySelector(".foods");
       function drawFoods(){
         tbody.innerHTML="";
         (meal.foods||[]).forEach((food,fi)=>{
-          const tr=document.createElement("tr");
-          tr.innerHTML=`
-            <td><input value="${esc(food.name)}" placeholder="e.g. Chicken breast 180g"></td>
-            <td><input value="${esc(food.kcal)}" placeholder="kcal"></td>
-            <td><input value="${esc(food.p)}" placeholder="g"></td>
-            <td><input value="${esc(food.c)}" placeholder="g"></td>
-            <td><input value="${esc(food.f)}" placeholder="g"></td>
-            <td><button class="small" title="Remove">✕</button></td>
-          `;
-          const ins=tr.querySelectorAll("input");
+          const tr = el(`
+            <tr>
+              <td><input value="${esc(food.name)}" placeholder="e.g. Chicken breast 180g"></td>
+              <td><input value="${esc(food.kcal)}" placeholder="kcal"></td>
+              <td><input value="${esc(food.p)}" placeholder="g"></td>
+              <td><input value="${esc(food.c)}" placeholder="g"></td>
+              <td><input value="${esc(food.f)}" placeholder="g"></td>
+              <td><button class="small" title="Remove">✕</button></td>
+            </tr>
+          `);
+          const ins = tr.querySelectorAll("input");
           ["name","kcal","p","c","f"].forEach((k,i)=>{
             ins[i].oninput=(e)=>{ food[k]=e.target.value; recalcAll(); };
           });
@@ -244,41 +746,238 @@ function render(){
       mealCard.querySelector("[data-add]").onclick=()=>{
         meal.foods.push({name:"",kcal:"",p:"",c:"",f:""});
         drawFoods();
-        setTimeout(()=>{
-          const last = tbody.querySelector("tr:last-child input");
-          if (last) last.focus();
-        },0);
+        setTimeout(()=>{ const last=tbody.querySelector("tr:last-child input"); if(last) last.focus(); },0);
       };
 
       drawFoods();
       mealsDiv.appendChild(mealCard);
     });
-
     recalcAll();
   }
 
-  // Add meal
-  dietCard.querySelector("#addMealBtn").onclick = ()=>{
-    const name = dietCard.querySelector("#newMealName").value.trim();
-    if (!name) return alert("Please enter a meal name.");
-    s.diet.meals.push({name, foods:[]});
-    dietCard.querySelector("#newMealName").value="";
-    save(s);
+  // add meal
+  wrap.querySelector("#addMealBtn").onclick=()=>{
+    const name = wrap.querySelector("#newMealName").value.trim();
+    if(!name) return alert("Please enter a meal name.");
+    client.dietBuilder.meals.push({name, foods:[]});
+    wrap.querySelector("#newMealName").value="";
+    save(state);
     render();
   };
-
-  // Enter to add meal
-  dietCard.querySelector("#newMealName").addEventListener("keydown",(e)=>{
-    if(e.key==="Enter"){ e.preventDefault(); dietCard.querySelector("#addMealBtn").click(); }
+  wrap.querySelector("#newMealName").addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); wrap.querySelector("#addMealBtn").click(); }
   });
 
   drawMeals();
+
+  // nav
+  wrap.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
+  wrap.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
+  wrap.querySelector("#toProgress").onclick=()=>{ state.ui.view="progress"; save(state); render(); };
 }
 
-document.getElementById("reset").onclick=()=>{
-  if(!confirm("Reset diet builder data?")) return;
-  localStorage.removeItem(LS);
-  location.reload();
+function viewProgress(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  const client=getSelectedClient(state);
+  ensureToday(client);
+  const t=todayISO();
+
+  const rows=[];
+  for(let i=0;i<14;i++){
+    const d=addDays(t,-i);
+    rows.push({date:d, ...(client.daily[d]||{})});
+  }
+
+  const card = el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <div>
+          <h2>Progress • ${client.name}</h2>
+          <div class="muted">Last 14 days snapshot (sleep, steps, workout, nutrition).</div>
+        </div>
+        <div class="row">
+          <button class="small" id="toClient">Client</button>
+          <button class="small" id="toDiet">Diet</button>
+          <button class="small" id="toCoach">Coach</button>
+        </div>
+      </div>
+      <hr class="hr">
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Steps</th><th>Workout</th><th>Nutrition%</th><th>Self-report</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:10px;">Calorie tracker inputs are on the <b>Client</b> page only.</p>
+    </div>
+  `);
+  root.appendChild(card);
+
+  const tb=card.querySelector("#tbody");
+  rows.forEach(r=>{
+    tb.appendChild(el(`
+      <tr>
+        <td><b>${r.date}</b></td>
+        <td>${fmt(r.sleepHrs)}h</td>
+        <td>${fmt(r.rhr)}</td>
+        <td>${fmt(r.stressAvg)}</td>
+        <td>${fmt(r.steps)}</td>
+        <td>${r.workoutDone?"Done":"No"}</td>
+        <td>${fmt(r.nutritionCompliancePct)}%</td>
+        <td>S:${r.selfReport?.soreness ?? "—"} M:${r.selfReport?.mood ?? "—"} E:${r.selfReport?.energy ?? "—"} D:${r.selfReport?.digestion ?? "—"}</td>
+      </tr>
+    `));
+  });
+
+  card.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
+  card.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
+  card.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
+}
+
+function viewMessages(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  const user=getSessionUser(state);
+  const client=getSelectedClient(state);
+
+  const header = el(`
+    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+      <div class="row">
+        <span class="tag">Messages</span>
+        <span class="tag">Coach ↔ ${client.name}</span>
+      </div>
+      <div class="row">
+        <button class="small" id="backBtn">Back</button>
+      </div>
+    </div>
+  `);
+
+  const card = el(`
+    <div class="card">
+      <div id="msgs" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="row" style="margin-top:10px;">
+        <input id="msgInput" placeholder="Type a message..." />
+        <button class="primary" id="sendBtn">Send</button>
+      </div>
+    </div>
+  `);
+
+  root.appendChild(header);
+  root.appendChild(card);
+
+  function senderName(id){
+    const u = state.users.find(x=>x.id===id);
+    if (u) return u.name;
+    const c = state.clients.find(x=>x.id===id);
+    if (c) return c.name;
+    return "User";
+  }
+
+  function renderMsgs(){
+    const box=card.querySelector("#msgs");
+    box.innerHTML="";
+    state.messages.slice().sort((a,b)=>a.at.localeCompare(b.at)).forEach(m=>{
+      // show only messages involving this client
+      if (!((m.from==="u1" && m.to===client.id) || (m.from===client.id && m.to==="u1") || (m.from===user.id && (m.to===client.id||m.to==="u1")))) return;
+      const mine = m.from===user.id;
+      box.appendChild(el(`
+        <div class="card" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;background:${mine?'#eefbf1':'#fff8e6'};">
+          <div class="muted" style="font-size:12px;"><b>${senderName(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
+          <div>${esc(m.text)}</div>
+        </div>
+      `));
+    });
+  }
+  renderMsgs();
+
+  card.querySelector("#sendBtn").onclick=()=>{
+    const text=card.querySelector("#msgInput").value.trim();
+    if(!text) return;
+    const from = user.role==="coach" ? "u1" : client.id;
+    const to = user.role==="coach" ? client.id : "u1";
+    state.messages.push({ id:"m"+(state.messages.length+1), from, to, at:new Date().toISOString(), text });
+    card.querySelector("#msgInput").value="";
+    save(state);
+    renderMsgs();
+  };
+
+  header.querySelector("#backBtn").onclick=()=>{
+    state.ui.view = user.role==="coach" ? "coach" : "client";
+    save(state);
+    render();
+  };
+}
+
+function viewHistory(state){
+  const root=document.getElementById("app");
+  root.innerHTML="";
+  root.appendChild(el(`
+    <div class="card">
+      <h2>History</h2>
+      <p class="muted">Placeholder in this merged build. Your next step could be PRs + exercise history back in here.</p>
+      <div class="row">
+        <button id="toClient">Client</button>
+        <button id="toDiet">Diet</button>
+        <button id="toCoach">Coach</button>
+      </div>
+    </div>
+  `));
+  root.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
+  root.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
+  root.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
+}
+
+/** ====== Router ====== */
+function render(){
+  setEnvPill();
+  const state=load();
+  state.ui = state.ui || { view:"coach", selectedClientId: state.clients?.[0]?.id || "c1" };
+
+  // ensure selection exists
+  if (state.clients?.length && !state.clients.find(c=>c.id===state.ui.selectedClientId)){
+    state.ui.selectedClientId = state.clients[0].id;
+    save(state);
+  }
+
+  state.clients.forEach(ensureToday);
+
+  setHeaderSession(state);
+  if (state.session) wireTopNav(state);
+
+  if (!state.session) return viewLogin(state);
+
+  const user=getSessionUser(state);
+  if (user.role==="client"){
+    state.ui.selectedClientId = user.clientId || "c1";
+    if (!["client","diet","progress","messages","history"].includes(state.ui.view)) state.ui.view="client";
+    save(state);
+  } else {
+    if (!["coach","client","diet","progress","messages","history"].includes(state.ui.view)) state.ui.view="coach";
+  }
+
+  if (state.ui.view==="coach") return viewCoach(state);
+  if (state.ui.view==="client") return viewClient(state);
+  if (state.ui.view==="diet") return viewDiet(state);
+  if (state.ui.view==="progress") return viewProgress(state);
+  if (state.ui.view==="messages") return viewMessages(state);
+  if (state.ui.view==="history") return viewHistory(state);
+
+  state.ui.view = user.role==="coach" ? "coach" : "client";
+  save(state);
+  return render();
+}
+
+// logout
+document.getElementById("logoutBtn").onclick=()=>{
+  const state=load();
+  state.session=null;
+  save(state);
+  render();
 };
 
 render();
