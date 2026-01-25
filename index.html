@@ -609,32 +609,103 @@ function viewClient(state){
     showToast("Saved", "Saved check-in.", "good");
   };
 
-  // workout logger
+  // workout logger (select session + add/remove exercises)
   const wArea = right.querySelector("#wArea");
-  const plan = state.workoutPlan;
-  const dayIdx = (new Date()).getDay(); // 0 Sun - 6 Sat
-  const mapped = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
-  const dow = mapped[dayIdx] || "Mon";
-  const session = plan.find(p=>p.day===dow) || plan[0];
+  const plan = (state.workoutPlan || []).map(p=>({
+    ...p,
+    id: p.id || (`${p.day||"X"}_${p.name||"Workout"}`).replace(/\s+/g,"_").toLowerCase()
+  }));
+  state.workoutPlan = plan;
+
+  state.ui = state.ui || {};
+  const defaultSessionId = plan[0]?.id;
+  const selectedSessionId = state.ui.workoutSessionId || defaultSessionId;
+  let session = plan.find(p=>p.id===selectedSessionId) || plan[0];
+
+  const header = el(`
+    <div class="card" style="border-radius:12px;margin-top:0;">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <div>
+          <div class="muted" style="font-size:12px;">Workout selection</div>
+          <div class="row" style="gap:10px;align-items:center;">
+            <select id="sessionSel" style="max-width:320px">
+              ${plan.map(p=>`<option value="${p.id}" ${p.id===session.id?"selected":""}>${p.day} • ${p.name}</option>`).join("")}
+            </select>
+            <span class="tag">Date: ${t}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;align-items:flex-end;">
+        <div style="flex:1;min-width:220px;">
+          <label style="margin-top:0;">Add exercise</label>
+          <input id="newEx" placeholder="e.g. Pull-up" />
+          <div class="help">Adds to the selected workout template.</div>
+        </div>
+        <button class="small" id="addExBtn" style="height:40px;">Add</button>
+      </div>
+      <div class="error" id="exErr" style="display:none;"></div>
+    </div>
+  `);
+  wArea.appendChild(header);
+
+  header.querySelector("#sessionSel").onchange=(e)=>{
+    state.ui.workoutSessionId = e.target.value;
+    save(state);
+    render();
+  };
+
+  const exErr = header.querySelector("#exErr");
+  header.querySelector("#addExBtn").onclick=()=>{
+    const name = header.querySelector("#newEx").value.trim();
+    if(!name){
+      exErr.style.display=""; exErr.textContent="Enter an exercise name.";
+      return;
+    }
+    exErr.style.display="none"; exErr.textContent="";
+    const exists = (session.exercises||[]).some(x=>String(x).toLowerCase()===name.toLowerCase());
+    if (exists){
+      exErr.style.display=""; exErr.textContent="That exercise already exists in this workout.";
+      return;
+    }
+    session.exercises = session.exercises || [];
+    session.exercises.push(name);
+    header.querySelector("#newEx").value="";
+    save(state);
+    showToast("Saved", "Exercise added to workout template.", "good");
+    render();
+  };
 
   const logKey = t;
   state.workoutLogs[logKey] = state.workoutLogs[logKey] || {};
-  wArea.appendChild(el(`<div class="tag">Today: ${session.day} • ${session.name}</div>`));
+  wArea.appendChild(el(`<div class="tag">Selected: ${session.day} • ${session.name}</div>`));
 
-  session.exercises.forEach(ex=>{
+  (session.exercises || []).forEach(ex=>{
     const sets = state.workoutLogs[logKey][ex] || [{reps:"",weight:""}];
     const block = el(`
       <div class="card" style="border-radius:12px;margin-top:10px;">
-        <b>${ex}</b>
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <b>${esc(ex)}</b>
+          <button class="small" data-remove>Remove exercise</button>
+        </div>
         <div class="muted">Sets</div>
         <div class="sets"></div>
         <div class="row" style="margin-top:8px;">
           <button class="small" data-add>Add set</button>
-          <button class="small" data-save>Save</button>
+          <button class="small primary" data-save>Save sets</button>
         </div>
       </div>
     `);
     const setsDiv = block.querySelector(".sets");
+
+    block.querySelector("[data-remove]").onclick=()=>{
+      if (!confirm(`Remove "${ex}" from "${session.day} • ${session.name}"?`)) return;
+      session.exercises = (session.exercises||[]).filter(x=>x!==ex);
+      if (state.workoutLogs[logKey]) delete state.workoutLogs[logKey][ex];
+      save(state);
+      showToast("Saved", "Exercise removed.", "good");
+      render();
+    };
 
     function renderSets(){
       setsDiv.innerHTML="";
@@ -653,6 +724,7 @@ function viewClient(state){
     }
 
     block.querySelector("[data-add]").onclick=()=>{ sets.push({reps:"",weight:""}); renderSets(); };
+
     block.querySelector("[data-save]").onclick=()=>{
       const rows = setsDiv.querySelectorAll(".row");
       const newSets=[];
@@ -664,7 +736,7 @@ function viewClient(state){
       day.workoutDone=true;
       day.workoutMins=45;
       save(state);
-      showToast("Saved", "Saved workout.", "good");
+      showToast("Saved", "Workout sets saved.", "good");
     };
 
     renderSets();
