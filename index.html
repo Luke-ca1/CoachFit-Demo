@@ -218,11 +218,12 @@ function seedData(){
     { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" },
   ];
   const workoutPlan = [
-    { day:"Mon", name:"Upper A", exercises:["Bench Press","Row","Incline DB","Lateral Raise"] },
-    { day:"Tue", name:"Lower A", exercises:["Squat","RDL","Split Squat","Calf Raise"] },
-    { day:"Wed", name:"Upper B", exercises:["OHP","Pull-up","Cable Fly","Curl"] },
-    { day:"Thu", name:"Lower B", exercises:["Deadlift","Leg Press","Ham Curl","Core"] },
-    { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
+    { id:"w1", day:"1", name:"Back/Delts/Bi's", exercises:["Pull-up","Row","Lat Pulldown","Lateral Raise","Curl"] },
+    { id:"w2", day:"2", name:"Chest/Shoulders/Tri's", exercises:["Bench Press","Incline DB Press","OHP","Lateral Raise","Triceps Pushdown"] },
+    { id:"w3", day:"3", name:"Lower Body", exercises:["Squat","RDL","Leg Press","Ham Curl","Calf Raise"] },
+    { id:"w4", day:"4", name:"Back/Delts/Bi's", exercises:["Pull-up","Row","Cable Row","Rear Delt Fly","Hammer Curl"] },
+    { id:"w5", day:"5", name:"Chest/Shoulders/Tri's", exercises:["Bench Press","Cable Fly","OHP","Dips","Triceps Extension"] },
+    { id:"w6", day:"6", name:"Lower Body", exercises:["Deadlift","Split Squat","Leg Curl","Leg Extension","Core"] },
   ];
   const workoutLogs = {}; // date -> {exercise -> sets[]}
   const messages = [
