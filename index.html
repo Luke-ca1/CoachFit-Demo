@@ -419,7 +419,12 @@ function viewClient(state){
   const client=getSelectedClient(state);
   ensureToday(client);
   const t=todayISO();
-  const day=client.daily[t];
+  state.ui = state.ui || {};
+  const selDate = state.ui.calDate ? state.ui.calDate : t;
+  client.daily[selDate] = client.daily[selDate] || {};
+  if (client.daily[selDate].caloriesBurned===undefined) client.daily[selDate].caloriesBurned="";
+  if (client.daily[selDate].caloriesConsumed===undefined) client.daily[selDate].caloriesConsumed="";
+  const day=client.daily[selDate];
   const targets=client.macroTargets.training;
   const delta=calorieDelta(day);
 
@@ -427,7 +432,7 @@ function viewClient(state){
     <div class="card">
       <h2>Client summary • ${client.name}</h2>
       <div class="row">
-        <span class="tag">${t}</span>
+        <span class="tag">${selDate}</span>
         <span class="tag">${client.profile.constraints.join(", ") || "no constraints"}</span>
       </div>
 
