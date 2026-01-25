@@ -48,13 +48,12 @@
   
     /* Toasts */
     .toastwrap{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
-    .toast{pointer-events:auto;min-width:240px;max-width:320px;background:#111;color:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;gap:10px;align-items:flex-start}
+    .toast{pointer-events:auto;min-width:240px;max-width:340px;background:#111;color:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;gap:10px;align-items:flex-start}
     .toast.good{background:#0f172a}
     .toast.bad{background:#7f1d1d}
     .toast .t{font-weight:700;font-size:13px;line-height:1.2;margin:0}
     .toast .m{font-size:13px;opacity:.9;margin-top:2px}
     .toast .x{margin-left:auto;background:transparent;border:0;color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}
-    .help{font-size:12px;color:#7a7a7a;margin-top:6px}
     .error{font-size:12px;color:#b91c1c;margin-top:6px}
     .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 10px;background:#fff;font-size:12px}
     .badge.pos{background:#fff8e6;border-color:#ffe2a3}
@@ -94,6 +93,7 @@
 <div class="toastwrap" id="toastwrap" aria-live="polite" aria-atomic="true"></div>
 
 <script>
+
 /**
  * CoachFit merged demo:
  * - Diet page = full Diet Builder (add meals, add foods, meal totals + grand total)
@@ -113,18 +113,33 @@ const fmt = (v)=> (v===null||v===undefined||v==="" ? "—" : v);
 function showToast(title, msg, kind="good"){
   const wrap = document.getElementById("toastwrap");
   if (!wrap) return;
-  const node = el(`
-    <div class="toast ${kind}">
-      <div>
-        <div class="t">${esc(title)}</div>
-        ${msg ? `<div class="m">${esc(msg)}</div>` : ``}
-      </div>
-      <button class="x" aria-label="Close">×</button>
-    </div>
-  `);
-  node.querySelector(".x").onclick=()=>node.remove();
-  wrap.appendChild(node);
-  setTimeout(()=>{ if(node.isConnected) node.remove(); }, 2800);
+  const toast = document.createElement("div");
+  toast.className = "toast " + (kind || "good");
+
+  const left = document.createElement("div");
+  const t = document.createElement("div");
+  t.className = "t";
+  t.textContent = title || "";
+  left.appendChild(t);
+
+  if (msg){
+    const m = document.createElement("div");
+    m.className = "m";
+    m.textContent = msg;
+    left.appendChild(m);
+  }
+
+  const x = document.createElement("button");
+  x.className = "x";
+  x.setAttribute("aria-label","Close");
+  x.textContent = "×";
+  x.onclick = ()=> toast.remove();
+
+  toast.appendChild(left);
+  toast.appendChild(x);
+  wrap.appendChild(toast);
+
+  setTimeout(()=>{ if(toast.isConnected) toast.remove(); }, 2800);
 }
 function isBlank(v){ return v===null || v===undefined || String(v).trim()===""; }
 function isValidNumber(v){
@@ -137,7 +152,6 @@ function numOrNull(v){
   const x = Number(String(v).trim());
   return Number.isFinite(x) ? x : null;
 }
-
 
 function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
 function setEnvPill(){
@@ -553,112 +567,37 @@ function viewClient(state){
   layout.appendChild(right);
   root.appendChild(layout);
 
-  // calorie tracker: inline validation + save state
-  const calDateEl = left.querySelector("#calDate");
-  const burnedEl = left.querySelector("#burned");
-  const consumedEl = left.querySelector("#consumed");
-  const saveCalsBtn = left.querySelector("#saveCals");
-
-  const errNode = el(`<div class="error" id="calErr" style="display:none;"></div>`);
-  saveCalsBtn.insertAdjacentElement("afterend", errNode);
-
-  function setCalsBtnEnabled(on){
-    saveCalsBtn.disabled = !on;
-    saveCalsBtn.classList.toggle("btn-disabled", !on);
-  }
-
-  let initial = { date: selDate, burned: String(day.caloriesBurned??""), consumed: String(day.caloriesConsumed??"") };
-
-  function validateCals(){
-    const b = burnedEl.value.trim();
-    const c = consumedEl.value.trim();
-    if (!isValidNumber(b) || !isValidNumber(c)){
-      errNode.style.display="";
-      errNode.textContent = "Calories must be numbers (or left blank).";
-      return false;
-    }
-    errNode.style.display="none";
-    errNode.textContent="";
-    return true;
-  }
-
-  function isDirty(){
-    return (calDateEl.value || t) !== initial.date ||
-           burnedEl.value.trim() !== initial.burned.trim() ||
-           consumedEl.value.trim() !== initial.consumed.trim();
-  }
-
-  function updateSaveState(){
-    const ok = validateCals();
-    setCalsBtnEnabled(ok && isDirty());
-  }
-
-  saveCalsBtn.onclick=()=>{
-    if (!validateCals()) return;
-    const iso = calDateEl.value || t;
+  // calorie tracker save (selected date)
+  left.querySelector("#saveCals").onclick=()=>{
+    const iso = left.querySelector("#calDate").value || t;
     state.ui = state.ui || {};
     state.ui.calDate = iso;
-
     client.daily[iso] = client.daily[iso] || {};
     if (client.daily[iso].caloriesBurned===undefined) client.daily[iso].caloriesBurned="";
     if (client.daily[iso].caloriesConsumed===undefined) client.daily[iso].caloriesConsumed="";
-    client.daily[iso].caloriesBurned = burnedEl.value.trim();
-    client.daily[iso].caloriesConsumed = consumedEl.value.trim();
-
+    client.daily[iso].caloriesBurned = left.querySelector("#burned").value.trim();
+    client.daily[iso].caloriesConsumed = left.querySelector("#consumed").value.trim();
     save(state);
-    showToast("Saved", `Calories saved for ${iso}`, "good");
+    alert("Saved calories for " + iso + ".");
     render();
   };
 
-  calDateEl.addEventListener("change", ()=>{
-    const iso = calDateEl.value || t;
+  // When changing date, load that day's saved values (if any)
+  left.querySelector("#calDate").addEventListener("change", ()=>{
+    const iso = left.querySelector("#calDate").value || t;
     state.ui = state.ui || {};
     state.ui.calDate = iso;
-
     client.daily[iso] = client.daily[iso] || {};
     if (client.daily[iso].caloriesBurned===undefined) client.daily[iso].caloriesBurned="";
     if (client.daily[iso].caloriesConsumed===undefined) client.daily[iso].caloriesConsumed="";
-    burnedEl.value = client.daily[iso].caloriesBurned || "";
-    consumedEl.value = client.daily[iso].caloriesConsumed || "";
-
+    left.querySelector("#burned").value = client.daily[iso].caloriesBurned || "";
+    left.querySelector("#consumed").value = client.daily[iso].caloriesConsumed || "";
     save(state);
-    initial = { date: iso, burned: burnedEl.value.trim(), consumed: consumedEl.value.trim() };
-    updateSaveState();
     render();
   });
 
-  [burnedEl, consumedEl].forEach(inp=>{
-    inp.addEventListener("input", updateSaveState);
-  });
-
-  updateSaveState();
-
-  // check-in save (toast + disable when unchanged)
-  const saveCheckBtn = left.querySelector("#saveCheck");
-  function setCheckBtnEnabled(on){
-    saveCheckBtn.disabled = !on;
-    saveCheckBtn.classList.toggle("btn-disabled", !on);
-  }
-  const checkInitial = {
-    comp: String(day.nutritionCompliancePct??""),
-    sore: String(day.selfReport.soreness??""),
-    mood: String(day.selfReport.mood??""),
-    ener: String(day.selfReport.energy??""),
-    dig:  String(day.selfReport.digestion??"")
-  };
-  function checkDirty(){
-    return String(left.querySelector("#comp").value) !== checkInitial.comp ||
-      String(left.querySelector("#sore").value) !== checkInitial.sore ||
-      String(left.querySelector("#mood").value) !== checkInitial.mood ||
-      String(left.querySelector("#ener").value) !== checkInitial.ener ||
-      String(left.querySelector("#dig").value)  !== checkInitial.dig;
-  }
-  function updateCheckState(){ setCheckBtnEnabled(checkDirty()); }
-  ["#comp","#sore","#mood","#ener","#dig"].forEach(sel=>{
-    left.querySelector(sel).addEventListener("input", updateCheckState);
-  });
-
-  saveCheckBtn.onclick=()=>{
+  // check-in save
+  left.querySelector("#saveCheck").onclick=()=>{
     day.nutritionCompliancePct = Math.max(0, Math.min(100, Number(left.querySelector("#comp").value)));
     day.selfReport = {
       soreness:Number(left.querySelector("#sore").value),
@@ -666,12 +605,6 @@ function viewClient(state){
       energy:Number(left.querySelector("#ener").value),
       digestion:Number(left.querySelector("#dig").value)
     };
-    save(state);
-    showToast("Saved", "Daily check-in saved", "good");
-    render();
-  };
-
-  updateCheckState();
     save(state);
     showToast("Saved", "Saved check-in.", "good");
   };
@@ -937,56 +870,52 @@ function viewDiet(state){
 }
 
 function viewProgress(state){
-  const root=document.getElementById("app");
-  root.innerHTML="";
-  const client=getSelectedClient(state);
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  const client = getSelectedClient(state);
   ensureToday(client);
-  const t=todayISO();
+  const t = todayISO();
 
   state.ui = state.ui || {};
-  const range = state.ui.progressRange || 14; // 7/14/30
+  const range = state.ui.progressRange || 14;
   const onlyWithCals = !!state.ui.progressOnlyCalories;
 
-  const rows=[];
-  for(let i=0;i<range;i++){
-    const d=addDays(t,-i);
+  const rows = [];
+  for (let i=0;i<range;i++){
+    const d = addDays(t, -i);
     client.daily[d] = client.daily[d] || {};
     if (client.daily[d].caloriesBurned===undefined) client.daily[d].caloriesBurned="";
     if (client.daily[d].caloriesConsumed===undefined) client.daily[d].caloriesConsumed="";
-    rows.push({date:d, ...(client.daily[d]||{})});
+    rows.push({ date:d, ref: client.daily[d] });
   }
   save(state);
 
   const filtered = onlyWithCals
-    ? rows.filter(r=>{
-        const dref = client.daily[r.date];
-        return !isBlank(dref.caloriesBurned) || !isBlank(dref.caloriesConsumed);
-      })
+    ? rows.filter(r => !isBlank(r.ref.caloriesBurned) || !isBlank(r.ref.caloriesConsumed))
     : rows;
 
   const kpi = (() => {
-    let burnSum=0, burnN=0, conSum=0, conN=0, delSum=0, delN=0;
+    let burnSum=0,burnN=0, conSum=0,conN=0, delSum=0,delN=0;
     filtered.forEach(r=>{
-      const dref = client.daily[r.date];
-      const b = numOrNull(dref.caloriesBurned);
-      const c = numOrNull(dref.caloriesConsumed);
-      if (b!==null){ burnSum += b; burnN++; }
-      if (c!==null){ conSum += c; conN++; }
-      if (b!==null && c!==null){ delSum += (c-b); delN++; }
+      const b = numOrNull(r.ref.caloriesBurned);
+      const c = numOrNull(r.ref.caloriesConsumed);
+      if (b!==null){ burnSum+=b; burnN++; }
+      if (c!==null){ conSum+=c; conN++; }
+      if (b!==null && c!==null){ delSum+=(c-b); delN++; }
     });
     let weekNet=0, weekN=0;
-    for(let i=0;i<7;i++){
-      const d=addDays(t,-i);
-      const dref = client.daily[d] || {};
-      const b=numOrNull(dref.caloriesBurned);
-      const c=numOrNull(dref.caloriesConsumed);
+    for (let i=0;i<7;i++){
+      const d = addDays(t, -i);
+      const ref = client.daily[d] || {};
+      const b = numOrNull(ref.caloriesBurned);
+      const c = numOrNull(ref.caloriesConsumed);
       if (b!==null && c!==null){ weekNet += (c-b); weekN++; }
     }
     const avg = (s,n)=> n? Math.round(s/n) : null;
     return {
       avgBurn: avg(burnSum,burnN),
-      avgCon:  avg(conSum,conN),
-      avgDel:  avg(delSum,delN),
+      avgCon: avg(conSum,conN),
+      avgDel: avg(delSum,delN),
       weekNet: weekN? Math.round(weekNet) : null,
       dataDays: delN
     };
@@ -1005,7 +934,7 @@ function viewProgress(state){
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
           <h2>Progress • ${client.name}</h2>
-          <div class="muted">Calories auto-populate from the Client page (choose date → save).</div>
+          <div class="muted">Calories auto-populate from the Client tab (pick date → save).</div>
         </div>
         <div class="row" style="align-items:flex-end;">
           <div>
@@ -1037,7 +966,7 @@ function viewProgress(state){
         <div class="box"><div class="muted">Avg burned</div><div><b>${kpi.avgBurn===null?"—":kpi.avgBurn}</b></div></div>
         <div class="box"><div class="muted">Avg consumed</div><div><b>${kpi.avgCon===null?"—":kpi.avgCon}</b></div></div>
         <div class="box"><div class="muted">Avg delta</div><div><b>${kpi.avgDel===null?"—":(kpi.avgDel>0?"+":"")+kpi.avgDel}</b></div></div>
-        <div class="box"><div class="muted">7‑day net delta</div><div><b>${kpi.weekNet===null?"—":(kpi.weekNet>0?"+":"")+kpi.weekNet}</b></div></div>
+        <div class="box"><div class="muted">7-day net delta</div><div><b>${kpi.weekNet===null?"—":(kpi.weekNet>0?"+":"")+kpi.weekNet}</b></div></div>
         <div class="box"><div class="muted">Days w/ delta</div><div><b>${kpi.dataDays}</b></div></div>
       </div>
 
@@ -1062,8 +991,6 @@ function viewProgress(state){
           <tbody id="tbody"></tbody>
         </table>
       </div>
-
-      <p class="muted" style="margin-top:10px;">To record a day: <b>Client</b> → pick a date → enter burned/consumed → save. It appears here automatically.</p>
     </div>
   `);
   root.appendChild(card);
@@ -1071,34 +998,25 @@ function viewProgress(state){
   card.querySelectorAll("button[data-range]").forEach(btn=>{
     const r = Number(btn.dataset.range);
     btn.classList.toggle("primary", r===range);
-    btn.onclick=()=>{
-      state.ui.progressRange = r;
-      save(state);
-      render();
-    };
+    btn.onclick=()=>{ state.ui.progressRange = r; save(state); render(); };
   });
-  card.querySelector("#onlyCals").onchange=(e)=>{
-    state.ui.progressOnlyCalories = e.target.checked;
-    save(state);
-    render();
-  };
+  card.querySelector("#onlyCals").onchange=(e)=>{ state.ui.progressOnlyCalories = e.target.checked; save(state); render(); };
 
-  const tb=card.querySelector("#tbody");
+  const tb = card.querySelector("#tbody");
   filtered.forEach(r=>{
-    const dref = client.daily[r.date];
-    const delta = calorieDelta(dref);
+    const delta = calorieDelta(r.ref);
     tb.appendChild(el(`
       <tr>
         <td><b>${r.date}</b></td>
-        <td>${fmt(dref.caloriesBurned)}</td>
-        <td>${fmt(dref.caloriesConsumed)}</td>
+        <td>${fmt(r.ref.caloriesBurned)}</td>
+        <td>${fmt(r.ref.caloriesConsumed)}</td>
         <td>${badgeForDelta(delta)}</td>
-        <td>${fmt(dref.sleepHrs)}h</td>
-        <td>${fmt(dref.rhr)}</td>
-        <td>${fmt(dref.stressAvg)}</td>
-        <td>${fmt(dref.steps)}</td>
-        <td>${dref.workoutDone?"Done":"No"}</td>
-        <td>${fmt(dref.nutritionCompliancePct)}%</td>
+        <td>${fmt(r.ref.sleepHrs)}h</td>
+        <td>${fmt(r.ref.rhr)}</td>
+        <td>${fmt(r.ref.stressAvg)}</td>
+        <td>${fmt(r.ref.steps)}</td>
+        <td>${r.ref.workoutDone ? "Done" : "No"}</td>
+        <td>${fmt(r.ref.nutritionCompliancePct)}%</td>
       </tr>
     `));
   });
@@ -1108,79 +1026,6 @@ function viewProgress(state){
   card.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
 }
 
-function viewMessages(state){
-  const root=document.getElementById("app");
-  root.innerHTML="";
-  const user=getSessionUser(state);
-  const client=getSelectedClient(state);
-
-  const header = el(`
-    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="row">
-        <span class="tag">Messages</span>
-        <span class="tag">Coach ↔ ${client.name}</span>
-      </div>
-      <div class="row">
-        <button class="small" id="backBtn">Back</button>
-      </div>
-    </div>
-  `);
-
-  const card = el(`
-    <div class="card">
-      <div id="msgs" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <div class="row" style="margin-top:10px;">
-        <input id="msgInput" placeholder="Type a message..." />
-        <button class="primary" id="sendBtn">Send</button>
-      </div>
-    </div>
-  `);
-
-  root.appendChild(header);
-  root.appendChild(card);
-
-  function senderName(id){
-    const u = state.users.find(x=>x.id===id);
-    if (u) return u.name;
-    const c = state.clients.find(x=>x.id===id);
-    if (c) return c.name;
-    return "User";
-  }
-
-  function renderMsgs(){
-    const box=card.querySelector("#msgs");
-    box.innerHTML="";
-    state.messages.slice().sort((a,b)=>a.at.localeCompare(b.at)).forEach(m=>{
-      // show only messages involving this client
-      if (!((m.from==="u1" && m.to===client.id) || (m.from===client.id && m.to==="u1") || (m.from===user.id && (m.to===client.id||m.to==="u1")))) return;
-      const mine = m.from===user.id;
-      box.appendChild(el(`
-        <div class="card" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;background:${mine?'#eefbf1':'#fff8e6'};">
-          <div class="muted" style="font-size:12px;"><b>${senderName(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
-          <div>${esc(m.text)}</div>
-        </div>
-      `));
-    });
-  }
-  renderMsgs();
-
-  card.querySelector("#sendBtn").onclick=()=>{
-    const text=card.querySelector("#msgInput").value.trim();
-    if(!text) return;
-    const from = user.role==="coach" ? "u1" : client.id;
-    const to = user.role==="coach" ? client.id : "u1";
-    state.messages.push({ id:"m"+(state.messages.length+1), from, to, at:new Date().toISOString(), text });
-    card.querySelector("#msgInput").value="";
-    save(state);
-    renderMsgs();
-  };
-
-  header.querySelector("#backBtn").onclick=()=>{
-    state.ui.view = user.role==="coach" ? "coach" : "client";
-    save(state);
-    render();
-  };
-}
 
 function viewHistory(state){
   const root=document.getElementById("app");
@@ -1250,6 +1095,7 @@ document.getElementById("logoutBtn").onclick=()=>{
 };
 
 render();
+
 </script>
 </body>
 </html>
