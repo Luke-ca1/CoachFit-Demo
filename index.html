@@ -784,17 +784,28 @@ function viewProgress(state){
   const t=todayISO();
 
   const rows=[];
+  // Ensure each day exists so calories can be recorded historically
   for(let i=0;i<14;i++){
     const d=addDays(t,-i);
+    client.daily[d] = client.daily[d] || {
+      steps:"", sleepHrs:"", rhr:"", stressAvg:"", bodyBatteryStart:"", bodyBatteryEnd:"",
+      activeCals:"", workoutDone:false, workoutMins:0, nutritionCompliancePct:"",
+      selfReport:{ soreness:"", mood:"", energy:"", digestion:"" },
+      caloriesBurned:"", caloriesConsumed:""
+    };
+    // backfill calorie fields if missing
+    if (client.daily[d].caloriesBurned===undefined) client.daily[d].caloriesBurned="";
+    if (client.daily[d].caloriesConsumed===undefined) client.daily[d].caloriesConsumed="";
     rows.push({date:d, ...(client.daily[d]||{})});
   }
+  save(state);
 
   const card = el(`
     <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center;">
         <div>
           <h2>Progress • ${client.name}</h2>
-          <div class="muted">Last 14 days snapshot (sleep, steps, workout, nutrition).</div>
+          <div class="muted">Last 14 days. Record calories in/out for each day + snapshot metrics.</div>
         </div>
         <div class="row">
           <button class="small" id="toClient">Client</button>
@@ -804,35 +815,74 @@ function viewProgress(state){
       </div>
       <hr class="hr">
       <div class="tablewrap">
-        <table>
+        <table style="min-width:1180px">
           <thead>
             <tr>
-              <th>Date</th><th>Sleep</th><th>RHR</th><th>Stress</th><th>Steps</th><th>Workout</th><th>Nutrition%</th><th>Self-report</th>
+              <th>Date</th>
+              <th>Calories Burned</th>
+              <th>Calories Consumed</th>
+              <th>Delta</th>
+              <th>Sleep</th>
+              <th>RHR</th>
+              <th>Stress</th>
+              <th>Steps</th>
+              <th>Workout</th>
+              <th>Nutrition%</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <p class="muted" style="margin-top:10px;">Calorie tracker inputs are on the <b>Client</b> page only.</p>
+      <p class="muted" style="margin-top:10px;">You can fill older days here. Today can also be entered on the Client page.</p>
     </div>
   `);
   root.appendChild(card);
 
   const tb=card.querySelector("#tbody");
-  rows.forEach(r=>{
-    tb.appendChild(el(`
-      <tr>
-        <td><b>${r.date}</b></td>
-        <td>${fmt(r.sleepHrs)}h</td>
-        <td>${fmt(r.rhr)}</td>
-        <td>${fmt(r.stressAvg)}</td>
-        <td>${fmt(r.steps)}</td>
-        <td>${r.workoutDone?"Done":"No"}</td>
-        <td>${fmt(r.nutritionCompliancePct)}%</td>
-        <td>S:${r.selfReport?.soreness ?? "—"} M:${r.selfReport?.mood ?? "—"} E:${r.selfReport?.energy ?? "—"} D:${r.selfReport?.digestion ?? "—"}</td>
-      </tr>
-    `));
-  });
+
+  function renderRows(){
+    tb.innerHTML="";
+    rows.forEach(r=>{
+      const dref = client.daily[r.date];
+      const delta = calorieDelta(dref);
+
+      const tr = el(`
+        <tr>
+          <td><b>${r.date}</b></td>
+          <td style="min-width:160px">
+            <input data-burned style="max-width:140px" placeholder="e.g. 2600" value="${esc(dref.caloriesBurned ?? "")}">
+          </td>
+          <td style="min-width:170px">
+            <input data-consumed style="max-width:140px" placeholder="e.g. 2400" value="${esc(dref.caloriesConsumed ?? "")}">
+          </td>
+          <td><b>${delta===null?"—":(delta>0?"+":"")+delta}</b></td>
+          <td>${fmt(dref.sleepHrs)}h</td>
+          <td>${fmt(dref.rhr)}</td>
+          <td>${fmt(dref.stressAvg)}</td>
+          <td>${fmt(dref.steps)}</td>
+          <td>${dref.workoutDone?"Done":"No"}</td>
+          <td>${fmt(dref.nutritionCompliancePct)}%</td>
+        </tr>
+      `);
+
+      const burnedInput = tr.querySelector("[data-burned]");
+      const consumedInput = tr.querySelector("[data-consumed]");
+
+      function persist(){
+        dref.caloriesBurned = burnedInput.value.trim();
+        dref.caloriesConsumed = consumedInput.value.trim();
+        save(state);
+        renderRows();
+      }
+
+      burnedInput.addEventListener("change", persist);
+      consumedInput.addEventListener("change", persist);
+
+      tb.appendChild(tr);
+    });
+  }
+
+  renderRows();
 
   card.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
   card.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
