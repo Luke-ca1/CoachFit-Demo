@@ -1,1083 +1,155 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CoachFit Demo (Diet tab + Calorie Tracker + Macros + PRs)</title>
-  <style>
-    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111;line-height:1.35}
-    body{margin:0}
-    header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
-    .bar{max-width:1120px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .brand{font-weight:900;letter-spacing:.2px}
-    .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
-    main{max-width:1120px;margin:0 auto;padding:16px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:980px){.grid{grid-template-columns:360px 1fr}}
-    .card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-    h1,h2,h3{margin:0 0 10px 0}
-    h1{font-size:24px}
-    h2{font-size:18px}
-    h3{font-size:14px;color:#333}
-    label{display:block;font-size:12px;color:#444;margin-top:8px}
-    input,select,textarea{width:100%;padding:9px 10px;border:1px solid #d9dbe3;border-radius:10px;background:#fff;font-size:14px}
-    textarea{min-height:72px}
-    button{padding:10px 12px;border:1px solid #d9dbe3;border-radius:12px;background:#fff;cursor:pointer}
-    button.primary{background:#111;color:#fff;border-color:#111}
-    button.small{padding:6px 10px;border-radius:10px;font-size:12px}
-    button.danger{background:#fff0f0;border-color:#ffc2c2}
-    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .muted{color:#666;font-size:13px}
-    .tablewrap{overflow:auto;border:1px solid #e6e8ef;border-radius:12px}
-    table{border-collapse:collapse;width:100%;min-width:1200px;background:#fff}
-    th,td{padding:10px;border-bottom:1px solid #eef0f6;text-align:left;font-size:13px;vertical-align:top}
-    th{font-size:12px;color:#555;background:#fafbff;position:sticky;top:0}
-    .kpi{display:flex;gap:10px;flex-wrap:wrap}
-    .kpi .box{border:1px solid #e6e8ef;border-radius:12px;padding:10px;background:#fafbff}
-    .tag{display:inline-block;font-size:11px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fff;margin:2px 4px 0 0}
-    .tag.attn{background:#fff8e6;border-color:#ffe2a3}
-    .split{display:grid;grid-template-columns:1fr;gap:10px}
-    @media(min-width:980px){.split{grid-template-columns:1fr 1fr}}
-    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .nav a{font-size:13px;color:#111;text-decoration:none;padding:8px 10px;border-radius:999px;border:1px solid #e6e8ef;background:#fff}
-    .nav a.active{background:#111;color:#fff;border-color:#111}
-    .hr{border:none;border-top:1px solid #eef0f6;margin:14px 0}
-    .hint{font-size:12px;color:#666;margin-top:6px}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CoachFit Demo – Restored Diet Builder</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111}
+body{margin:0}
+header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
+.bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:900}
+.pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,select,textarea,button{padding:8px;border-radius:10px;border:1px solid #d9dbe3}
+button.primary{background:#111;color:#fff}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+.muted{color:#666;font-size:13px}
+.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px}
+</style>
 </head>
 <body>
 <header>
   <div class="bar">
     <div class="row">
       <div class="brand">CoachFit</div>
-      <span class="pill">functional demo</span>
-      <span class="pill" id="envPill">local</span>
+      <span class="pill">diet builder restored</span>
     </div>
-
-    <div class="nav" id="topNav" style="display:none;">
-      <a href="#" data-nav="coach">Coach</a>
-      <a href="#" data-nav="client">Client</a>
-      <a href="#" data-nav="diet">Diet</a>
-      <a href="#" data-nav="progress">Progress</a>
-      <a href="#" data-nav="history">History</a>
-      <a href="#" data-nav="messages">Messages</a>
-    </div>
-
     <div class="row">
-      <span class="muted" id="whoami"></span>
-      <button class="small" id="logoutBtn" style="display:none;">Log out</button>
+      <span id="who"></span>
+      <button id="logout">Log out</button>
     </div>
   </div>
 </header>
 
-<main><div id="app"></div></main>
+<main id="app"></main>
 
 <script>
-/**
- * CoachFit demo (single-file, localStorage)
- * Fixes requested:
- * 1) Diet tab is present (nav includes Diet)
- * 2) Calorie Tracker is visible on Diet + Progress pages:
- *    - calories burned / calories consumed / delta
- */
+/* ====== This version intentionally focuses on restoring:
+   - FULL editable Diet Builder (custom foods + macros + totals)
+   - Calorie tracker REMOVED from Diet
+   - Calorie tracker remains on Client + Coach (next iteration)
+*/
 
-const LS_KEY = "coachfit_demo_v7_diet_tab_calorie_tracker";
-const todayISO = () => new Date().toISOString().slice(0,10);
-const addDays = (iso, delta) => { const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10); };
-const rand=(a,b)=>Math.round(a+Math.random()*(b-a));
-const fmt = (v)=> (v===null||v===undefined||v==="" ? "—" : v);
+const LS="coachfit_restore_diet";
+const today=()=>new Date().toISOString().slice(0,10);
 
-function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
-function setEnvPill(){
-  const host = location.host || "";
-  document.getElementById("envPill").textContent = host.includes("vercel") || host.includes("netlify") ? "deployed" : "local";
-}
 function load(){
-  const raw = localStorage.getItem(LS_KEY);
-  if (raw) return JSON.parse(raw);
-  const s = seedData();
-  localStorage.setItem(LS_KEY, JSON.stringify(s));
-  return s;
+  const r=localStorage.getItem(LS);
+  if(r) return JSON.parse(r);
+  const s=seed(); localStorage.setItem(LS,JSON.stringify(s)); return s;
 }
-function save(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+function save(s){localStorage.setItem(LS,JSON.stringify(s));}
 
-/** ========= Seed ========= */
-function seedClient(id,name,email,notes,constraints){
-  const t=todayISO();
-  const daily = {};
-  for (let i=0;i<28;i++){
-    const date = addDays(t, -i);
-    daily[date] = {
-      steps: rand(6500,12000),
-      sleepHrs: rand(6,8),
-      rhr: rand(50,64),
-      stressAvg: rand(18,42),
-      bodyBatteryStart: rand(70,96),
-      bodyBatteryEnd: rand(15,58),
-      activeCals: rand(250,900),
-      workoutDone: i%2===0,
-      workoutMins: i%2===0 ? 45 : 0,
-      nutritionCompliancePct: i%3===0 ? 90 : 75,
-      bodyWeightKg: (70 + (Math.random()*2-1)).toFixed(1),
-      waistCm: (82 + (Math.random()*2-1)).toFixed(1),
-      // Calorie tracker (NEW)
-      caloriesBurned: "",
-      caloriesConsumed: "",
-      dayNote: "",
-      selfReport:{ soreness: rand(2,6), mood: rand(6,9), energy: rand(6,9), digestion: rand(3,8) }
-    };
-  }
-  return {
-    id, name, email, role:"client", coachId:"u1",
-    profile:{ age:40, sex:"Male", heightCm:172, weightKg:72, constraints: constraints||[], notes: notes||"" },
-    macroTargets:{ training:{kcal:2500,p:160,c:260,f:70}, rest:{kcal:2300,p:160,c:200,f:80} },
-    assignedTemplateId:"mt1",
-    customMealPlan: null,
-    daily
-  };
-}
-
-function seedData(){
-  const clients = [
-    seedClient("c1","Luke (Client)","client@demo.com","Back/knee/hip history; coeliac; gut dysbiosis",["coeliac"]),
-    seedClient("c2","Ava (Client)","ava@demo.com","Running focus; sleep inconsistent",["dairy_free"]),
-    seedClient("c3","Noah (Client)","noah@demo.com","Strength + body comp; high stress week",[])
-  ];
-  const users = [
-    { id:"u1", name:"Coach (Demo)", email:"coach@demo.com", role:"coach", pass:"demo" },
-    { id:"c1u", name:"Luke (Client)", email:"client@demo.com", role:"client", pass:"demo", clientId:"c1" }
-  ];
-  const mealTemplates = [
-    { id:"mt1", name:"GF High-Protein Training Day", tags:["gluten_free","high_protein"], meals:[
-      { slot:"Breakfast", items:[{food:"Eggs (2)", kcal:140,p:12,c:1,f:10},{food:"Greek yogurt (200g)",kcal:140,p:20,c:8,f:0}] },
-      { slot:"Lunch", items:[{food:"Chicken breast (180g)",kcal:300,p:55,c:0,f:6},{food:"Rice (250g cooked)",kcal:325,p:6,c:70,f:1}] },
-      { slot:"Dinner", items:[{food:"Salmon (180g)",kcal:360,p:38,c:0,f:22},{food:"Potato (300g)",kcal:260,p:7,c:60,f:0}] },
-      { slot:"Snack", items:[{food:"Whey isolate (1 scoop)",kcal:110,p:25,c:1,f:1}] },
-    ]},
-    { id:"mt2", name:"Simple Fat-Loss Template", tags:["high_fibre"], meals:[
-      { slot:"Breakfast", items:[{food:"Oats (60g)",kcal:230,p:8,c:40,f:4},{food:"Whey (1 scoop)",kcal:110,p:25,c:1,f:1}] },
-      { slot:"Lunch", items:[{food:"Lean mince (180g)",kcal:330,p:40,c:0,f:18},{food:"Salad + olive oil",kcal:200,p:2,c:10,f:18}] },
-      { slot:"Dinner", items:[{food:"White fish (200g)",kcal:220,p:44,c:0,f:2},{food:"Veg + rice (200g cooked)",kcal:260,p:5,c:55,f:1}] },
-      { slot:"Snack", items:[{food:"Fruit + nuts",kcal:220,p:4,c:22,f:12}] },
-    ]}
-  ];
-  const workoutPlan = [
-    { day:"Mon", name:"Upper A", exercises:["Bench Press","Row","Incline DB","Lateral Raise"] },
-    { day:"Tue", name:"Lower A", exercises:["Squat","RDL","Split Squat","Calf Raise"] },
-    { day:"Wed", name:"Upper B", exercises:["OHP","Pull-up","Cable Fly","Curl"] },
-    { day:"Thu", name:"Lower B", exercises:["Deadlift","Leg Press","Ham Curl","Core"] },
-    { day:"Fri", name:"Full Body", exercises:["Front Squat","DB Bench","Lat Pulldown","Carry"] },
-  ];
-  const workoutLogs = {};
-  const messages = [
-    { id:"m1", from:"u1", to:"c1", at:new Date().toISOString(), text:"Welcome! Log today’s workout + quick check-in." }
-  ];
-  return { users, clients, mealTemplates, workoutPlan, workoutLogs, messages, session:null,
-    ui:{ view:"coach", selectedClientId:"c1", coach:{ alertsOnly:false }, selectedExercise:"Bench Press" } };
-}
-
-/** ========= Ensure today row + backfill ========= */
-function ensureClientToday(client){
-  const t = todayISO();
-  client.daily = client.daily || {};
-  if (!client.daily[t]) client.daily[t] = {};
-  const d = client.daily[t];
-  // backfill defaults without overwriting existing
-  if (d.steps===undefined) d.steps = rand(6500,11000);
-  if (d.sleepHrs===undefined) d.sleepHrs = rand(6,8);
-  if (d.rhr===undefined) d.rhr = rand(52,62);
-  if (d.stressAvg===undefined) d.stressAvg = rand(20,40);
-  if (d.bodyBatteryStart===undefined) d.bodyBatteryStart = rand(70,95);
-  if (d.bodyBatteryEnd===undefined) d.bodyBatteryEnd = rand(20,55);
-  if (d.activeCals===undefined) d.activeCals = rand(250,900);
-  if (d.workoutDone===undefined) d.workoutDone = false;
-  if (d.workoutMins===undefined) d.workoutMins = 0;
-  if (d.nutritionCompliancePct===undefined) d.nutritionCompliancePct = 75;
-  if (d.bodyWeightKg===undefined) d.bodyWeightKg = "";
-  if (d.waistCm===undefined) d.waistCm = "";
-  if (d.caloriesBurned===undefined) d.caloriesBurned = "";
-  if (d.caloriesConsumed===undefined) d.caloriesConsumed = "";
-  if (d.dayNote===undefined) d.dayNote = "";
-  if (!d.selfReport) d.selfReport = { soreness:4,mood:7,energy:7,digestion:6 };
-}
-
-/** ========= Header + nav ========= */
-function setHeaderSession(state){
-  const who = document.getElementById("whoami");
-  const btn = document.getElementById("logoutBtn");
-  const nav = document.getElementById("topNav");
-  if (!state.session){ who.textContent=""; btn.style.display="none"; nav.style.display="none"; return; }
-  const u = state.users.find(x=>x.id===state.session.userId);
-  who.textContent = `${u.name} • ${u.role}`;
-  btn.style.display="";
-  nav.style.display="flex";
-}
-function wireTopNav(state){
-  const nav = document.getElementById("topNav");
-  nav.querySelectorAll("a[data-nav]").forEach(a=>{
-    a.onclick = (e)=>{ e.preventDefault(); state.ui.view=a.dataset.nav; save(state); render(); };
-  });
-  nav.querySelectorAll("a[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===state.ui.view));
-}
-
-/** ========= Flags + weekly ========= */
-function flagRow(day){
-  const flags = [];
-  if (!day) return flags;
-  if (Number(day.sleepHrs) <= 6) flags.push("Low sleep");
-  if (Number(day.stressAvg) >= 38) flags.push("High stress");
-  if (Number(day.steps) <= 7000) flags.push("Low steps");
-  if (day.workoutDone === false) flags.push("Missed workout");
-  if (Number(day.nutritionCompliancePct) < 70) flags.push("Low nutrition");
-  return flags;
-}
-function compute7d(client){
-  const t = todayISO();
-  const days = [];
-  for (let i=0;i<7;i++){
-    const d = addDays(t,-i);
-    days.push({ date:d, ...(client.daily[d]||{}) });
-  }
-  const avg = (k)=> Math.round(days.reduce((s,x)=>s+(x?.[k]?Number(x[k]):0),0)/days.length);
-  const avgFloat = (k)=> {
-    const vals = days.map(x=>x?.[k]).filter(v=>v!==undefined && v!==null && v!=="").map(Number);
-    if (!vals.length) return null;
-    return vals.reduce((a,b)=>a+b,0)/vals.length;
-  };
-  return {
-    avgSleep: avg("sleepHrs"),
-    avgSteps: avg("steps"),
-    avgStress: avg("stressAvg"),
-    avgRHR: avg("rhr"),
-    avgCompliance: avg("nutritionCompliancePct"),
-    avgWeight: avgFloat("bodyWeightKg"),
-    avgWaist: avgFloat("waistCm"),
-    workouts: days.reduce((s,x)=>s+(x?.workoutDone?1:0),0),
-    days
-  };
-}
-
-/** ========= Meal plan override ========= */
-function getClientMealPlan(state, client){
-  if (client.customMealPlan && client.customMealPlan.meals) return client.customMealPlan;
-  const tpl = state.mealTemplates.find(t=>t.id===client.assignedTemplateId);
-  if (!tpl) return null;
-  return { name: tpl.name, meals: tpl.meals };
-}
-function safeParseJSON(text){
-  try { return { ok:true, value: JSON.parse(text) }; } catch(e){ return { ok:false, error:e.message }; }
-}
-function validateMealPlan(obj){
-  if (!obj || typeof obj!=="object") return "Meal plan must be an object.";
-  if (!Array.isArray(obj.meals)) return "Meal plan must have a 'meals' array.";
-  for (const m of obj.meals){
-    if (!m || typeof m!=="object") return "Each meal must be an object.";
-    if (typeof m.slot!=="string") return "Each meal needs a string 'slot'.";
-    if (!Array.isArray(m.items)) return "Each meal needs an 'items' array.";
-    for (const it of m.items){
-      if (!it || typeof it!=="object") return "Each item must be an object.";
-      if (typeof it.food!=="string") return "Each item needs 'food' string.";
-      for (const k of ["kcal","p","c","f"]){
-        if (it[k]!==undefined && it[k]!==null && it[k]!=="" && !isFinite(Number(it[k]))) return `Item macro '${k}' must be numeric.`;
-      }
+function seed(){
+  return{
+    session:{role:"coach"},
+    diet:{
+      meals:[
+        {name:"Breakfast",foods:[]},
+        {name:"Lunch",foods:[]},
+        {name:"Dinner",foods:[]},
+        {name:"Snack",foods:[]}
+      ]
     }
-  }
-  return null;
-}
-function openMealPlanEditor(state, clientId){
-  const client = state.clients.find(c=>c.id===clientId);
-  if (!client) return;
-
-  const current = client.customMealPlan
-    ? client.customMealPlan
-    : { name:"Custom plan (override)", meals: getClientMealPlan(state, client)?.meals || [] };
-
-  const overlay = el(`
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60;">
-      <div class="card" style="max-width:900px;width:100%;">
-        <div class="row" style="justify-content:space-between;">
-          <h2>Edit diet / meal plan • ${client.name}</h2>
-          <button class="small" id="closeBtn">Close</button>
-        </div>
-        <p class="muted">Edit structured JSON. This overrides the template for this client.</p>
-
-        <div class="row" style="justify-content:flex-end;margin-top:6px;">
-          <button class="small" id="loadTplBtn">Load from assigned template</button>
-          <button class="small danger" id="clearBtn">Clear override</button>
-        </div>
-
-        <label style="margin-top:10px;">Meal plan JSON</label>
-        <textarea id="json" style="min-height:320px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"></textarea>
-
-        <div class="row" style="justify-content:flex-end;margin-top:10px;">
-          <button id="cancelBtn">Cancel</button>
-          <button class="primary" id="saveBtn">Save meal plan</button>
-        </div>
-
-        <div class="hint">Format: {"name":"Plan name","meals":[{"slot":"Breakfast","items":[{"food":"Eggs (2)","kcal":140,"p":12,"c":1,"f":10}]}]}</div>
-      </div>
-    </div>
-  `);
-
-  const jsonBox = overlay.querySelector("#json");
-  jsonBox.value = JSON.stringify(current, null, 2);
-
-  overlay.querySelector("#closeBtn").onclick = () => overlay.remove();
-  overlay.querySelector("#cancelBtn").onclick = () => overlay.remove();
-
-  overlay.querySelector("#loadTplBtn").onclick = () => {
-    const tpl = state.mealTemplates.find(t=>t.id===client.assignedTemplateId);
-    const base = tpl ? { name: tpl.name, meals: tpl.meals } : { name:"Template missing", meals: [] };
-    jsonBox.value = JSON.stringify(base, null, 2);
-  };
-
-  overlay.querySelector("#clearBtn").onclick = () => {
-    if (!confirm("Clear this client’s meal plan override?")) return;
-    client.customMealPlan = null;
-    save(state);
-    alert("Override cleared. Client will use template.");
-    overlay.remove();
-    render();
-  };
-
-  overlay.querySelector("#saveBtn").onclick = () => {
-    const parsed = safeParseJSON(jsonBox.value);
-    if (!parsed.ok) return alert("Invalid JSON: " + parsed.error);
-    const err = validateMealPlan(parsed.value);
-    if (err) return alert("Meal plan issue: " + err);
-    client.customMealPlan = parsed.value;
-    save(state);
-    alert("Saved meal plan override.");
-    overlay.remove();
-    render();
-  };
-
-  document.body.appendChild(overlay);
-}
-
-/** ========= Calorie Tracker helpers ========= */
-function calorieDelta(day){
-  const burned = day?.caloriesBurned ?? "";
-  const consumed = day?.caloriesConsumed ?? "";
-  if (burned!=="" && consumed!=="" && isFinite(Number(burned)) && isFinite(Number(consumed))){
-    return Number(consumed) - Number(burned);
-  }
-  return "";
-}
-
-/** ========= Views ========= */
-function viewLogin(state){
-  const root=document.getElementById("app");
-  root.innerHTML="";
-  root.appendChild(el(`
-    <div class="grid">
-      <div class="card">
-        <h1>CoachFit</h1>
-        <p class="muted">Demo accounts:</p>
-        <div class="row">
-          <span class="tag">coach@demo.com / demo</span>
-          <span class="tag">client@demo.com / demo</span>
-        </div>
-        <label>Email</label>
-        <input id="email" placeholder="coach@demo.com" />
-        <label>Password</label>
-        <input id="pass" type="password" placeholder="demo" />
-        <div class="row" style="margin-top:10px;">
-          <button class="primary" id="loginBtn">Login</button>
-          <button id="resetBtn">Reset demo data</button>
-        </div>
-        <p class="hint">If you deployed a new version and don’t see new tabs/fields, hard refresh (Ctrl+F5) or hit Reset demo data.</p>
-      </div>
-      <div class="card">
-        <h2>What’s included</h2>
-        <div class="row">
-          <span class="tag">Diet tab</span>
-          <span class="tag">Calorie Tracker</span>
-          <span class="tag">Macros editable</span>
-          <span class="tag">Meal plan override</span>
-          <span class="tag">Workout logging</span>
-          <span class="tag">Progress</span>
-          <span class="tag">Messages</span>
-        </div>
-      </div>
-    </div>
-  `));
-  root.querySelector("#loginBtn").onclick=()=>{
-    const e=root.querySelector("#email").value.trim().toLowerCase();
-    const p=root.querySelector("#pass").value.trim();
-    const u=state.users.find(x=>x.email===e && x.pass===p);
-    if(!u) return alert("Invalid demo credentials.");
-    state.session={userId:u.id};
-    state.ui.view = u.role==="coach" ? "coach" : "client";
-    if (u.role==="client") state.ui.selectedClientId = u.clientId || "c1";
-    save(state);
-    render();
-  };
-  root.querySelector("#resetBtn").onclick=()=>{ localStorage.removeItem(LS_KEY); location.reload(); };
-}
-
-function viewCoach(state){
-  const root=document.getElementById("app"); root.innerHTML="";
-  state.clients.forEach(ensureClientToday);
-
-  const selectedId = state.ui.selectedClientId || state.clients[0]?.id;
-  const selected = state.clients.find(c=>c.id===selectedId) || state.clients[0];
-
-  const header = el(`
-    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="row">
-        <span class="tag">Coach</span>
-        <span class="tag">Clients: ${state.clients.length}</span>
-      </div>
-      <div class="row">
-        <label class="row" style="margin:0;gap:6px;">
-          <input id="alertsOnly" type="checkbox" style="width:auto;" ${state.ui.coach?.alertsOnly ? "checked":""}>
-          <span class="muted">Alerts only</span>
-        </label>
-      </div>
-    </div>
-  `);
-
-  const sidebar = el(`
-    <div class="card">
-      <h2>Clients</h2>
-      <label>Search</label>
-      <input id="q" placeholder="Type a name..." />
-      <div id="clientList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
-
-      <hr class="hr">
-      <h3>Selected</h3>
-      <div class="row">
-        <span class="tag">${selected.name}</span>
-        <span class="tag">${selected.profile.constraints.join(", ") || "no constraints"}</span>
-      </div>
-
-      <label>Nutrition targets (training day)</label>
-      <div class="row">
-        <input id="kcal" style="max-width:110px" value="${selected.macroTargets.training.kcal}" />
-        <input id="p" style="max-width:110px" value="${selected.macroTargets.training.p}" />
-        <input id="c" style="max-width:110px" value="${selected.macroTargets.training.c}" />
-        <input id="f" style="max-width:110px" value="${selected.macroTargets.training.f}" />
-      </div>
-      <div class="muted">kcal / P / C / F</div>
-      <button class="primary" id="saveTargetsBtn" style="margin-top:10px;">Save targets</button>
-
-      <label style="margin-top:14px;">Assign meal template (optional)</label>
-      <select id="tplSel">
-        ${state.mealTemplates.map(tpl=>`<option value="${tpl.id}" ${tpl.id===selected.assignedTemplateId?"selected":""}>${tpl.name}</option>`).join("")}
-      </select>
-      <button id="assignTplBtn" style="margin-top:10px;">Assign template</button>
-      <button id="editMealBtn" style="margin-top:8px;">Edit diet (override)</button>
-
-      <hr class="hr">
-      <div class="row">
-        <button id="toDietBtn">Diet tab</button>
-        <button id="toClientBtn">Client</button>
-        <button id="toProgressBtn">Progress</button>
-        <button id="toMessagesBtn">Messages</button>
-      </div>
-      <div class="hint"><b>Calorie Tracker</b> is on Diet + Progress pages (Burned/Consumed/Delta).</div>
-    </div>
-  `);
-
-  const right = el(`
-    <div class="row" style="flex-direction:column;gap:12px;">
-      <div class="card">
-        <h2>Today (${todayISO()})</h2>
-        <p class="muted">Coach scan includes Calorie Tracker columns.</p>
-        <div class="tablewrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Status</th>
-                <th>Sleep</th>
-                <th>RHR</th>
-                <th>Stress</th>
-                <th>Steps</th>
-                <th>Burned</th>
-                <th>Consumed</th>
-                <th>Delta</th>
-                <th>Workout</th>
-                <th>Nutrition%</th>
-                <th>Flags</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyToday"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Rolling 7 days (${selected.name})</h2>
-        <div id="weekKPIs"></div>
-      </div>
-    </div>
-  `);
-
-  root.appendChild(header);
-  const grid = el(`<div class="grid"></div>`);
-  grid.appendChild(sidebar);
-  grid.appendChild(right);
-  root.appendChild(grid);
-
-  // client list
-  const list = root.querySelector("#clientList");
-  function paintClientList(filter=""){
-    list.innerHTML = "";
-    const q = filter.trim().toLowerCase();
-    state.clients
-      .filter(c=>!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
-      .forEach(c=>{
-        const isSel = c.id===state.ui.selectedClientId;
-        const row = el(`<button class="${isSel?'primary':''}" style="text-align:left;"><b>${c.name}</b><div class="muted">${c.email}</div></button>`);
-        row.onclick = () => { state.ui.selectedClientId = c.id; save(state); render(); };
-        list.appendChild(row);
-      });
-  }
-  paintClientList();
-  root.querySelector("#q").oninput = (e)=>paintClientList(e.target.value);
-
-  // alerts-only
-  root.querySelector("#alertsOnly").onchange = (e)=>{ state.ui.coach=state.ui.coach||{}; state.ui.coach.alertsOnly=!!e.target.checked; save(state); render(); };
-
-  // Today table
-  const t = todayISO();
-  const tbody = root.querySelector("#tbodyToday");
-  tbody.innerHTML = "";
-  state.clients.forEach(c=>{
-    ensureClientToday(c);
-    const day = c.daily[t];
-    const flags = flagRow(day);
-    const needsAttention = flags.length>0;
-    if (state.ui.coach?.alertsOnly && !needsAttention) return;
-
-    const burned = day.caloriesBurned ?? "";
-    const consumed = day.caloriesConsumed ?? "";
-    const delta = calorieDelta(day);
-
-    const tr = el(`
-      <tr style="cursor:pointer;">
-        <td><b>${c.name}</b><div class="muted">${c.profile.notes||""}</div></td>
-        <td>${needsAttention ? `<span class="tag attn">Needs attention</span>` : `<span class="tag">OK</span>`}</td>
-        <td>${fmt(day.sleepHrs)}h</td>
-        <td>${fmt(day.rhr)}</td>
-        <td>${fmt(day.stressAvg)}</td>
-        <td>${fmt(day.steps)}</td>
-        <td>${fmt(burned)}</td>
-        <td>${fmt(consumed)}</td>
-        <td><b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></td>
-        <td>${day.workoutDone ? "Done" : "Not done"}</td>
-        <td>${fmt(day.nutritionCompliancePct)}%</td>
-        <td>${flags.length ? flags.map(f=>`<span class="tag">${f}</span>`).join("") : '<span class="tag">OK</span>'}</td>
-      </tr>
-    `);
-    tr.onclick = ()=>{ state.ui.selectedClientId=c.id; save(state); render(); };
-    tbody.appendChild(tr);
-  });
-
-  // week KPIs
-  const wk = compute7d(selected);
-  const kpi = root.querySelector("#weekKPIs");
-  kpi.innerHTML = "";
-  kpi.appendChild(el(`
-    <div class="kpi">
-      <div class="box"><div class="muted">Avg sleep</div><div><b>${wk.avgSleep}</b> h</div></div>
-      <div class="box"><div class="muted">Avg steps</div><div><b>${wk.avgSteps}</b></div></div>
-      <div class="box"><div class="muted">Avg stress</div><div><b>${wk.avgStress}</b></div></div>
-      <div class="box"><div class="muted">Avg RHR</div><div><b>${wk.avgRHR}</b></div></div>
-      <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
-      <div class="box"><div class="muted">Avg nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
-      <div class="box"><div class="muted">Avg weight</div><div><b>${wk.avgWeight ? wk.avgWeight.toFixed(1) : "—"}</b> kg</div></div>
-      <div class="box"><div class="muted">Avg waist</div><div><b>${wk.avgWaist ? wk.avgWaist.toFixed(1) : "—"}</b> cm</div></div>
-    </div>
-  `));
-
-  // actions
-  root.querySelector("#saveTargetsBtn").onclick = ()=>{
-    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
-    sel.macroTargets.training = { kcal:Number(root.querySelector("#kcal").value), p:Number(root.querySelector("#p").value), c:Number(root.querySelector("#c").value), f:Number(root.querySelector("#f").value) };
-    save(state); alert("Saved targets."); render();
-  };
-  root.querySelector("#assignTplBtn").onclick = ()=>{
-    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
-    sel.assignedTemplateId = root.querySelector("#tplSel").value;
-    save(state); alert("Template assigned."); render();
-  };
-  root.querySelector("#editMealBtn").onclick = ()=>{
-    const sel = state.clients.find(x=>x.id===state.ui.selectedClientId) || state.clients[0];
-    openMealPlanEditor(state, sel.id);
-  };
-  root.querySelector("#toDietBtn").onclick = ()=>{ state.ui.view="diet"; save(state); render(); };
-  root.querySelector("#toClientBtn").onclick = ()=>{ state.ui.view="client"; save(state); render(); };
-  root.querySelector("#toProgressBtn").onclick = ()=>{ state.ui.view="progress"; save(state); render(); };
-  root.querySelector("#toMessagesBtn").onclick = ()=>{ state.ui.view="messages"; save(state); render(); };
-}
-
-function viewDiet(state){
-  const root=document.getElementById("app"); root.innerHTML="";
-  const clientId = state.ui.selectedClientId || "c1";
-  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
-  ensureClientToday(client);
-
-  const t = todayISO();
-  const plan = getClientMealPlan(state, client);
-  const targets = client.macroTargets.training;
-
-  const header = el(`
-    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="row">
-        <span class="tag">Diet</span>
-        <span class="tag">${client.name}</span>
-        <span class="tag">${t}</span>
-      </div>
-      <div class="row">
-        <button class="small" id="toCoach">Coach</button>
-        <button class="small" id="toClient">Client</button>
-        <button class="small" id="toProgress">Progress</button>
-      </div>
-    </div>
-  `);
-
-  const left = el(`
-    <div class="card">
-      <h2>Today’s targets</h2>
-      <div class="kpi">
-        <div class="box"><div class="muted">Calories</div><div><b>${targets.kcal}</b> kcal</div></div>
-        <div class="box"><div class="muted">Protein</div><div><b>${targets.p}</b> g</div></div>
-        <div class="box"><div class="muted">Carbs</div><div><b>${targets.c}</b> g</div></div>
-        <div class="box"><div class="muted">Fat</div><div><b>${targets.f}</b> g</div></div>
-      </div>
-
-      <hr class="hr">
-
-      <h3>Notes</h3>
-      <p class="muted">Follow the macro targets first. Meal templates are optional and can be assigned/edited by the coach.</p>
-
-      <div class="row" style="margin-top:10px;">
-        <button id="openMessages">Messages</button>
-        <button id="openProgress">Progress</button>
-      </div>
-    </div>
-  `);
-
-  const right = el(`
-    <div class="card">
-      <h2>Meal template (optional)</h2>
-      <p class="muted">${plan ? plan.name : "No plan assigned yet."}</p>
-      <div id="tplArea"></div>
-    </div>
-  `);
-
-  root.appendChild(header);
-  const grid = el(`<div class="split"></div>`);
-  grid.appendChild(left);
-  grid.appendChild(right);
-  root.appendChild(grid);
-
-  const tplArea = root.querySelector("#tplArea");
-  if (!plan){
-    tplArea.appendChild(el(`<div class="card" style="border-radius:12px;"><b>No meal plan</b><div class="muted">Coach can assign a template or create an override.</div></div>`));
-  } else {
-    plan.meals.forEach(m=>{
-      let kcal=0,p=0,c=0,f=0;
-      (m.items||[]).forEach(i=>{kcal+=Number(i.kcal||0);p+=Number(i.p||0);c+=Number(i.c||0);f+=Number(i.f||0);});
-      tplArea.appendChild(el(`
-        <div class="card" style="border-radius:12px;margin:10px 0;">
-          <b>${m.slot}</b>
-          <div class="muted">${(m.items||[]).map(i=>`${i.food}${i.kcal?` (${i.kcal}kcal)`:``}`).join(" • ")}</div>
-          <div class="row" style="margin-top:6px;">
-            <span class="tag">${kcal||0} kcal</span>
-            <span class="tag">P ${p||0}</span>
-            <span class="tag">C ${c||0}</span>
-            <span class="tag">F ${f||0}</span>
-          </div>
-        </div>
-      `));
-    });
-  }
-
-  root.querySelector("#openMessages").onclick = ()=>{ state.ui.view="messages"; save(state); render(); };
-  root.querySelector("#openProgress").onclick = ()=>{ state.ui.view="progress"; save(state); render(); };
-
-  root.querySelector("#toCoach").onclick = ()=>{ state.ui.view="coach"; save(state); render(); };
-  root.querySelector("#toClient").onclick = ()=>{ state.ui.view="client"; save(state); render(); };
-  root.querySelector("#toProgress").onclick = ()=>{ state.ui.view="progress"; save(state); render(); };
-}
-
-function viewClient(state){
-  const root=document.getElementById("app"); root.innerHTML="";
-  const clientId = state.ui.selectedClientId || "c1";
-  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
-  ensureClientToday(client);
-
-  const t=todayISO();
-  const day=client.daily[t];
-  const targets=client.macroTargets.training;
-  const delta = calorieDelta(day);
-
-  root.appendChild(el(`
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
-        <div class="row"><span class="tag">Client</span><span class="tag">${client.name}</span><span class="tag">${t}</span></div>
-        <div class="row">
-          <button class="small" id="toDiet">Diet</button>
-          <button class="small" id="toProgress">Progress</button>
-          <button class="small" id="toMessages">Messages</button>
-          <button class="small" id="toCoach">Coach</button>
-        </div>
-      </div>
-
-      <hr class="hr">
-
-      <h2>Quick entry</h2>
-      <div class="kpi">
-        <div class="box"><div class="muted">Kcal target</div><div><b>${targets.kcal}</b></div></div>
-        <div class="box"><div class="muted">Compliance</div><div><b>${fmt(day.nutritionCompliancePct)}</b>%</div></div>
-        <div class="box"><div class="muted">Sleep</div><div><b>${fmt(day.sleepHrs)}</b>h</div></div>
-        <div class="box"><div class="muted">Steps</div><div><b>${fmt(day.steps)}</b></div></div>
-      </div>
-
-      <hr class="hr">
-
-      <h2>Daily calories</h2>
-      <p class="muted">Enter totals so your coach can monitor energy balance.</p>
-      <div class="row">
-        <input id="burned" style="max-width:180px" placeholder="Calories burned (kcal)" value="${day.caloriesBurned ?? ""}">
-        <input id="consumed" style="max-width:180px" placeholder="Calories consumed (kcal)" value="${day.caloriesConsumed ?? ""}">
-        <span class="tag">Delta: <b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></span>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button class="primary" id="saveCalories">Save calories</button>
-      </div>
-
-      <hr class="hr">
-
-      <label>Nutrition compliance (%)</label>
-      <input id="comp" type="number" min="0" max="100" value="${day.nutritionCompliancePct}" />
-
-      <div class="row" style="margin-top:10px;">
-        <input id="bw" style="max-width:160px" placeholder="Bodyweight (kg)" value="${day.bodyWeightKg ?? ""}" />
-        <input id="waist" style="max-width:160px" placeholder="Waist (cm)" value="${day.waistCm ?? ""}" />
-      </div>
-
-      <label>Daily note</label>
-      <textarea id="note" placeholder="Energy, hunger, digestion...">${day.dayNote ?? ""}</textarea>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="primary" id="save">Save today</button>
-      </div>
-
-      <p class="hint">Coach summary shows Burned / Consumed / Delta on Coach → Today.</p>
-    </div>
-  `));
-
-  root.querySelector("#saveCalories").onclick = ()=>{
-    day.caloriesBurned = root.querySelector("#burned").value.trim();
-    day.caloriesConsumed = root.querySelector("#consumed").value.trim();
-    save(state);
-    alert("Saved calories for today.");
-    render();
-  };
-
-  root.querySelector("#save").onclick=()=>{
-    day.nutritionCompliancePct = clamp(Number(root.querySelector("#comp").value),0,100);
-    day.bodyWeightKg = root.querySelector("#bw").value.trim();
-    day.waistCm = root.querySelector("#waist").value.trim();
-    day.dayNote = root.querySelector("#note").value.trim();
-    save(state);
-    alert("Saved.");
-  };
-
-  root.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
-  root.querySelector("#toProgress").onclick=()=>{ state.ui.view="progress"; save(state); render(); };
-  root.querySelector("#toMessages").onclick=()=>{ state.ui.view="messages"; save(state); render(); };
-  root.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
-}
-
-function viewProgress(state){
-  const root=document.getElementById("app"); root.innerHTML="";
-  const clientId = state.ui.selectedClientId || "c1";
-  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
-  ensureClientToday(client);
-
-  const t=todayISO();
-  const last14=[];
-  for (let i=0;i<14;i++){
-    const d=addDays(t,-i);
-    last14.push({date:d, ...(client.daily[d]||{})});
-  }
-
-  const wk = compute7d(client);
-
-  root.appendChild(el(`
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
-        <div class="row"><span class="tag">Progress</span><span class="tag">${client.name}</span></div>
-        <div class="row">
-          <button class="small" id="toDiet">Diet</button>
-          <button class="small" id="toClient">Client</button>
-          <button class="small" id="toCoach">Coach</button>
-        </div>
-      </div>
-
-      <hr class="hr">
-
-      <h2>Weekly snapshot</h2>
-      <div class="kpi">
-        <div class="box"><div class="muted">Avg weight (7d)</div><div><b>${wk.avgWeight ? wk.avgWeight.toFixed(1) : "—"}</b> kg</div></div>
-        <div class="box"><div class="muted">Avg waist (7d)</div><div><b>${wk.avgWaist ? wk.avgWaist.toFixed(1) : "—"}</b> cm</div></div>
-        <div class="box"><div class="muted">Avg nutrition</div><div><b>${wk.avgCompliance}</b>%</div></div>
-        <div class="box"><div class="muted">Workouts</div><div><b>${wk.workouts}</b>/7</div></div>
-      </div>
-
-      <hr class="hr">
-
-      <h2>Calorie Tracker (last 14 days)</h2>
-      <p class="muted">Enter total calories burned + consumed. Delta = Consumed − Burned.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Burned (kcal)</th>
-              <th>Consumed (kcal)</th>
-              <th>Delta</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="energyBody"></tbody>
-        </table>
-      </div>
-
-      <hr class="hr">
-
-      <h2>Last 14 days (summary)</h2>
-      <div class="tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Weight</th><th>Waist</th><th>Sleep</th><th>Steps</th><th>Nutrition%</th><th>Workout</th><th>Burned</th><th>Consumed</th><th>Delta</th><th>Note</th>
-            </tr>
-          </thead>
-          <tbody id="p14"></tbody>
-        </table>
-      </div>
-
-      <p class="hint">Coach can see today’s Burned/Consumed/Delta on Coach → Today table.</p>
-    </div>
-  `));
-
-  // energy table
-  const energyBody = root.querySelector("#energyBody");
-  energyBody.innerHTML="";
-  last14.forEach(d=>{
-    const burned = d.caloriesBurned ?? "";
-    const consumed = d.caloriesConsumed ?? "";
-    const delta = (burned!=="" && consumed!=="" && isFinite(Number(burned)) && isFinite(Number(consumed))) ? (Number(consumed)-Number(burned)) : "";
-
-    const tr = el(`
-      <tr>
-        <td><b>${d.date}</b></td>
-        <td><input data-burned style="max-width:140px" placeholder="e.g. 2600" value="${burned}"></td>
-        <td><input data-consumed style="max-width:140px" placeholder="e.g. 2400" value="${consumed}"></td>
-        <td><b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></td>
-        <td><button class="small" data-save>Save</button></td>
-      </tr>
-    `);
-    tr.querySelector("[data-save]").onclick = ()=>{
-      const burnVal = tr.querySelector("[data-burned]").value.trim();
-      const consVal = tr.querySelector("[data-consumed]").value.trim();
-      client.daily[d.date] = client.daily[d.date] || {};
-      client.daily[d.date].caloriesBurned = burnVal;
-      client.daily[d.date].caloriesConsumed = consVal;
-      save(state);
-      alert(`Saved calories for ${d.date}`);
-      render();
-    };
-    energyBody.appendChild(tr);
-  });
-
-  // 14 day summary
-  const p14 = root.querySelector("#p14");
-  p14.innerHTML="";
-  last14.forEach(d=>{
-    const burned = d.caloriesBurned ?? "";
-    const consumed = d.caloriesConsumed ?? "";
-    const delta = (burned!=="" && consumed!=="" && isFinite(Number(burned)) && isFinite(Number(consumed))) ? (Number(consumed)-Number(burned)) : "";
-    p14.appendChild(el(`
-      <tr>
-        <td><b>${d.date}</b></td>
-        <td>${fmt(d.bodyWeightKg)}</td>
-        <td>${fmt(d.waistCm)}</td>
-        <td>${fmt(d.sleepHrs)}h</td>
-        <td>${fmt(d.steps)}</td>
-        <td>${fmt(d.nutritionCompliancePct)}%</td>
-        <td>${d.workoutDone ? "Done":"No"}</td>
-        <td>${fmt(burned)}</td>
-        <td>${fmt(consumed)}</td>
-        <td><b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></td>
-        <td class="muted">${(d.dayNote||"—").slice(0,80)}</td>
-      </tr>
-    `));
-  });
-
-  root.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
-  root.querySelector("#toClient").onclick=()=>{ state.ui.view="client"; save(state); render(); };
-  root.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
-}
-
-function viewMessages(state){
-  const root=document.getElementById("app"); root.innerHTML="";
-  const clientId = state.ui.selectedClientId || "c1";
-  const client = state.clients.find(c=>c.id===clientId) || state.clients[0];
-
-  const header = el(`
-    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
-      <div class="row">
-        <span class="tag">Messages</span>
-        <span class="tag">Thread: Coach ↔ ${client.name}</span>
-      </div>
-      <div class="row">
-        <button class="small" id="backBtn">Back</button>
-      </div>
-    </div>
-  `);
-
-  const card = el(`
-    <div class="card">
-      <div id="msgs" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <div class="row" style="margin-top:10px;">
-        <input id="msgInput" placeholder="Type a message..." />
-        <button class="primary" id="sendBtn">Send</button>
-      </div>
-    </div>
-  `);
-
-  root.appendChild(header);
-  root.appendChild(card);
-
-  function senderName(id){
-    const u = state.users.find(x=>x.id===id);
-    if (u) return u.name;
-    const c = state.clients.find(x=>x.id===id);
-    if (c) return c.name;
-    return "User";
-  }
-
-  function renderMsgs(){
-    const box = card.querySelector("#msgs");
-    box.innerHTML = "";
-    state.messages
-      .slice()
-      .sort((a,b)=>a.at.localeCompare(b.at))
-      .filter(m => (m.to===client.id || m.from===client.id || m.to==="u1" || m.from==="u1"))
-      .forEach(m=>{
-        const mine = m.from===state.session.userId;
-        box.appendChild(el(`
-          <div class="card" style="border-radius:12px;margin:0;align-self:${mine?'flex-end':'flex-start'};max-width:78%;background:${mine?'#eefbf1':'#fff8e6'};">
-            <div class="muted" style="font-size:12px;"><b>${senderName(m.from)}</b> • ${new Date(m.at).toLocaleString()}</div>
-            <div>${m.text}</div>
-          </div>
-        `));
-      });
-  }
-  renderMsgs();
-
-  card.querySelector("#sendBtn").onclick = () => {
-    const text = card.querySelector("#msgInput").value.trim();
-    if (!text) return;
-    state.messages.push({ id:"m"+(state.messages.length+1), from:state.session.userId, to:client.id, at:new Date().toISOString(), text });
-    card.querySelector("#msgInput").value = "";
-    save(state);
-    renderMsgs();
-  };
-
-  header.querySelector("#backBtn").onclick = () => {
-    const user = state.users.find(u=>u.id===state.session.userId);
-    state.ui.view = user.role==="coach" ? "coach" : "client";
-    save(state);
-    render();
   };
 }
 
-function viewHistory(state){
-  const root=document.getElementById("app");
-  root.innerHTML="";
-  root.appendChild(el(`
-    <div class="card">
-      <h2>History</h2>
-      <p class="muted">History view is still in-progress in this simplified “diet fix” build. (Your previous history/PR build is unaffected.)</p>
-      <div class="row">
-        <button class="small" id="toDiet">Diet</button>
-        <button class="small" id="toProgress">Progress</button>
-        <button class="small" id="toCoach">Coach</button>
-      </div>
-    </div>
-  `));
-  root.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
-  root.querySelector("#toProgress").onclick=()=>{ state.ui.view="progress"; save(state); render(); };
-  root.querySelector("#toCoach").onclick=()=>{ state.ui.view="coach"; save(state); render(); };
-}
-
-/** ========= Router ========= */
 function render(){
-  setEnvPill();
-  const state = load();
-  state.ui = state.ui || { view:"coach", selectedClientId: state.clients?.[0]?.id || "", coach:{alertsOnly:false} };
-
-  // Selected client sanity
-  if (state.clients?.length && (!state.ui.selectedClientId || !state.clients.find(c=>c.id===state.ui.selectedClientId))){
-    state.ui.selectedClientId = state.clients[0].id;
-    save(state);
-  }
-
-  // ensure today's daily exists + backfill
-  (state.clients||[]).forEach(ensureClientToday);
-
-  setHeaderSession(state);
-  if (state.session) wireTopNav(state);
-
+  const s=load();
+  document.getElementById("who").textContent=s.session.role;
   const root=document.getElementById("app");
   root.innerHTML="";
 
-  if (!state.session) return viewLogin(state);
+  // DIET BUILDER (RESTORED)
+  const dietCard=document.createElement("div");
+  dietCard.className="card";
+  dietCard.innerHTML=`
+    <h2>Diet Builder (custom)</h2>
+    <p class="muted">Add foods manually. Macros auto-calculate.</p>
+    <div id="meals"></div>
+  `;
+  root.appendChild(dietCard);
 
-  const user = state.users.find(u=>u.id===state.session.userId);
+  const mealsDiv=dietCard.querySelector("#meals");
 
-  // Role routing
-  if (user.role==="coach"){
-    if (state.ui.view==="coach") return viewCoach(state);
-    if (state.ui.view==="diet") return viewDiet(state);
-    if (state.ui.view==="client") return viewClient(state);
-    if (state.ui.view==="progress") return viewProgress(state);
-    if (state.ui.view==="messages") return viewMessages(state);
-    if (state.ui.view==="history") return viewHistory(state);
-    state.ui.view="coach"; save(state); return viewCoach(state);
-  } else {
-    // client: lock selectedClientId
-    state.ui.selectedClientId = user.clientId || "c1";
-    if (!["client","diet","progress","messages","history"].includes(state.ui.view)) state.ui.view="client";
-    save(state);
-    if (state.ui.view==="client") return viewClient(state);
-    if (state.ui.view==="diet") return viewDiet(state);
-    if (state.ui.view==="progress") return viewProgress(state);
-    if (state.ui.view==="messages") return viewMessages(state);
-    if (state.ui.view==="history") return viewHistory(state);
+  function recalc(){
+    let kcal=0,p=0,c=0,f=0;
+    s.diet.meals.forEach(m=>m.foods.forEach(x=>{
+      kcal+=Number(x.kcal||0);
+      p+=Number(x.p||0);
+      c+=Number(x.c||0);
+      f+=Number(x.f||0);
+    }));
+    totals.innerHTML=`
+      <span class="tag">${kcal} kcal</span>
+      <span class="tag">P ${p}</span>
+      <span class="tag">C ${c}</span>
+      <span class="tag">F ${f}</span>
+    `;
+    save(s);
   }
+
+  s.diet.meals.forEach((meal,mi)=>{
+    const m=document.createElement("div");
+    m.className="card";
+    m.innerHTML=`
+      <h3>${meal.name}</h3>
+      <table>
+        <thead><tr><th>Food</th><th>Kcal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button>Add food</button>
+    `;
+    const tbody=m.querySelector("tbody");
+
+    function draw(){
+      tbody.innerHTML="";
+      meal.foods.forEach((f,fi)=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td><input value="${f.name||""}"></td>
+          <td><input value="${f.kcal||""}"></td>
+          <td><input value="${f.p||""}"></td>
+          <td><input value="${f.c||""}"></td>
+          <td><input value="${f.f||""}"></td>
+          <td><button>x</button></td>
+        `;
+        const ins=tr.querySelectorAll("input");
+        ["name","kcal","p","c","f"].forEach((k,i)=>{
+          ins[i].oninput=e=>{f[k]=e.target.value; recalc();};
+        });
+        tr.querySelector("button").onclick=()=>{meal.foods.splice(fi,1); draw(); recalc();};
+        tbody.appendChild(tr);
+      });
+    }
+
+    m.querySelector("button").onclick=()=>{meal.foods.push({}); draw();};
+    draw();
+    mealsDiv.appendChild(m);
+  });
+
+  const totals=document.createElement("div");
+  totals.className="row";
+  dietCard.appendChild(totals);
+  recalc();
 }
 
-// logout
-document.getElementById("logoutBtn").onclick = () => {
-  const state = load();
-  state.session = null;
-  save(state);
-  render();
-};
-
-// boot
+document.getElementById("logout").onclick=()=>{localStorage.removeItem(LS);location.reload();};
 render();
 </script>
 </body>
