@@ -622,12 +622,8 @@ function viewDiet(state){
   ensureClientToday(client);
 
   const t = todayISO();
-  const day = client.daily[t];
   const plan = getClientMealPlan(state, client);
   const targets = client.macroTargets.training;
-  const delta = calorieDelta(day);
-
-  const isCoach = state.users.find(u=>u.id===state.session.userId)?.role === "coach";
 
   const header = el(`
     <div class="row" style="justify-content:space-between;margin-bottom:12px;">
@@ -646,7 +642,7 @@ function viewDiet(state){
 
   const left = el(`
     <div class="card">
-      <h2>Targets</h2>
+      <h2>Today’s targets</h2>
       <div class="kpi">
         <div class="box"><div class="muted">Calories</div><div><b>${targets.kcal}</b> kcal</div></div>
         <div class="box"><div class="muted">Protein</div><div><b>${targets.p}</b> g</div></div>
@@ -656,31 +652,21 @@ function viewDiet(state){
 
       <hr class="hr">
 
-      <h2>Calorie Tracker (today)</h2>
-      <p class="muted">Client enters totals. Coach can review on Coach → Today.</p>
-      <div class="row">
-        <input id="burned" style="max-width:180px" placeholder="Burned kcal" value="${day.caloriesBurned ?? ""}">
-        <input id="consumed" style="max-width:180px" placeholder="Consumed kcal" value="${day.caloriesConsumed ?? ""}">
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <span class="tag">Delta: <b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></span>
-      </div>
-      <button class="primary" id="saveCal" style="margin-top:10px;">Save calories</button>
+      <h3>Notes</h3>
+      <p class="muted">Follow the macro targets first. Meal templates are optional and can be assigned/edited by the coach.</p>
 
-      ${isCoach ? `
-        <hr class="hr">
-        <h3>Coach controls</h3>
-        <button id="editDietOverride">Edit diet (override)</button>
-      ` : ``}
+      <div class="row" style="margin-top:10px;">
+        <button id="openMessages">Messages</button>
+        <button id="openProgress">Progress</button>
+      </div>
     </div>
   `);
 
   const right = el(`
     <div class="card">
-      <h2>Meal plan</h2>
+      <h2>Meal template (optional)</h2>
       <p class="muted">${plan ? plan.name : "No plan assigned yet."}</p>
       <div id="tplArea"></div>
-      <p class="hint">If you don’t see the meal plan, the coach may need to assign a template or clear the override.</p>
     </div>
   `);
 
@@ -712,17 +698,8 @@ function viewDiet(state){
     });
   }
 
-  root.querySelector("#saveCal").onclick = ()=>{
-    day.caloriesBurned = root.querySelector("#burned").value.trim();
-    day.caloriesConsumed = root.querySelector("#consumed").value.trim();
-    save(state);
-    alert("Saved calorie totals for today.");
-    render();
-  };
-
-  if (isCoach){
-    root.querySelector("#editDietOverride").onclick = ()=> openMealPlanEditor(state, client.id);
-  }
+  root.querySelector("#openMessages").onclick = ()=>{ state.ui.view="messages"; save(state); render(); };
+  root.querySelector("#openProgress").onclick = ()=>{ state.ui.view="progress"; save(state); render(); };
 
   root.querySelector("#toCoach").onclick = ()=>{ state.ui.view="coach"; save(state); render(); };
   root.querySelector("#toClient").onclick = ()=>{ state.ui.view="client"; save(state); render(); };
@@ -738,6 +715,7 @@ function viewClient(state){
   const t=todayISO();
   const day=client.daily[t];
   const targets=client.macroTargets.training;
+  const delta = calorieDelta(day);
 
   root.appendChild(el(`
     <div class="card">
@@ -761,7 +739,22 @@ function viewClient(state){
         <div class="box"><div class="muted">Steps</div><div><b>${fmt(day.steps)}</b></div></div>
       </div>
 
-      <label style="margin-top:12px;">Nutrition compliance (%)</label>
+      <hr class="hr">
+
+      <h2>Daily calories</h2>
+      <p class="muted">Enter totals so your coach can monitor energy balance.</p>
+      <div class="row">
+        <input id="burned" style="max-width:180px" placeholder="Calories burned (kcal)" value="${day.caloriesBurned ?? ""}">
+        <input id="consumed" style="max-width:180px" placeholder="Calories consumed (kcal)" value="${day.caloriesConsumed ?? ""}">
+        <span class="tag">Delta: <b>${delta==="" ? "—" : (delta>0?"+":"")+delta}</b></span>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary" id="saveCalories">Save calories</button>
+      </div>
+
+      <hr class="hr">
+
+      <label>Nutrition compliance (%)</label>
       <input id="comp" type="number" min="0" max="100" value="${day.nutritionCompliancePct}" />
 
       <div class="row" style="margin-top:10px;">
@@ -774,12 +767,19 @@ function viewClient(state){
 
       <div class="row" style="margin-top:10px;">
         <button class="primary" id="save">Save today</button>
-        <button id="jumpDiet">Open Diet tab</button>
       </div>
 
-      <p class="hint">Calorie Tracker is in the <b>Diet</b> tab (today) and <b>Progress</b> tab (last 14 days).</p>
+      <p class="hint">Coach summary shows Burned / Consumed / Delta on Coach → Today.</p>
     </div>
   `));
+
+  root.querySelector("#saveCalories").onclick = ()=>{
+    day.caloriesBurned = root.querySelector("#burned").value.trim();
+    day.caloriesConsumed = root.querySelector("#consumed").value.trim();
+    save(state);
+    alert("Saved calories for today.");
+    render();
+  };
 
   root.querySelector("#save").onclick=()=>{
     day.nutritionCompliancePct = clamp(Number(root.querySelector("#comp").value),0,100);
@@ -789,7 +789,7 @@ function viewClient(state){
     save(state);
     alert("Saved.");
   };
-  root.querySelector("#jumpDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
+
   root.querySelector("#toDiet").onclick=()=>{ state.ui.view="diet"; save(state); render(); };
   root.querySelector("#toProgress").onclick=()=>{ state.ui.view="progress"; save(state); render(); };
   root.querySelector("#toMessages").onclick=()=>{ state.ui.view="messages"; save(state); render(); };
