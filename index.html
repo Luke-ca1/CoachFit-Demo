@@ -3,28 +3,30 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CoachFit Demo – Diet Builder (Meal Totals)</title>
+<title>CoachFit Demo – Diet Builder (Add Meals + Meal Totals)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111}
 body{margin:0}
 header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-index:10}
-.bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .brand{font-weight:900}
 .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
 main{max-width:1100px;margin:0 auto;padding:16px}
 .card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,select,textarea,button{padding:8px;border-radius:10px;border:1px solid #d9dbe3}
+input,textarea,button{padding:8px;border-radius:10px;border:1px solid #d9dbe3;font-size:14px}
 button{cursor:pointer;background:#fff}
 button.primary{background:#111;color:#fff;border-color:#111}
+button.danger{background:#fff0f0;border-color:#ffc2c2}
 table{border-collapse:collapse;width:100%}
 th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px;vertical-align:top}
 th{font-size:12px;color:#555;background:#fafbff}
 .muted{color:#666;font-size:13px}
-.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px;background:#fff}
-.mealHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
-.mealTotals{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px;background:#fff;display:inline-block}
 hr{border:none;border-top:1px solid #eef0f6;margin:12px 0}
+.actionsRow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mealTotalsInline{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.small{font-size:12px;padding:6px 10px;border-radius:10px}
 </style>
 </head>
 <body>
@@ -33,11 +35,11 @@ hr{border:none;border-top:1px solid #eef0f6;margin:12px 0}
     <div class="row">
       <div class="brand">CoachFit</div>
       <span class="pill">diet builder</span>
-      <span class="pill">meal totals</span>
+      <span class="pill">add meals</span>
     </div>
     <div class="row">
       <span class="muted" id="who"></span>
-      <button id="reset">Reset</button>
+      <button id="reset" class="small danger">Reset</button>
     </div>
   </div>
 </header>
@@ -48,12 +50,12 @@ hr{border:none;border-top:1px solid #eef0f6;margin:12px 0}
 /**
  * Diet Builder (single-file demo)
  * - Custom foods per meal
- * - Auto-calculates:
- *   1) Totals per meal (kcal / P / C / F)
- *   2) Grand total (kcal / P / C / F)
+ * - Meal totals shown BELOW food items (next to Add food)
+ * - Ability to add more meals (custom name) + remove meals
+ * - Grand total remains
  */
 
-const LS="coachfit_diet_builder_meal_totals_v1";
+const LS="coachfit_diet_builder_meals_v2";
 const today=()=>new Date().toISOString().slice(0,10);
 
 function load(){
@@ -81,7 +83,6 @@ function n(v){
   const x = Number(v);
   return isFinite(x) ? x : 0;
 }
-
 function calcMeal(meal){
   let kcal=0,p=0,c=0,f=0;
   (meal.foods||[]).forEach(x=>{
@@ -91,6 +92,9 @@ function calcMeal(meal){
     f    += n(x.f);
   });
   return {kcal,p,c,f};
+}
+function esc(s){
+  return String(s??"").replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 }
 
 function render(){
@@ -103,14 +107,22 @@ function render(){
   const dietCard=document.createElement("div");
   dietCard.className="card";
   dietCard.innerHTML=`
-    <h2>Diet Builder (custom)</h2>
-    <p class="muted">Add foods manually. Macros auto-calculate per meal + total.</p>
-    <div id="meals"></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h2 style="margin:0 0 6px 0;">Diet Builder (custom)</h2>
+        <div class="muted">Add foods manually. Totals update automatically.</div>
+      </div>
+      <div class="row" style="align-items:center;">
+        <input id="newMealName" style="min-width:220px;" placeholder="New meal name (e.g. Pre-workout)" />
+        <button class="primary" id="addMealBtn">+ Add meal</button>
+      </div>
+    </div>
+    <div id="meals" style="margin-top:12px;"></div>
     <hr>
     <div class="row" style="justify-content:space-between;align-items:center;">
       <div>
         <b>Total (all meals)</b>
-        <div class="muted">Sum of Breakfast + Lunch + Dinner + Snack</div>
+        <div class="muted">Sum of every meal</div>
       </div>
       <div class="row" id="grandTotals"></div>
     </div>
@@ -121,7 +133,7 @@ function render(){
   const grandTotalsDiv=dietCard.querySelector("#grandTotals");
 
   function recalcAll(){
-    // per-meal totals
+    // per-meal totals (now inline below table)
     s.diet.meals.forEach((meal,mi)=>{
       const t = calcMeal(meal);
       const box = document.getElementById(`mealTotals_${mi}`);
@@ -150,82 +162,117 @@ function render(){
     save(s);
   }
 
-  s.diet.meals.forEach((meal,mi)=>{
-    const m=document.createElement("div");
-    m.className="card";
-    m.innerHTML=`
-      <div class="mealHeader">
-        <div>
-          <h3 style="margin:0 0 4px 0;">${meal.name}</h3>
-          <div class="muted">Meal summary (auto)</div>
+  function drawMeals(){
+    mealsDiv.innerHTML="";
+
+    s.diet.meals.forEach((meal,mi)=>{
+      const mealCard=document.createElement("div");
+      mealCard.className="card";
+      mealCard.innerHTML=`
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <div class="row" style="align-items:center;">
+            <input data-mealname style="min-width:220px;font-weight:700;" value="${esc(meal.name)}" />
+            <span class="muted">Meal</span>
+          </div>
+          <button class="small danger" data-delmeal>Remove meal</button>
         </div>
-        <div class="mealTotals" id="mealTotals_${mi}"></div>
-      </div>
 
-      <div style="margin-top:10px;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:44%;">Food</th>
-              <th style="width:14%;">Kcal</th>
-              <th style="width:14%;">P</th>
-              <th style="width:14%;">C</th>
-              <th style="width:14%;">F</th>
-              <th style="width:1%;"></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+        <div style="margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:44%;">Food</th>
+                <th style="width:14%;">Kcal</th>
+                <th style="width:14%;">P</th>
+                <th style="width:14%;">C</th>
+                <th style="width:14%;">F</th>
+                <th style="width:1%;"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
 
-      <div class="row" style="margin-top:10px;justify-content:space-between;">
-        <button data-add>+ Add food</button>
-        <span class="muted">Tip: totals update instantly.</span>
-      </div>
-    `;
+        <div class="actionsRow">
+          <button data-add>+ Add food</button>
+          <div class="mealTotalsInline" id="mealTotals_${mi}"></div>
+        </div>
+      `;
 
-    const tbody=m.querySelector("tbody");
+      // rename meal
+      mealCard.querySelector("[data-mealname]").oninput = (e)=>{
+        meal.name = e.target.value;
+        save(s);
+      };
 
-    function draw(){
-      tbody.innerHTML="";
-      (meal.foods||[]).forEach((food,fi)=>{
-        const tr=document.createElement("tr");
-        tr.innerHTML=`
-          <td><input value="${food.name||""}" placeholder="e.g. Chicken breast 180g"></td>
-          <td><input value="${food.kcal||""}" placeholder="kcal"></td>
-          <td><input value="${food.p||""}" placeholder="g"></td>
-          <td><input value="${food.c||""}" placeholder="g"></td>
-          <td><input value="${food.f||""}" placeholder="g"></td>
-          <td><button title="Remove">✕</button></td>
-        `;
-        const ins=tr.querySelectorAll("input");
-        ["name","kcal","p","c","f"].forEach((k,i)=>{
-          ins[i].oninput=(e)=>{ food[k]=e.target.value; recalcAll(); };
+      // remove meal
+      mealCard.querySelector("[data-delmeal]").onclick = ()=>{
+        if (!confirm(`Remove meal "${meal.name}"?`)) return;
+        s.diet.meals.splice(mi,1);
+        save(s);
+        render();
+      };
+
+      const tbody = mealCard.querySelector("tbody");
+
+      function drawFoods(){
+        tbody.innerHTML="";
+        (meal.foods||[]).forEach((food,fi)=>{
+          const tr=document.createElement("tr");
+          tr.innerHTML=`
+            <td><input value="${esc(food.name)}" placeholder="e.g. Chicken breast 180g"></td>
+            <td><input value="${esc(food.kcal)}" placeholder="kcal"></td>
+            <td><input value="${esc(food.p)}" placeholder="g"></td>
+            <td><input value="${esc(food.c)}" placeholder="g"></td>
+            <td><input value="${esc(food.f)}" placeholder="g"></td>
+            <td><button class="small" title="Remove">✕</button></td>
+          `;
+          const ins=tr.querySelectorAll("input");
+          ["name","kcal","p","c","f"].forEach((k,i)=>{
+            ins[i].oninput=(e)=>{ food[k]=e.target.value; recalcAll(); };
+          });
+          tr.querySelector("button").onclick=()=>{
+            meal.foods.splice(fi,1);
+            drawFoods();
+            recalcAll();
+          };
+          tbody.appendChild(tr);
         });
-        tr.querySelector("button").onclick=()=>{
-          meal.foods.splice(fi,1);
-          draw();
-          recalcAll();
-        };
-        tbody.appendChild(tr);
-      });
-      recalcAll();
-    }
+        recalcAll();
+      }
 
-    m.querySelector("[data-add]").onclick=()=>{
-      meal.foods.push({name:"",kcal:"",p:"",c:"",f:""});
-      draw();
-      setTimeout(()=>{
-        const last = tbody.querySelector("tr:last-child input");
-        if (last) last.focus();
-      },0);
-    };
+      mealCard.querySelector("[data-add]").onclick=()=>{
+        meal.foods.push({name:"",kcal:"",p:"",c:"",f:""});
+        drawFoods();
+        setTimeout(()=>{
+          const last = tbody.querySelector("tr:last-child input");
+          if (last) last.focus();
+        },0);
+      };
 
-    draw();
-    mealsDiv.appendChild(m);
+      drawFoods();
+      mealsDiv.appendChild(mealCard);
+    });
+
+    recalcAll();
+  }
+
+  // Add meal
+  dietCard.querySelector("#addMealBtn").onclick = ()=>{
+    const name = dietCard.querySelector("#newMealName").value.trim();
+    if (!name) return alert("Please enter a meal name.");
+    s.diet.meals.push({name, foods:[]});
+    dietCard.querySelector("#newMealName").value="";
+    save(s);
+    render();
+  };
+
+  // Enter to add meal
+  dietCard.querySelector("#newMealName").addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); dietCard.querySelector("#addMealBtn").click(); }
   });
 
-  recalcAll();
+  drawMeals();
 }
 
 document.getElementById("reset").onclick=()=>{
