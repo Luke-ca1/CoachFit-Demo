@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CoachFit Demo – Restored Diet Builder</title>
+<title>CoachFit Demo – Diet Builder (Meal Totals)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#111}
 body{margin:0}
@@ -12,14 +12,19 @@ header{background:#fff;border-bottom:1px solid #e6e8ef;position:sticky;top:0;z-i
 .brand{font-weight:900}
 .pill{font-size:12px;padding:2px 8px;border:1px solid #e6e8ef;border-radius:999px;background:#fafbff}
 main{max-width:1100px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
+.card{background:#fff;border:1px solid #e6e8ef;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input,select,textarea,button{padding:8px;border-radius:10px;border:1px solid #d9dbe3}
-button.primary{background:#111;color:#fff}
+button{cursor:pointer;background:#fff}
+button.primary{background:#111;color:#fff;border-color:#111}
 table{border-collapse:collapse;width:100%}
-th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
+th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px;vertical-align:top}
+th{font-size:12px;color:#555;background:#fafbff}
 .muted{color:#666;font-size:13px}
-.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px}
+.tag{font-size:11px;border:1px solid #e6e8ef;border-radius:999px;padding:2px 8px;background:#fff}
+.mealHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.mealTotals{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+hr{border:none;border-top:1px solid #eef0f6;margin:12px 0}
 </style>
 </head>
 <body>
@@ -27,11 +32,12 @@ th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
   <div class="bar">
     <div class="row">
       <div class="brand">CoachFit</div>
-      <span class="pill">diet builder restored</span>
+      <span class="pill">diet builder</span>
+      <span class="pill">meal totals</span>
     </div>
     <div class="row">
-      <span id="who"></span>
-      <button id="logout">Log out</button>
+      <span class="muted" id="who"></span>
+      <button id="reset">Reset</button>
     </div>
   </div>
 </header>
@@ -39,13 +45,15 @@ th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
 <main id="app"></main>
 
 <script>
-/* ====== This version intentionally focuses on restoring:
-   - FULL editable Diet Builder (custom foods + macros + totals)
-   - Calorie tracker REMOVED from Diet
-   - Calorie tracker remains on Client + Coach (next iteration)
-*/
+/**
+ * Diet Builder (single-file demo)
+ * - Custom foods per meal
+ * - Auto-calculates:
+ *   1) Totals per meal (kcal / P / C / F)
+ *   2) Grand total (kcal / P / C / F)
+ */
 
-const LS="coachfit_restore_diet";
+const LS="coachfit_diet_builder_meal_totals_v1";
 const today=()=>new Date().toISOString().slice(0,10);
 
 function load(){
@@ -69,37 +77,75 @@ function seed(){
   };
 }
 
+function n(v){
+  const x = Number(v);
+  return isFinite(x) ? x : 0;
+}
+
+function calcMeal(meal){
+  let kcal=0,p=0,c=0,f=0;
+  (meal.foods||[]).forEach(x=>{
+    kcal += n(x.kcal);
+    p    += n(x.p);
+    c    += n(x.c);
+    f    += n(x.f);
+  });
+  return {kcal,p,c,f};
+}
+
 function render(){
   const s=load();
-  document.getElementById("who").textContent=s.session.role;
+  document.getElementById("who").textContent = `Role: ${s.session.role} • ${today()}`;
+
   const root=document.getElementById("app");
   root.innerHTML="";
 
-  // DIET BUILDER (RESTORED)
   const dietCard=document.createElement("div");
   dietCard.className="card";
   dietCard.innerHTML=`
     <h2>Diet Builder (custom)</h2>
-    <p class="muted">Add foods manually. Macros auto-calculate.</p>
+    <p class="muted">Add foods manually. Macros auto-calculate per meal + total.</p>
     <div id="meals"></div>
+    <hr>
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div>
+        <b>Total (all meals)</b>
+        <div class="muted">Sum of Breakfast + Lunch + Dinner + Snack</div>
+      </div>
+      <div class="row" id="grandTotals"></div>
+    </div>
   `;
   root.appendChild(dietCard);
 
   const mealsDiv=dietCard.querySelector("#meals");
+  const grandTotalsDiv=dietCard.querySelector("#grandTotals");
 
-  function recalc(){
-    let kcal=0,p=0,c=0,f=0;
-    s.diet.meals.forEach(m=>m.foods.forEach(x=>{
-      kcal+=Number(x.kcal||0);
-      p+=Number(x.p||0);
-      c+=Number(x.c||0);
-      f+=Number(x.f||0);
-    }));
-    totals.innerHTML=`
-      <span class="tag">${kcal} kcal</span>
-      <span class="tag">P ${p}</span>
-      <span class="tag">C ${c}</span>
-      <span class="tag">F ${f}</span>
+  function recalcAll(){
+    // per-meal totals
+    s.diet.meals.forEach((meal,mi)=>{
+      const t = calcMeal(meal);
+      const box = document.getElementById(`mealTotals_${mi}`);
+      if (box){
+        box.innerHTML = `
+          <span class="tag">${t.kcal} kcal</span>
+          <span class="tag">P ${t.p}</span>
+          <span class="tag">C ${t.c}</span>
+          <span class="tag">F ${t.f}</span>
+        `;
+      }
+    });
+
+    // grand total
+    let g={kcal:0,p:0,c:0,f:0};
+    s.diet.meals.forEach(m=>{
+      const t=calcMeal(m);
+      g.kcal+=t.kcal; g.p+=t.p; g.c+=t.c; g.f+=t.f;
+    });
+    grandTotalsDiv.innerHTML = `
+      <span class="tag">${g.kcal} kcal</span>
+      <span class="tag">P ${g.p}</span>
+      <span class="tag">C ${g.c}</span>
+      <span class="tag">F ${g.f}</span>
     `;
     save(s);
   }
@@ -108,48 +154,86 @@ function render(){
     const m=document.createElement("div");
     m.className="card";
     m.innerHTML=`
-      <h3>${meal.name}</h3>
-      <table>
-        <thead><tr><th>Food</th><th>Kcal</th><th>P</th><th>C</th><th>F</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <button>Add food</button>
+      <div class="mealHeader">
+        <div>
+          <h3 style="margin:0 0 4px 0;">${meal.name}</h3>
+          <div class="muted">Meal summary (auto)</div>
+        </div>
+        <div class="mealTotals" id="mealTotals_${mi}"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:44%;">Food</th>
+              <th style="width:14%;">Kcal</th>
+              <th style="width:14%;">P</th>
+              <th style="width:14%;">C</th>
+              <th style="width:14%;">F</th>
+              <th style="width:1%;"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="row" style="margin-top:10px;justify-content:space-between;">
+        <button data-add>+ Add food</button>
+        <span class="muted">Tip: totals update instantly.</span>
+      </div>
     `;
+
     const tbody=m.querySelector("tbody");
 
     function draw(){
       tbody.innerHTML="";
-      meal.foods.forEach((f,fi)=>{
+      (meal.foods||[]).forEach((food,fi)=>{
         const tr=document.createElement("tr");
         tr.innerHTML=`
-          <td><input value="${f.name||""}"></td>
-          <td><input value="${f.kcal||""}"></td>
-          <td><input value="${f.p||""}"></td>
-          <td><input value="${f.c||""}"></td>
-          <td><input value="${f.f||""}"></td>
-          <td><button>x</button></td>
+          <td><input value="${food.name||""}" placeholder="e.g. Chicken breast 180g"></td>
+          <td><input value="${food.kcal||""}" placeholder="kcal"></td>
+          <td><input value="${food.p||""}" placeholder="g"></td>
+          <td><input value="${food.c||""}" placeholder="g"></td>
+          <td><input value="${food.f||""}" placeholder="g"></td>
+          <td><button title="Remove">✕</button></td>
         `;
         const ins=tr.querySelectorAll("input");
         ["name","kcal","p","c","f"].forEach((k,i)=>{
-          ins[i].oninput=e=>{f[k]=e.target.value; recalc();};
+          ins[i].oninput=(e)=>{ food[k]=e.target.value; recalcAll(); };
         });
-        tr.querySelector("button").onclick=()=>{meal.foods.splice(fi,1); draw(); recalc();};
+        tr.querySelector("button").onclick=()=>{
+          meal.foods.splice(fi,1);
+          draw();
+          recalcAll();
+        };
         tbody.appendChild(tr);
       });
+      recalcAll();
     }
 
-    m.querySelector("button").onclick=()=>{meal.foods.push({}); draw();};
+    m.querySelector("[data-add]").onclick=()=>{
+      meal.foods.push({name:"",kcal:"",p:"",c:"",f:""});
+      draw();
+      setTimeout(()=>{
+        const last = tbody.querySelector("tr:last-child input");
+        if (last) last.focus();
+      },0);
+    };
+
     draw();
     mealsDiv.appendChild(m);
   });
 
-  const totals=document.createElement("div");
-  totals.className="row";
-  dietCard.appendChild(totals);
-  recalc();
+  recalcAll();
 }
 
-document.getElementById("logout").onclick=()=>{localStorage.removeItem(LS);location.reload();};
+document.getElementById("reset").onclick=()=>{
+  if(!confirm("Reset diet builder data?")) return;
+  localStorage.removeItem(LS);
+  location.reload();
+};
+
 render();
 </script>
 </body>
